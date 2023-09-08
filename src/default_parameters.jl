@@ -7,12 +7,12 @@
     Tini=Tprog                # number format to reduce precision for initial conditions
 
     # DOMAIN RESOLUTION AND RATIO
-    nx::Int=100                         # number of grid cells in x-direction
-    Lx::Real=4000e3                     # length of the domain in x-direction [m]
-    L_ratio::Real=2                     # Domain aspect ratio of Lx/Ly
+    nx::Int=128                         # number of grid cells in x-direction
+    Lx::Real=3840e3                     # length of the domain in x-direction [m]
+    L_ratio::Real=1                     # Domain aspect ratio of Lx/Ly
 
     # PHYSICAL CONSTANTS
-    g::Real=0.1                         # gravitational acceleration [m/s]
+    g::Real=9.81                        # gravitational acceleration [m/s] ##Changed
     H::Real=500.                        # layer thickness at rest [m]
     ρ::Real=1e3                         # water density [kg/m^3]
     ϕ::Real=45.                         # central latitude of the domain (for coriolis) [°]
@@ -24,7 +24,7 @@
     scale_sst::Real=2^15                # multiplicative scale for sst
 
     # WIND FORCING OPTIONS
-    wind_forcing_x::String="shear"      # "channel", "double_gyre", "shear","constant" or "none"
+    wind_forcing_x::String="double_gyre"      # "channel", "double_gyre", "shear","constant" or "none"
     wind_forcing_y::String="constant"   # "channel", "double_gyre", "shear","constant" or "none"
     Fx0::Real=0.12                      # wind stress strength [Pa] in x-direction
     Fy0::Real=0.0                       # wind stress strength [Pa] in y-direction
@@ -59,7 +59,7 @@
     RKs::Int=3                          # Number of stages for SSPRK2
     RKn::Int=5                          # n^2 = s = Number of stages  for SSPRK3
     cfl::Real=0.9                       # CFL number (1.0 recommended for RK4, 0.6 for RK3)
-    Ndays::Real=200.0                   # number of days to integrate for
+    Ndays::Real=5                       # number of days to integrate for
     nstep_diff::Int=1                   # diffusive part every nstep_diff time steps.
     nstep_advcor::Int=0                 # advection and coriolis update every nstep_advcor time steps.
                                         # 0 means it is included in every RK4 substep
@@ -71,11 +71,11 @@
                                         # 0 free-slip, 0<α<2 partial-slip, 2 no-slip
 
     # MOMENTUM ADVECTION OPTIONS
-    adv_scheme::String="ArakawaHsu"     # "Sadourny" or "ArakawaHsu"
+    adv_scheme::String="Sadourny"       # "Sadourny" or "ArakawaHsu"
     dynamics::String="nonlinear"        # "linear" or "nonlinear"
 
     # BOTTOM FRICTION OPTIONS
-    bottom_drag::String="none"          # "linear", "quadratic" or "none"
+    bottom_drag::String="quadratic"     # "linear", "quadratic" or "none"
     cD::Real=1e-5                       # bottom drag coefficient [dimensionless] for quadratic
     τD::Real=300.                       # bottom drag coefficient [days] for linear
 

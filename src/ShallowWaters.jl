@@ -4,13 +4,16 @@ module ShallowWaters
 
     using NetCDF, Parameters, Printf, Dates, Interpolations
 
+    using Enzyme#main
+    Enzyme.API.maxtypeoffset!(3010)
+
     include("default_parameters.jl")
     include("grid.jl")
     include("constants.jl")
     include("forcing.jl")
+    include("preallocate.jl")
     include("model_setup.jl")
     include("initial_conditions.jl")
-    include("preallocate.jl")
 
     include("time_integration.jl")
     include("ghost_points.jl")
