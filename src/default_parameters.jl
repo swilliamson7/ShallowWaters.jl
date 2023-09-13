@@ -28,13 +28,13 @@
     wind_forcing_y::String="constant"   # "channel", "double_gyre", "shear","constant" or "none"
     Fx0::Real=0.12                      # wind stress strength [Pa] in x-direction
     Fy0::Real=0.0                       # wind stress strength [Pa] in y-direction
-    seasonal_wind_x::Bool=true          # Change the wind stress with a sine of frequency ωFx,ωFy
+    seasonal_wind_x::Bool=false          # Change the wind stress with a sine of frequency ωFx,ωFy
     seasonal_wind_y::Bool=false         # same for y-component
     ωFx::Real=2                         # frequency [1/year] for x component
     ωFy::Real=2                         # frequency [1/year] for y component
 
     # BOTTOM TOPOGRAPHY OPTIONS
-    topography::String="ridges"         # "ridge", "seamount", "flat", "ridges", "bathtub"
+    topography::String="flat"         # "ridge", "seamount", "flat", "ridges", "bathtub"
     topo_ridges_positions::Vector = [0.05,0.25,0.45,0.9]
     topo_height::Real=100.               # height of seamount [m]
     topo_width::Real=300e3              # horizontal scale [m] of the seamount
@@ -66,7 +66,7 @@
     compensated::Bool=false             # Compensated summation in the time integration?
 
     # BOUNDARY CONDITION OPTIONS
-    bc::String="periodic"               # "periodic" or anything else for nonperiodic
+    bc::String="nonperiodic"            # "periodic" or anything else for nonperiodic
     α::Real=2.                          # lateral boundary condition parameter
                                         # 0 free-slip, 0<α<2 partial-slip, 2 no-slip
 

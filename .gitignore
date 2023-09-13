@@ -38,3 +38,11 @@ src/old_scripts/for_debugging.jl
 src/old_scripts/for_enzymefolks.jl
 src/old_scripts/integrate_to_advectioncoriolis.txt
 *.txt
+old_scripts/first_error_found.jl
+old_scripts/for_debugging.jl
+old_scripts/for_enzymefolks.jl
+old_scripts/ghost_points_only.jl
+old_scripts/debugging_process_090623.jl
+old_scripts/advection_coriolis_only.jl
+data_files/spinup_states_1024_10years.jld2
+*.jld2

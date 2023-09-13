@@ -36,12 +36,13 @@ function run_model(::Type{T},P::Parameter) where {T<:AbstractFloat}
 
     Prog = initial_conditions(Tprog,G,P,C)
     Diag = preallocate(T,Tprog,G)
+    adjoint = AdjointVariables()
 
     # one structure with everything already inside 
-    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag)
+    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,adjoint)
     P = time_integration_withreturn(S)
 
-    return P
+    return P 
 
 end
 
@@ -71,16 +72,55 @@ function run_check(::Type{T},P::Parameter) where {T<:AbstractFloat}
 
     Prog = initial_conditions(Tprog,G,P,C)
     Diag = preallocate(T,Tprog,G)
+    adjoint = AdjointVariables()
 
     # one structure with everything already inside 
-    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag)
+    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag, adjoint)
     P = time_integration_mine(S)
 
-    return S
+    return P
 
 end
 
 ##################################################################
+
+## Built in Enzyme run ####################################################################################################
+
+function run_enzyme(::Type{T}=Float32;     # number format
+    kwargs...                             # all additional parameters
+    ) where {T<:AbstractFloat}
+
+    P = Parameter(T=T;kwargs...)
+    return run_enzyme(T,P)
+end
+
+function run_enzyme(P::Parameter)
+    @unpack T = P
+    return run_enzyme(T,P)
+end
+
+function run_enzyme(::Type{T},P::Parameter) where {T<:AbstractFloat}
+
+    @unpack Tprog = P
+
+    G = Grid{T,Tprog}(P)
+    C = Constants{T,Tprog}(P,G)
+    F = Forcing{T}(P,G)
+    # S = ModelSetup{T,Tprog}(P,G,C,F)
+
+    Prog = initial_conditions(Tprog,G,P,C)
+    Diag = preallocate(T,Tprog,G)
+    adjoint = AdjointVariables()
+
+    # one structure with everything already inside 
+    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,adjoint)
+    dS = deepcopy(S)
+    autodiff(Reverse, ShallowWaters.time_integration_nofeedback, Duplicated(S, dS))
+
+    return S, dS
+
+end
+
 
 #### Setup run #########################################################################################################
 
@@ -111,13 +151,14 @@ function run_setup(::Type{T},P::Parameter) where {T<:AbstractFloat}
     Prog = initial_conditions(Tprog,G,P,C)
     Diag = preallocate(T,Tprog,G)
 
+    AV = AdjointVariables()
+
     # one structure with everything inside 
-    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag)
+    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,AV)
 
     return S
 
 end
-
 
 #### Original ##################################################################################
 
