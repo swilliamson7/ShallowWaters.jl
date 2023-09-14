@@ -44,6 +44,8 @@ function Forcing{T}(P::Parameter,G::Grid) where {T<:AbstractFloat}
         H = Seamount(T,P,G)
     elseif topography == "flat"
         H = FlatBottom(T,P,G)
+    elseif topograph == "bathtub"
+        H = Bathtub(T,P,G)
     end
 
     η_ref = InterfaceRelaxation(T,P,G)
@@ -148,6 +150,23 @@ function Seamount(::Type{T},P::Parameter,G::Grid) where {T<:AbstractFloat}
     bumpy = exp.(-((yy_T .- Ly/2).^2)/(2*topo_width^2))
 
     return T.(H .- topo_height*bumpx.*bumpy)
+end
+
+""" bathtub shaped domain """ 
+function Bathtub(::Type{T},P::Parameter,G::Grid) where {T<:AbstractFloat}
+
+    @unpack x_T_halo,y_T_halo = G
+    @unpack topo_height,H = P
+
+    x = range(-2.0,stop=1.1,length=length(x_T_halo))
+    y = range(-1.1,stop=1.1,length=length(y_T_halo))
+    xx_T,yy_T = meshgrid(x,y)
+
+    B = xx_T.^10 + yy_T.^10
+    B[B .> 1.0] .= 1.0
+
+    return T.(H .- topo_height*B)
+    
 end
 
 """Returns a matrix of water depth for the whole domain that contains a
