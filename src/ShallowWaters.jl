@@ -30,4 +30,6 @@ module ShallowWaters
     include("output.jl")
     include("run_model.jl")
 
+    include("zanna_bolton_forcing.jl")
+
 end

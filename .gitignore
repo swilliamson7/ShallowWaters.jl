@@ -46,3 +46,7 @@ old_scripts/debugging_process_090623.jl
 old_scripts/advection_coriolis_only.jl
 data_files/spinup_states_1024_10years.jld2
 *.jld2
+figs/etasnapshot.png
+figs/for_student_pres.png
+figs/usnapshot.png
+figs/vsnapshot.png

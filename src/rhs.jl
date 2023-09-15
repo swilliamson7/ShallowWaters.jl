@@ -242,11 +242,18 @@ function momentum_u!(   Diag::DiagnosticVars{T,Tprog},
         Fxt = one(T)
     end
 
+    # edit this portion 
+    if S.parameters.zb_forcing
+        forcing = zb_forcing(S)
+    end 
+
     @inbounds for j ∈ 1:n
         for i ∈ 1:m
             du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j])
         end
     end
+
+
 end
 
 """Sum up the tendencies of the non-diffusive right-hand side for the v-component."""
