@@ -1,4 +1,4 @@
-include("ShallowWaters.jl")
+include("../src/ShallowWaters.jl")
 using .ShallowWaters 
 using NetCDF, Parameters, Printf, Dates, Interpolations
 using Enzyme#main

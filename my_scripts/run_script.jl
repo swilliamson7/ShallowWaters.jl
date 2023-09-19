@@ -2,7 +2,7 @@ include("../src/ShallowWaters.jl")
 using .ShallowWaters 
 using Enzyme#main
 
-P = ShallowWaters.run_model(nx=128,Ndays=1,output=true)
+P = ShallowWaters.run_model(nx=128,Ndays=1,initial_cond="ncfile")
 
 # Checking my adjusted function output versus MK output,
 # need to change ModelSetup definition before running 
