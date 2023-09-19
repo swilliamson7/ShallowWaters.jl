@@ -242,10 +242,10 @@ function momentum_u!(   Diag::DiagnosticVars{T,Tprog},
         Fxt = one(T)
     end
 
-    # edit this portion 
-    if S.parameters.zb_forcing
-        forcing = zb_forcing(S)
-    end 
+    # # edit this portion 
+    # if S.parameters.zb_forcing
+    #     forcing = zb_forcing(S)
+    # end 
 
     @inbounds for j ∈ 1:n
         for i ∈ 1:m

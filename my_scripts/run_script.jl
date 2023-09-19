@@ -2,9 +2,7 @@ include("../src/ShallowWaters.jl")
 using .ShallowWaters 
 using Enzyme#main
 
-runlist = filter(x->startswith(x,"run"),readdir(pwd()))
-existing_runs = [parse(Int,id[4:end]) for id in runlist] 
-# P = ShallowWaters.run_model(nx=128, Ndays=365)
+P = ShallowWaters.run_model(nx=128,Ndays=1,output=true)
 
 # Checking my adjusted function output versus MK output,
 # need to change ModelSetup definition before running 
