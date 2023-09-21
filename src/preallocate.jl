@@ -450,6 +450,73 @@ end
 
 ###################################################################
 
+""" Variables that appear in Zanna-Bolton forcing term """ 
+@with_kw struct ZB_struct{T<:AbstractFloat}
+
+    # to be specified
+    nx::Int
+    ny::Int
+    bc::String
+    halo::Int
+    haloη::Int
+    halosstx::Int
+    halossty::Int
+
+    nux::Int = if (bc == "periodic") nx else nx-1 end      # u-grid in x-direction
+    nuy::Int = ny                                          # u-grid in y-direction
+    nvx::Int = nx                                          # v-grid in x-direction
+    nvy::Int = ny-1                                        # v-grid in y-direction
+    nqx::Int = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
+    nqy::Int = ny+1                                        # q-grid in y-direction
+
+    dudx::Array{T,2} = zeros(T,nux+2*halo-1,nuy+2*halo)    # ∂u/∂x
+    dudy::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo-1)    # ∂u/∂y
+    dvdx::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
+    dvdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
+
+    ξ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
+    ξsq::Array{T,2} = zeros(T,nqx,nqy)    # relative vorticity squared, cell corners 
+
+    D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners 
+    Dsq::Array{T,2} = zeros(T,nqx,nqy)    # square of the tensor 
+
+    Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
+    Dhatsq::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)   # square of the tensor
+    Dhatq::Array{T,2} = zeros(T,nqx,nqy)             # tensor interpolated onto q-grid
+
+    ξpDT::Array{T,2} = zeros(T,nx,ny)     # ξ^2 + D^2 interpolated to cell centers
+    ξD::Array{T,2} = zeros(T,nx,ny)       # ξ ⋅ D, will immediately be placed on cell centers 
+    ξDhat::Array{T,2} = zeros(T,nqx,nqy)  # ξ ⋅ Dhat, cell corners
+    
+    trace::Array{T, 2} = zeros(T,nx,ny)    # cell centers 
+
+    dξDdx::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)      # u-grid
+    dξDhatdy::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)   # u-grid 
+    dtracedx::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)   # u-grid 
+
+    S_u::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)        # total forcing in x-direction
+
+    dξDhatdx::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)   # v-grid
+    dξDdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)      # v-grid
+    dtracedy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)   # v-grid
+
+    S_v::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)        # total forcing in y-direction
+
+end
+
+"""Generator function for ZB_momentum terms."""
+function ZB_struct{T}(G::Grid) where {T<:AbstractFloat}
+
+    @unpack nx,ny,bc = G
+    @unpack halo,haloη = G
+    @unpack halosstx,halossty = G
+
+    return ZB_struct{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+                            halosstx=halosstx,halossty=halossty)
+end
+
+###########################################################################################
+
 """Preallocate the diagnostic variables and return them as matrices in structs."""
 function preallocate(   ::Type{T},
                         ::Type{Tprog},

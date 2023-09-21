@@ -70,6 +70,9 @@
     α::Real=2.                          # lateral boundary condition parameter
                                         # 0 free-slip, 0<α<2 partial-slip, 2 no-slip
 
+    # ZANNA-BOLTON FORCING 
+    zb_forcing::Bool=false
+
     # MOMENTUM ADVECTION OPTIONS
     adv_scheme::String="Sadourny"       # "Sadourny" or "ArakawaHsu"
     dynamics::String="nonlinear"        # "linear" or "nonlinear"

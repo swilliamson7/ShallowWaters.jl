@@ -42,7 +42,7 @@ function run_model(::Type{T},P::Parameter) where {T<:AbstractFloat}
     S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,adjoint)
     P = time_integration_withreturn(S)
 
-    return P 
+    return P, S 
 
 end
 

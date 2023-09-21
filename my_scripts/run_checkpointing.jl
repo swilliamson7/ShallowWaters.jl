@@ -311,12 +311,19 @@ end
 function run_checkpointing()
 
     S = ShallowWaters.run_setup(nx = 50, Ndays = 1)
+    dS = deepcopy(S)
+    # S = ShallowWaters.run_setup(nx = 50, Ndays = 1)
     snaps = Int(floor(sqrt(S.grid.nt)))
     revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt, snaps; verbose=1, gc=true, write_checkpoints=false)
 
-    dS = Zygote.gradient(checkpoint_function,
-    S,
-    revolve)
+    # dS = Zygote.gradient(checkpoint_function,
+    # S,
+    # revolve)
+
+
+    autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), revolve)
+
+    # @time S, dS = ShallowWaters.run_enzyme(nx=50, Ndays=1)
 
     return S, dS
 
