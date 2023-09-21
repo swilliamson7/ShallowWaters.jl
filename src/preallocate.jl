@@ -451,7 +451,7 @@ end
 ###################################################################
 
 """ Variables that appear in Zanna-Bolton forcing term """ 
-@with_kw struct ZB_struct{T<:AbstractFloat}
+@with_kw struct ZBVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -474,6 +474,8 @@ end
     dvdx::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
     dvdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
 
+    κ_BC::T=-8.728e8
+
     ξ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
     ξsq::Array{T,2} = zeros(T,nqx,nqy)    # relative vorticity squared, cell corners 
 
@@ -488,30 +490,30 @@ end
     ξD::Array{T,2} = zeros(T,nx,ny)       # ξ ⋅ D, will immediately be placed on cell centers 
     ξDhat::Array{T,2} = zeros(T,nqx,nqy)  # ξ ⋅ Dhat, cell corners
     
-    trace::Array{T, 2} = zeros(T,nx,ny)    # cell centers 
+    trace::Array{T, 2} = zeros(T,nx,ny)     # 0.5 ⋅ (ξ^2 + D^2 + Dhat^2), cell centers with halo 
 
-    dξDdx::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)      # u-grid
-    dξDhatdy::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)   # u-grid 
-    dtracedx::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)   # u-grid 
+    dξDdx::Array{T,2} = zeros(T,nux,nuy)             # u-grid
+    dξDhatdy::Array{T,2} = zeros(T,nux+halo,nuy)   # u-grid, initially with extra halo points
+    dtracedx::Array{T,2} = zeros(T,nux,nuy)          # u-grid 
 
-    S_u::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)        # total forcing in x-direction
+    S_u::Array{T,2} = zeros(T,nux,nuy)        # total forcing in x-direction
 
-    dξDhatdx::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)   # v-grid
-    dξDdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)      # v-grid
-    dtracedy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)   # v-grid
+    dξDhatdx::Array{T,2} = zeros(T,nvx,nvy+halo)   # v-grid, initially with extra halo points
+    dξDdy::Array{T,2} = zeros(T,nvx,nvy)      # v-grid
+    dtracedy::Array{T,2} = zeros(T,nvx,nvy)   # v-grid
 
-    S_v::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)        # total forcing in y-direction
+    S_v::Array{T,2} = zeros(T,nvx,nvy)        # total forcing in y-direction
 
 end
 
 """Generator function for ZB_momentum terms."""
-function ZB_struct{T}(G::Grid) where {T<:AbstractFloat}
+function ZBVars{T}(G::Grid) where {T<:AbstractFloat}
 
     @unpack nx,ny,bc = G
     @unpack halo,haloη = G
     @unpack halosstx,halossty = G
 
-    return ZB_struct{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+    return ZBVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
                             halosstx=halosstx,halossty=halossty)
 end
 
@@ -533,6 +535,7 @@ function preallocate(   ::Type{T},
     SM = SmagorinskyVars{T}(G)
     SL = SemiLagrangeVars{T}(G)
     PV = PrognosticVars{T}(G)
+    ZB = ZBVars{T}(G)
 
-    return DiagnosticVars{T,Tprog}(RK,TD,VF,VT,BN,BD,AH,LP,SM,SL,PV)
+    return DiagnosticVars{T,Tprog}(RK,TD,VF,VT,BN,BD,AH,LP,SM,SL,PV,ZB)
 end

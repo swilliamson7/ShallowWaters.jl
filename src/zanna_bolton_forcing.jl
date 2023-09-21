@@ -8,17 +8,18 @@ deformation of the flow field (this lives on the cell centers)
 (3) Using ξ, D, and Dhat I then compute the individual pieces of the forcing that appear, comments
 below explain on which grid they live and so on 
 """
-function ZB_momentum{T}(u, v, η, S, Diag) where {T<:AbstractFloat}
+function ZB_momentum(u, v, S, Diag) 
 
-    @unpack ξ, ξsq, D, Dsq, Dhat, Dhatsq, Dhatq = Diag.ZB_momentum
-    @unpack ξD, ξDhat, ξpDT, trace = Diag.ZB_momentum 
-    @unpack dudx, dudy, dvdx, dvdy = Diag.ZB_momentum
+    @unpack κ_BC = Diag.ZBVars
+    @unpack ξ, ξsq, D, Dsq, Dhat, Dhatsq, Dhatq = Diag.ZBVars
+    @unpack ξD, ξDhat, ξpDT, trace = Diag.ZBVars
+    @unpack dudx, dudy, dvdx, dvdy = Diag.ZBVars
 
-    @unpack dξDdx, dξDhatdy, dtracedx = Diag.ZB_momentum
-    @unpack dξDhatdx, dξDdy, dtracedy = Diag.ZB_momentum
-    @unpack S_u, S_v = Diag.ZB_momentum
+    @unpack dξDdx, dξDhatdy, dtracedx = Diag.ZBVars
+    @unpack dξDhatdx, dξDdy, dtracedy = Diag.ZBVars
+    @unpack S_u, S_v = Diag.ZBVars
 
-    @unpack halo, haloη, ep = S.grid
+    @unpack halo, haloη, ep, nux, nuy, nvx, nvy = S.grid
 
     ∂x!(dudx, u)
     ∂y!(dudy, u)
@@ -27,10 +28,11 @@ function ZB_momentum{T}(u, v, η, S, Diag) where {T<:AbstractFloat}
     ∂y!(dvdy, v)
 
     mq,nq = size(ξ)
-    mT,nT = size(Dhat)
+    mTh,nTh = size(Dhat)
+    mT,nT = size(trace)
 
     @boundscheck (mq+2,nq+2) == size(dvdx) || throw(BoundsError())
-    @boundscheck (mT+1,nT+1) == size(dvdx) || throw(BoundsError())
+    @boundscheck (mTh+1,nTh+1) == size(dvdx) || throw(BoundsError())
     @boundscheck (mq+2+ep,nq+2) == size(dudy) || throw(BoundsError())
     
     # Relative vorticity and shear deformation, cell corners
@@ -42,8 +44,8 @@ function ZB_momentum{T}(u, v, η, S, Diag) where {T<:AbstractFloat}
     end
 
     # Stretch deformation, cell centers (with halo)
-    @inbounds for j ∈ 1:nT
-        for k ∈ 1:mT 
+    @inbounds for j ∈ 1:nTh
+        for k ∈ 1:mTh
             Dhat[k,j] = dudx[k,j+1] - dvdy[k+1,j]
         end
     end
@@ -55,16 +57,17 @@ function ZB_momentum{T}(u, v, η, S, Diag) where {T<:AbstractFloat}
     # Trace computation(second term in forcing term)
     # Computing the sum of ξ^2 and D^2 and moving to cell centers
     Ixy!(ξpDT, ξsq + Dsq)
+    one_half = convert(T,0.5)
     @inbounds for j ∈ 1:nT 
         for k ∈ 1:mT
-            trace[k,j] = 0.5 * (ξpDT[k,j] + Dhatsq[k,j])
+            trace[k,j] = one_half * (ξpDT[k,j] + Dhatsq[k+1,j+1])
         end
     end
 
     # Computing ξ ⋅ D and placing on cell centers 
     Ixy!(ξD, ξ .* D)
 
-    # Computing ξ ⋅ Dhat, final tensor on cell corners 
+    # Computing ξ ⋅ Dhat, cell corners 
     Ixy!(Dhatq, Dhat)
     @inbounds for j ∈ 1:nq
         for k ∈ 1:mq 
@@ -72,8 +75,29 @@ function ZB_momentum{T}(u, v, η, S, Diag) where {T<:AbstractFloat}
         end
     end
 
-    
+    # Computing final derivatives of everything
+    ∂x!(dξDdx, ξD)
+    ∂y!(dξDhatdy, ξDhat)
+    ∂x!(dtracedx, trace)
 
+    ∂x!(dξDhatdx, ξDhat)
+    ∂y!(dξDdy, ξD)
+    ∂y!(dtracedy, trace)
+
+    temp = dξDhatdy[2:end-1,:]
+    @inbounds for j ∈ 1:nuy
+        for k ∈ 1:nux
+            S_u[k,j] = κ_BC * (dξDdx[k,j] + temp[k,j] + dtracedx[k,j])
+        end
+    end
+
+    temp2 = dξDhatdx[:,2:end-1]
+    @inbounds for j ∈ 1:nvy
+        for k ∈ 1:nvx
+            S_v[k,j] = κ_BC * (temp2[k,j] + dξDdy[k,j] + dtracedy[k,j])
+        end
+    end
+    
     # # relative vorticity, cell corners 
     # ξ .= dvdx - dudy
     # ξsq .= ξ.^2 
