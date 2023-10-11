@@ -75,7 +75,7 @@ function run_check(::Type{T},P::Parameter) where {T<:AbstractFloat}
     adjoint = AdjointVariables()
 
     # one structure with everything already inside 
-    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag, adjoint)
+    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,adjoint)
     P = time_integration_mine(S)
 
     return P

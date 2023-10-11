@@ -234,6 +234,7 @@ function momentum_u!(   Diag::DiagnosticVars{T,Tprog},
     @unpack dpdx = Diag.Bernoulli
     @unpack Fx = S.forcing
     @unpack ep,halo = S.grid
+    @unpack S_u = Diag.ZBVars
 
     m,n = size(du) .- (2halo,2halo)     # cut off the halo
     @boundscheck (m,n) == size(qhv) || throw(BoundsError())
@@ -247,12 +248,11 @@ function momentum_u!(   Diag::DiagnosticVars{T,Tprog},
         Fxt = one(T)
     end
 
-    @inbounds for j ∈ 1:n
-        for i ∈ 1:m
-            du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j])
+    for j ∈ 1:n
+        for i ∈ 1:m 
+            du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j]) + Tprog(S_u[i,j])
         end
     end
-
 
 end
 
@@ -266,6 +266,7 @@ function momentum_v!(   Diag::DiagnosticVars{T,Tprog},
     @unpack dpdy = Diag.Bernoulli
     @unpack Fy = S.forcing
     @unpack halo = S.grid
+    @unpack S_v = Diag.ZBVars
 
     m,n = size(dv) .- (2halo,2halo)     # cut off the halo
     @boundscheck (m,n) == size(qhu) || throw(BoundsError())
@@ -278,11 +279,12 @@ function momentum_v!(   Diag::DiagnosticVars{T,Tprog},
         Fyt = one(T)
     end
 
-    @inbounds for j ∈ 1:n
+    for j ∈ 1:n
         for i ∈ 1:m
-             dv[i+2,j+2] = -(Tprog(qhu[i,j]) + Tprog(dpdy[i+1,j+1])) + Tprog(Fyt*Fy[i,j])
+            dv[i+2,j+2] = -(Tprog(qhu[i,j]) + Tprog(dpdy[i+1,j+1])) + Tprog(Fyt*Fy[i,j]) + Tprog(S_v[i,j])
         end
     end
+
 end
 
 """Zonal mass flux U = uh."""

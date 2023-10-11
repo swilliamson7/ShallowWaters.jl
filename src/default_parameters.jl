@@ -8,11 +8,11 @@
 
     # DOMAIN RESOLUTION AND RATIO
     nx::Int=128                         # number of grid cells in x-direction
-    Lx::Real=3840e3                     # length of the domain in x-direction [m]
-    L_ratio::Real=1                     # Domain aspect ratio of Lx/Ly
+    Lx::Int=3840e3                      # length of the domain in x-direction [m]
+    L_ratio::Int=1                      # Domain aspect ratio of Lx/Ly
 
     # PHYSICAL CONSTANTS
-    g::Real=9.81                        # gravitational acceleration [m/s] ##Changed
+    g::Real=9.81                        # gravitational acceleration [m^2/s] ##Changed
     H::Real=500.                        # layer thickness at rest [m]
     ρ::Real=1e3                         # water density [kg/m^3]
     ϕ::Real=45.                         # central latitude of the domain (for coriolis) [°]
@@ -24,11 +24,11 @@
     scale_sst::Real=2^15                # multiplicative scale for sst
 
     # WIND FORCING OPTIONS
-    wind_forcing_x::String="double_gyre"      # "channel", "double_gyre", "shear","constant" or "none"
+    wind_forcing_x::String="double_gyre"   # "channel", "double_gyre", "shear","constant" or "none"
     wind_forcing_y::String="constant"   # "channel", "double_gyre", "shear","constant" or "none"
     Fx0::Real=0.12                      # wind stress strength [Pa] in x-direction
     Fy0::Real=0.0                       # wind stress strength [Pa] in y-direction
-    seasonal_wind_x::Bool=false          # Change the wind stress with a sine of frequency ωFx,ωFy
+    seasonal_wind_x::Bool=false         # Change the wind stress with a sine of frequency ωFx,ωFy
     seasonal_wind_y::Bool=false         # same for y-component
     ωFx::Real=2                         # frequency [1/year] for x component
     ωFy::Real=2                         # frequency [1/year] for y component
@@ -72,6 +72,7 @@
 
     # ZANNA-BOLTON FORCING 
     zb_forcing::Bool=false
+    κ_BC::Float32=-4.87e8
 
     # MOMENTUM ADVECTION OPTIONS
     adv_scheme::String="Sadourny"       # "Sadourny" or "ArakawaHsu"

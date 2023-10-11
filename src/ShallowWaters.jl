@@ -5,7 +5,7 @@ module ShallowWaters
     using NetCDF, Parameters, Printf, Dates, Interpolations
 
     using Enzyme#main
-    Enzyme.API.maxtypeoffset!(3010)
+    Enzyme.API.maxtypeoffset!(3500)
 
     include("default_parameters.jl")
     include("grid.jl")
