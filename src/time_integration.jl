@@ -303,10 +303,8 @@ function time_integration_withreturn(S::ModelSetup{T,Tprog}) where {T<:AbstractF
     if S.parameters.return_time
         return feedback.tend - feedback.t0
     else
-        return PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
-        # return S.Prog, energy
+        return S, energy, PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
     end
-
 
 end
 

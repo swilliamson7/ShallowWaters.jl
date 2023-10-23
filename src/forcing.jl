@@ -88,12 +88,14 @@ See Cooper&Zanna 2015 or Kloewer et al 2018."""
 function DoubleGyreWind(::Type{T},P::Parameter,G::Grid) where {T<:AbstractFloat}
 
     @unpack Δ,x_u,y_u,Lx,Ly = G
+    @unpack x_v,y_v = G
     @unpack Fx0,Fy0,H,ρ,scale = P
 
     # for non-dimensional gradients the wind forcing needs to contain the grid spacing Δ
     xx_u,yy_u = meshgrid(x_u,y_u)
+    xx_v,yy_v = meshgrid(x_v,y_v)
     Fx = (scale*Δ*Fx0/ρ/H)*(cos.(2π*(yy_u/Ly .- 1/2)) + 2*sin.(π*(yy_u/Ly .- 1/2)))
-    Fy = (scale*Δ*Fy0/ρ/H)*(cos.(2π*(xx_u/Lx .- 1/2)) + 2*sin.(π*(xx_u/Lx .- 1/2)))
+    Fy = (scale*Δ*Fy0/ρ/H)*(cos.(2π*(xx_v/Lx .- 1/2)) + 2*sin.(π*(xx_v/Lx .- 1/2)))
     return T.(Fx),T.(Fy)
 end
 

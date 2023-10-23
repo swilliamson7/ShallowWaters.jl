@@ -220,14 +220,15 @@ end
 # hourly_saves = 1:225:S.grid.nt
 
 # initial conditions 
-init_cond_lr = load_object("../data_files/128_spinup_wforcing/spinup_states_128_withzb_10years_101023.jld2")
+init_cond_lr = load_object("../data_files/128_spinup_noforcing/spinup_states_128_10years_101023.jld2")
+# init_cond_lr = load_object("../data_files/128_spinup_noforcing/spinup_states_128_10years_101023.jld2")
 # init_cond_hr = load_object("../data_files/flat_domain/spinup_states_512_10years.jld2")
 
 # lr_energy = load_object("../data_files/flat_domain/energy_during_spinup_128_10years.jld2")
 # hr_energy = load_object("../data_files/flat_domain/energy_during_spinup_512_10years.jld2")
 
 # without extra forcing 
-S = run_setup(nx=128,Ndays=90,zb_forcing=true)
+S = run_setup(nx=128,Ndays=90,zb_forcing=true,κ_BC=4.87e8,wind_forcing_x="constant",wind_forcing_y="double_gyre",Fx0=0.0,Fy0=0.12,output=true)
 u,v,η,sst = add_halo(init_cond_lr.u, init_cond_lr.v, init_cond_lr.η, init_cond_lr.sst, S.grid, S.parameters, S.constants)
 
 S.Prog.u .= u 

@@ -63,8 +63,8 @@ function checkpoint_function(S, scheme)
     nans_detected = false
     t = 0                       # model time
     # run integration loop with checkpointing
-    # @checkpoint_struct scheme S for i = 1:nt
-    for i = 1:nt
+    @checkpoint_struct scheme S for i = 1:nt
+    # for i = 1:nt
 
         # ghost point copy for boundary conditions
         ShallowWaters.ghost_points!(u,v,η,S)
@@ -321,7 +321,7 @@ function run_checkpointing()
     # S,
     # revolve)
 
-    autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), revolve)
+    # autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), revolve)
 
     # @time S, dS = ShallowWaters.run_enzyme(nx=50, Ndays=1)
 

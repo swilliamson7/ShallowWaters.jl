@@ -178,7 +178,7 @@ function get_run_id_path(S::ModelSetup)
         
         pattern = r"run_\d\d\d\d"               # run_???? in regex
         runlist = filter(x->startswith(x,pattern),readdir(outpath))
-        runlist = filter(x->endswith(  x,pattern),runlist)
+        runlist = filter(x->endswith(x,pattern),runlist)
         existing_runs = [parse(Int,id[5:end]) for id in runlist]
 
         # get the run id from existing folders

@@ -248,7 +248,7 @@ function momentum_u!(   Diag::DiagnosticVars{T,Tprog},
         Fxt = one(T)
     end
 
-    for j ∈ 1:n
+    @inbounds for j ∈ 1:n
         for i ∈ 1:m 
             du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j]) + Tprog(S_u[i,j])
         end
@@ -279,7 +279,7 @@ function momentum_v!(   Diag::DiagnosticVars{T,Tprog},
         Fyt = one(T)
     end
 
-    for j ∈ 1:n
+    @inbounds for j ∈ 1:n
         for i ∈ 1:m
             dv[i+2,j+2] = -(Tprog(qhu[i,j]) + Tprog(dpdy[i+1,j+1])) + Tprog(Fyt*Fy[i,j]) + Tprog(S_v[i,j])
         end

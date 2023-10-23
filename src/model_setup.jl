@@ -49,7 +49,7 @@ struct DiagnosticVars{T,Tprog}
     ZBVars::ZBVars{T}                           # My addition
 end
 
-struct ModelSetup{T<:AbstractFloat,Tprog<:AbstractFloat}
+mutable struct ModelSetup{T<:AbstractFloat,Tprog<:AbstractFloat}
     parameters::Parameter
     grid::Grid{T,Tprog}
     constants::Constants{T,Tprog}

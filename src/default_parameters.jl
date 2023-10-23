@@ -12,10 +12,10 @@
     L_ratio::Int=1                      # Domain aspect ratio of Lx/Ly
 
     # PHYSICAL CONSTANTS
-    g::Real=9.81                        # gravitational acceleration [m^2/s] ##Changed
+    g::Real=9.81                       # gravitational acceleration [m^2/s] 
     H::Real=500.                        # layer thickness at rest [m]
     ρ::Real=1e3                         # water density [kg/m^3]
-    ϕ::Real=45.                         # central latitude of the domain (for coriolis) [°]
+    ϕ::Real=35.                         # central latitude of the domain (for coriolis) [°]
     ω::Real=2π/(24*3600)                # Earth's angular frequency [s^-1]
     R::Real=6.371e6                     # Earth's radius [m]
 
@@ -67,12 +67,12 @@
 
     # BOUNDARY CONDITION OPTIONS
     bc::String="nonperiodic"            # "periodic" or anything else for nonperiodic
-    α::Real=2.                          # lateral boundary condition parameter
+    α::Real=0.                          # lateral boundary condition parameter
                                         # 0 free-slip, 0<α<2 partial-slip, 2 no-slip
 
     # ZANNA-BOLTON FORCING 
     zb_forcing::Bool=false
-    κ_BC::Float32=-4.87e8
+    γ₀::Float32=0.5
 
     # MOMENTUM ADVECTION OPTIONS
     adv_scheme::String="Sadourny"       # "Sadourny" or "ArakawaHsu"
