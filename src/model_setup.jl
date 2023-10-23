@@ -16,11 +16,11 @@
 
 @with_kw mutable struct AdjointVariables
     data_steps::Array{Int, 1} = [0]             # Timesteps where data exists
-    # data::Array{Float32, 2}                     # model data 
+    # data::Array{Float32, 2}                     # model data
     J::Float64 = 0.                             # Placeholder for cost function evaluation
-    j::Int = 0                                  # For keeping track of the entry in data 
+    j::Int = 0                                  # For keeping track of the entry in data
     i::Int = 0                                  # Placeholder for current timestep, needed for Checkpointing.jl
-end 
+end
 
 # """
 #     P = ProgVars{T}(u,v,η,sst)
@@ -49,7 +49,7 @@ struct DiagnosticVars{T,Tprog}
     ZBVars::ZBVars{T}                           # My addition
 end
 
-struct ModelSetup{T<:AbstractFloat,Tprog<:AbstractFloat}
+mutable struct ModelSetup{T<:AbstractFloat,Tprog<:AbstractFloat}
     parameters::Parameter
     grid::Grid{T,Tprog}
     constants::Constants{T,Tprog}

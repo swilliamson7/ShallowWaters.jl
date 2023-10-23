@@ -2,7 +2,6 @@ include("../src/ShallowWaters.jl")
 using .ShallowWaters 
 using NetCDF, Parameters, Printf, Dates, Interpolations
 using Enzyme#main
-using Zygote
 using Checkpointing
 
 ### Checkpointing check
@@ -63,8 +62,8 @@ function checkpoint_function(S, scheme)
     nans_detected = false
     t = 0                       # model time
     # run integration loop with checkpointing
-    # @checkpoint_struct scheme S for i = 1:nt
-    for i = 1:nt
+    @checkpoint_struct scheme S for i = 1:nt
+    # for i = 1:nt
 
         # ghost point copy for boundary conditions
         ShallowWaters.ghost_points!(u,v,η,S)
