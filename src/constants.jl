@@ -1,7 +1,7 @@
 """Coefficients for strong stability-preserving Runge-Kutta 3rd order.
-From: KETCHESON, LOĆZI, AND PARSANI, 2014. INTERNAL ERROR PROPAGATION IN EXPLICIT RUNGE–KUTTA METHODS, 
+From: KETCHESON, LOĆZI, AND PARSANI, 2014. INTERNAL ERROR PROPAGATION IN EXPLICIT RUNGE–KUTTA METHODS,
 SIAM J NUMER ANAL 52/5. DOI:10.1137/130936245"""
-struct SSPRK3coeff{T<:AbstractFloat}
+mutable struct SSPRK3coeff{T<:AbstractFloat}
     n::Int
     s::Int
     kn::Int
@@ -109,7 +109,7 @@ function Constants{T,Tprog}(P::Parameter,G::Grid) where {T<:AbstractFloat,Tprog<
     jSST = convert(T,G.dtadvint/(P.jSST*3600*24))   # tracer consumption [1]
 
     @unpack tracer_relaxation, tracer_consumption = P
-    τSST = tracer_relaxation ? τSST : zero(T)       # set zero as τ,j will be added   
+    τSST = tracer_relaxation ? τSST : zero(T)       # set zero as τ,j will be added
     jSST = tracer_consumption ? jSST : zero(T)      # and executed in one loop
 
     # TIME DEPENDENT FORCING

@@ -2,7 +2,6 @@ include("../src/ShallowWaters.jl")
 using .ShallowWaters 
 using NetCDF, Parameters, Printf, Dates, Interpolations
 using Enzyme#main
-using Zygote
 using Checkpointing
 
 ### Checkpointing check
