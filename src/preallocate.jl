@@ -493,13 +493,17 @@ end
     Dhatsq::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)   # square of the tensor
     Dhatq::Array{T,2} = zeros(T,nqx,nqy)                  # tensor interpolated onto q-grid
 
-    ξpDT::Array{T,2} = zeros(T,nx,ny)     # ξ^2 + D^2 interpolated to cell centers
+    ξpDT::Array{T,2} = zeros(T,nx,ny)     # ξ^2 + D^2 interpolated to cell centers, not currently used
     ξsqT::Array{T,2} = zeros(T,nx,ny)     # ξ^2 interpolated to cell centers
     ξD::Array{T,2} = zeros(T,nqx,nqy)     # ξ ⋅ D, cell corners
     ξDT::Array{T,2} = zeros(T,nx,ny)      # ξ ⋅ D, placed on cell centers 
     ξDhat::Array{T,2} = zeros(T,nqx,nqy)  # ξ ⋅ Dhat, cell corners
     
-    trace::Array{T, 2} = zeros(T,nx,ny)     # ξ^2 + D^2 + Dhat^2, cell centers
+    trace::Array{T,2} = zeros(T,nx,ny)     # ξ^2 + D^2 + Dhat^2, cell centers
+
+    ξD_filtered::Array{T,2} = zeros(T,nx,ny)      # ξD with filter applied 
+    ξDhat_filtered::Array{T,2} = zeros(T,nqx,nqy)   # ξDhat with filter applied
+    trace_filtered::Array{T,2} = zeros(T,nx,ny)     # trace with filter applied 
 
     dξDdx::Array{T,2} = zeros(T,nux,nuy)             # u-grid
     dξDhatdy::Array{T,2} = zeros(T,nux+halo,nuy)     # u-grid, initially with extra halo points
@@ -534,7 +538,7 @@ function ZBVars{T}(G::Grid) where {T<:AbstractFloat}
     G[3,3] = 1 
 
     return ZBVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
-                            halosstx=halosstx,halossty=halossty,G=(1/16).*G)
+                            halosstx=halosstx,halossty=halossty,G=G)
 end
 
 ###########################################################################################

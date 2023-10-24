@@ -71,8 +71,10 @@
                                         # 0 free-slip, 0<α<2 partial-slip, 2 no-slip
 
     # ZANNA-BOLTON FORCING 
-    zb_forcing::Bool=false
-    γ₀::Float32=0.5
+    zb_forcing::Bool=false              # add in ZB forcing term?
+    zb_filtered::Bool=false        # apply a filter to entries in the forcing tensor? 
+    N::Int=1                            # how many times to apply filter to entries in forcing tensor
+    γ₀::Float32=0.5                     # coefficient for forcing term 
 
     # MOMENTUM ADVECTION OPTIONS
     adv_scheme::String="Sadourny"       # "Sadourny" or "ArakawaHsu"
