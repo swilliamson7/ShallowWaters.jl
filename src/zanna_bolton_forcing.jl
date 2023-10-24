@@ -26,7 +26,7 @@ function ZB_momentum(u, v, S, Diag)
 
     @unpack halo, haloη, ep, nux, nuy, nvx, nvy = S.grid
 
-    κ_BC = - γ₀ * Δ^2
+    κ_BC = -γ₀ * Δ^2
 
     ∂x!(dudx, u)
     ∂y!(dudy, u)
@@ -58,15 +58,14 @@ function ZB_momentum(u, v, S, Diag)
         end
     end
     
-    # ξsq .= (κ_BC / 2) .* ξ.^2 
     ξsq .= ξ.^2 
     Dsq .= D.^2 
     Dhatsq .= Dhat.^2 
 
     # Trace computation (second term in forcing term)
     # Computing the sum of ξ^2 and D^2 and moving to cell centers
-    Ixy!(ξpDT, ξsq + Dsq)
     Ixy!(ξsqT, ξsq)
+    Ixy!(ξpDT, ξsq + Dsq)
     @inbounds for j ∈ 1:nT 
         for k ∈ 1:mT
             trace[k,j] = ξpDT[k,j] + Dhatsq[k+1,j+1]
@@ -76,15 +75,15 @@ function ZB_momentum(u, v, S, Diag)
     # Computing ξ ⋅ D and placing on cell centers 
     ξD .= ξ .* D
     Ixy!(ξDT, ξD)
-    # ξDT .= κ_BC .* ξDT
 
     # Computing ξ ⋅ Dhat, cell corners 
     Ixy!(Dhatq, Dhat)
-    @inbounds for j ∈ 1:nq
-        for k ∈ 1:mq 
-            ξDhat[k,j] = ξ[k,j] * Dhatq[k,j]
-        end
-    end
+    ξDhat .= ξ .* Dhatq
+    # @inbounds for j ∈ 1:nq
+    #     for k ∈ 1:mq 
+    #         ξDhat[k,j] = ξ[k,j] * Dhatq[k,j]
+    #     end
+    # end
     # for kj in eachindex(ξDhat,ξ,Dhatq) 
     #     # ξDhat[kj] = κ_BC * ξ[kj] * Dhatq[kj]
     #     ξDhat[kj] = ξ[kj] * Dhatq[kj]
@@ -93,11 +92,11 @@ function ZB_momentum(u, v, S, Diag)
     # Computing final derivatives of everything
     ∂x!(dξDdx, ξDT)
     ∂y!(dξDhatdy, ξDhat)
-    ∂x!(dtracedx, ξsqT)
+    ∂x!(dtracedx, trace)
 
     ∂x!(dξDhatdx, ξDhat)
     ∂y!(dξDdy, ξDT)
-    ∂y!(dtracedy, ξsqT)
+    ∂y!(dtracedy, trace)
 
     # temp = @view dξDhatdy[2:end-1,:]
     s = Δ^2 * scale
