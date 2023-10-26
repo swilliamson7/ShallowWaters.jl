@@ -46,6 +46,10 @@ function rhs_nonlinear!(u::AbstractMatrix,
     ∂x!(dpdx,p)
     ∂y!(dpdy,p)
 
+    # # Check if adding Zanna Bolton forcing term 
+    # if S.parameters.zb_forcing
+    #     ZB_momentum(u,v,S,Diag)
+    # end 
 
     # adding the terms
     momentum_u!(Diag,S,t)
@@ -246,7 +250,7 @@ function momentum_u!(   Diag::DiagnosticVars{T,Tprog},
 
     @inbounds for j ∈ 1:n
         for i ∈ 1:m 
-            du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j]) 
+            du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j]) #+ Tprog(Diag.ZBVars.S_u[i,j]) 
         end
     end
 
@@ -277,7 +281,7 @@ function momentum_v!(   Diag::DiagnosticVars{T,Tprog},
 
     @inbounds for j ∈ 1:n
         for i ∈ 1:m
-            dv[i+2,j+2] = -(Tprog(qhu[i,j]) + Tprog(dpdy[i+1,j+1])) + Tprog(Fyt*Fy[i,j])
+            dv[i+2,j+2] = -(Tprog(qhu[i,j]) + Tprog(dpdy[i+1,j+1])) + Tprog(Fyt*Fy[i,j]) #+ Tprog(Diag.ZBVars.S_v[i,j])
         end
     end
 
