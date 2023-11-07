@@ -7,6 +7,7 @@ function ∂x!(dudx::Matrix{T},u::Matrix{T}) where {T<:AbstractFloat}
     @inbounds for j ∈ 1:n, i ∈ 1:m
         dudx[i,j] = u[i+1,j] - u[i,j]
     end
+    return nothing
 end
 
 """Calculates the 2nd order centred gradient in y-direction on any grid (u,v,T or q).

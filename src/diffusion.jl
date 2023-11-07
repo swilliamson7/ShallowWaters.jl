@@ -90,8 +90,6 @@ function smagorinsky_coeff!(Diag::DiagnosticVars,S::ModelSetup)
     @boundscheck (m+ep,n+2) == size(dudx) || throw(BoundsError())
     @boundscheck (m+2,n) == size(dvdy) || throw(BoundsError())
 
-    ##### IMPORTANT should this be a difference and not a sum? Was originally 
-    # dudx + dvdy  but I think should be dudx - dvdy #########################
     @inbounds for j ∈ 1:n
         for i ∈ 1:m
             DT[i,j] = (dudx[i+ep,j+1] - dvdy[i+1,j])^2
