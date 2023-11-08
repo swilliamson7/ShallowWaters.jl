@@ -46,11 +46,6 @@ function rhs_nonlinear!(u::AbstractMatrix,
     ∂x!(dpdx,p)
     ∂y!(dpdy,p)
 
-    # # Check if adding Zanna Bolton forcing term 
-    # if S.parameters.zb_forcing
-    #     ZB_momentum(u,v,S,Diag)
-    # end 
-
     # adding the terms
     momentum_u!(Diag,S,t)
     momentum_v!(Diag,S,t)
