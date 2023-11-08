@@ -72,7 +72,7 @@
 
     # ZANNA-BOLTON FORCING OPTIONS
     zb_forcing::Bool=false              # add in ZB forcing term?
-    zb_filtered::Bool=false             # apply a filter to entries in the forcing tensor?
+    zb_filtered::Bool=true              # apply a filter to entries in the forcing tensor?
     N::Int=1                            # how many times to apply filter to entries in forcing tensor
     γ₀::Float32=0.3                     # coefficient for forcing term parameter
 

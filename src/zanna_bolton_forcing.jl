@@ -54,10 +54,10 @@ function apply_filter(N,ζsqT,ζDT,ζDhat,ζD_filtered,ζDhat_filtered,trace_fil
         end
 
         @inbounds for v ∈ 2:mT-1
-            ζsqT[v,1] = Gconvolveall23(ζsqT[v-1:v+1,1:2])
-            ζsqT[v,nT] = Gconvolveall12(ζsqT[v-1:v+1,nT-1:nT])
-            ζDT[v,1] = Gconvolveall23(ζDT[v-1:v+1,1:2])
-            ζDT[v,nT] = Gconvolveall12(ζDT[v-1:v+1,nT-1:nT])
+            ζsqT[v,1] = Gconvolveall23(@view ζsqT[v-1:v+1,1:2])
+            ζsqT[v,nT] = Gconvolveall12(@view ζsqT[v-1:v+1,nT-1:nT])
+            ζDT[v,1] = Gconvolveall23(@view ζDT[v-1:v+1,1:2])
+            ζDT[v,nT] = Gconvolveall12(@view ζDT[v-1:v+1,nT-1:nT])
         end
 
         ζsqT[1,1] = (4*ζsqT[1,1] + 2*ζsqT[1,2] + 2*ζsqT[2,1] + ζsqT[2,2])/8
@@ -77,13 +77,13 @@ function apply_filter(N,ζsqT,ζDT,ζDhat,ζD_filtered,ζDhat_filtered,trace_fil
         end
 
         @inbounds for h ∈ 2:nq-1
-            ζDhat[1,h] = Gconvolve23all(ζDhat[1:2,h-1:h+1])
-            ζDhat[mq,h] = Gconvolve12all(ζDhat[mq-1:mq,h-1:h+1])
+            ζDhat[1,h] = Gconvolve23all(@view ζDhat[1:2,h-1:h+1])
+            ζDhat[mq,h] = Gconvolve12all(@view ζDhat[mq-1:mq,h-1:h+1])
         end
 
         @inbounds for v ∈ 2:mq-1
-            ζDhat[v,1] = Gconvolveall23(ζDhat[v-1:v+1,1:2])
-            ζDhat[v,nq] = Gconvolveall12(ζDhat[v-1:v+1,nq-1:nq])
+            ζDhat[v,1] = Gconvolveall23(@view ζDhat[v-1:v+1,1:2])
+            ζDhat[v,nq] = Gconvolveall12(@view ζDhat[v-1:v+1,nq-1:nq])
         end
 
         ζDhat[1,1] = (4*ζDhat[1,1] + 2*ζDhat[1,2] + 2*ζDhat[2,1] + ζDhat[2,2])/8
@@ -150,7 +150,7 @@ function ZB_momentum(u, v, S, Diag)
             Dhat[k,j] = dudx[k,j+1] - dvdy[k+1,j]
         end
     end
-    
+
     ζsq .= κ_BC .* ζ.^2
     Dsq .= D.^2
     Dhatsq .= Dhat.^2
@@ -175,7 +175,7 @@ function ZB_momentum(u, v, S, Diag)
         ∂x!(dζDdx, ζD_filtered)
         ∂y!(dζDhatdy, ζDhat_filtered)
         ∂x!(dtracedx, trace_filtered)
-    
+
         ∂x!(dζDhatdx, ζDhat_filtered)
         ∂y!(dζDdy, ζD_filtered)
         ∂y!(dtracedy, trace_filtered)
@@ -185,7 +185,7 @@ function ZB_momentum(u, v, S, Diag)
         ∂x!(dζDdx, ζDT)
         ∂y!(dζDhatdy, ζDhat)
         ∂x!(dtracedx, ζsqT)
-    
+
         ∂x!(dζDhatdx, ζDhat)
         ∂y!(dζDdy, ζDT)
         ∂y!(dtracedy, ζsqT)
