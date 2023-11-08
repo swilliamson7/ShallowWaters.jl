@@ -47,9 +47,9 @@ function rhs_nonlinear!(u::AbstractMatrix,
     ∂y!(dpdy,p)
 
     # Check if adding Zanna Bolton forcing term 
-    if S.parameters.zb_forcing
+    if S.parameters.zb_forcing_momentum
         ZB_momentum(u,v,S,Diag)
-    end 
+    end
 
     # adding the terms
     momentum_u!(Diag,S,t)
@@ -248,13 +248,22 @@ function momentum_u!(   Diag::DiagnosticVars{T,Tprog},
         Fxt = one(T)
     end
 
-    @inbounds for j ∈ 1:n
-        for i ∈ 1:m 
-            du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j]) + Tprog(S_u[i,j])
+    if S.parameters.zb_forcing_momentum
+        @inbounds for j ∈ 1:n
+            for i ∈ 1:m 
+                du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j]) + Tprog(S_u[i,j])
+            end
+        end
+    else
+        @inbounds for j ∈ 1:n
+            for i ∈ 1:m 
+                du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j])
+            end
         end
     end
 
 end
+
 
 """Sum up the tendencies of the non-diffusive right-hand side for the v-component."""
 function momentum_v!(   Diag::DiagnosticVars{T,Tprog},
@@ -279,9 +288,17 @@ function momentum_v!(   Diag::DiagnosticVars{T,Tprog},
         Fyt = one(T)
     end
 
-    @inbounds for j ∈ 1:n
-        for i ∈ 1:m
-            dv[i+2,j+2] = -(Tprog(qhu[i,j]) + Tprog(dpdy[i+1,j+1])) + Tprog(Fyt*Fy[i,j]) + Tprog(S_v[i,j])
+    if S.parameters.zb_forcing_momentum
+        @inbounds for j ∈ 1:n
+            for i ∈ 1:m
+                dv[i+2,j+2] = -(Tprog(qhu[i,j]) + Tprog(dpdy[i+1,j+1])) + Tprog(Fyt*Fy[i,j]) + Tprog(S_v[i,j])
+            end
+        end
+    else
+        @inbounds for j ∈ 1:n
+            for i ∈ 1:m
+                dv[i+2,j+2] = -(Tprog(qhu[i,j]) + Tprog(dpdy[i+1,j+1])) + Tprog(Fyt*Fy[i,j])
+            end
         end
     end
 

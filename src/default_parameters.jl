@@ -71,7 +71,8 @@
                                         # 0 free-slip, 0<α<2 partial-slip, 2 no-slip
 
     # ZANNA-BOLTON FORCING OPTIONS
-    zb_forcing::Bool=false              # add in ZB forcing term?
+    zb_forcing_momentum::Bool=false     # add ZB forcing term to momentum calculation?
+    zb_forcing_dissipation::Bool=false  # add ZB forcing term to dissipation calculation? (i.e. once per timestep)
     zb_filtered::Bool=true              # apply a filter to entries in the forcing tensor?
     N::Int=1                            # how many times to apply filter to entries in forcing tensor
     γ₀::Float32=0.3                     # coefficient for forcing term parameter
