@@ -474,10 +474,12 @@ end
     dvdx::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
     dvdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
 
+    # these are only utilized in a scheme where γ varies spacially
     γ::Array{T,2} = zeros(T,nx,ny)
     γ_u::Array{T,2} = zeros(T,nux,nuy)
     γ_v::Array{T,2} = zeros(T,nvx,nvy)
-    G::Array{T,2} = zeros(3,3)
+
+    G::Array{T,2} = zeros(3,3)    # convolutional kernal
 
     ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
     ζsq::Array{T,2} = zeros(T,nqx,nqy)    # relative vorticity squared, cell corners 

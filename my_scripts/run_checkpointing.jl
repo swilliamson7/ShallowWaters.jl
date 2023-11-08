@@ -63,7 +63,6 @@ function checkpoint_function(S, scheme)
     t = 0                       # model time
     # run integration loop with checkpointing
     @checkpoint_struct scheme S for i = 1:nt
-    # for i = 1:nt
 
         # ghost point copy for boundary conditions
         ShallowWaters.ghost_points!(u,v,η,S)
@@ -311,16 +310,12 @@ end
 
 function run_checkpointing()
 
-    S = ShallowWaters.run_setup(nx = 50, Ndays = 1)
-    dS = deepcopy(S)
+    S = ShallowWaters.run_setup(nx = 128, Ndays = 1, zb_forcing=true, zb_filtered=true)
+    dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
     snaps = Int(floor(sqrt(S.grid.nt)))
     revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt, snaps; verbose=1, gc=true, write_checkpoints=false)
 
-    # dS = Zygote.gradient(checkpoint_function,
-    # S,
-    # revolve)
-
-    # autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), revolve)
+    autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), revolve)
 
     # @time S, dS = ShallowWaters.run_enzyme(nx=50, Ndays=1)
 
@@ -328,6 +323,5 @@ function run_checkpointing()
 
 end
 
-S, dS = run_checkpointing()
-
+# @time S, dS = run_checkpointing()
 # S, dS = ShallowWaters.run_enzyme(nx=30,Ndays=1)
