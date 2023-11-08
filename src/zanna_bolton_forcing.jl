@@ -32,6 +32,75 @@ end
     return (2*array[1, 1] + array[1, 2] + 4*array[2, 1] + 2*array[2, 2] + 2*array[3, 1] + array[3, 2]) / 12
 end
 
+function apply_filter(N,ζsqT,ζDT,ζDhat,ζD_filtered,ζDhat_filtered,trace_filtered)
+
+    mT,nT = size(ζsqT)
+    mq,nq = size(ζDhat)
+
+    for i = 1:N
+
+        @inbounds for j ∈ 2:nT-1 
+            for k ∈ 2:mT-1 
+                ζsqT[k,j] = Gconvolve(@view ζsqT[k-1:k+1,j-1:j+1])
+                ζDT[k,j] = Gconvolve(@view ζDT[k-1:k+1,j-1:j+1])
+            end
+        end
+
+        @inbounds for h ∈ 2:nT-1
+            ζsqT[1,h] = Gconvolve23all(@view ζsqT[1:2,h-1:h+1])
+            ζsqT[mT,h] = Gconvolve12all(@view ζsqT[mT-1:mT,h-1:h+1])
+            ζDT[1,h] = Gconvolve23all(@view ζDT[1:2,h-1:h+1])
+            ζDT[mT,h] = Gconvolve12all(@view ζDT[mT-1:mT,h-1:h+1])
+        end
+
+        @inbounds for v ∈ 2:mT-1
+            ζsqT[v,1] = Gconvolveall23(ζsqT[v-1:v+1,1:2])
+            ζsqT[v,nT] = Gconvolveall12(ζsqT[v-1:v+1,nT-1:nT])
+            ζDT[v,1] = Gconvolveall23(ζDT[v-1:v+1,1:2])
+            ζDT[v,nT] = Gconvolveall12(ζDT[v-1:v+1,nT-1:nT])
+        end
+
+        ζsqT[1,1] = (4*ζsqT[1,1] + 2*ζsqT[1,2] + 2*ζsqT[2,1] + ζsqT[2,2])/8
+        ζsqT[1,nT] = (2*ζsqT[1,nT-1] + 4*ζsqT[1,nT] + ζsqT[2,nT-1] + 2*ζsqT[2,nT])/8
+        ζsqT[mT,1] = (2*ζsqT[mT-1,1] + ζsqT[mT-1,2] + 4*ζsqT[mT,1] + 2*ζsqT[mT,2])/8
+        ζsqT[mT,nT] = (ζsqT[mT-1,nT-1] + 2*ζsqT[mT-1,nT] + 2*ζsqT[mT,nT-1] + 4*ζsqT[mT,nT])/8
+
+        ζDT[1,1] = (4*ζDT[1,1] + 2*ζDT[1,2] + 2*ζDT[2,1] + ζDT[2,2])/8
+        ζDT[1,nT] = (2*ζDT[1,nT-1] + 4*ζDT[1,nT] + ζDT[2,nT-1] + 2*ζDT[2,nT])/8
+        ζDT[mT,1] = (2*ζDT[mT-1,1] + ζDT[mT-1,2] + 4*ζDT[mT,1] + 2*ζDT[mT,2])/8
+        ζDT[mT,nT] = (ζDT[mT-1,nT-1] + 2*ζDT[mT-1,nT] + 2*ζDT[mT,nT-1] + 4*ζDT[mT,nT])/8
+
+        @inbounds for j ∈ 2:nq-1
+            for k ∈ 2:mq-1
+                ζDhat[k,j] = Gconvolve(@view ζDhat[k-1:k+1,j-1:j+1])
+            end
+        end
+
+        @inbounds for h ∈ 2:nq-1
+            ζDhat[1,h] = Gconvolve23all(ζDhat[1:2,h-1:h+1])
+            ζDhat[mq,h] = Gconvolve12all(ζDhat[mq-1:mq,h-1:h+1])
+        end
+
+        @inbounds for v ∈ 2:mq-1
+            ζDhat[v,1] = Gconvolveall23(ζDhat[v-1:v+1,1:2])
+            ζDhat[v,nq] = Gconvolveall12(ζDhat[v-1:v+1,nq-1:nq])
+        end
+
+        ζDhat[1,1] = (4*ζDhat[1,1] + 2*ζDhat[1,2] + 2*ζDhat[2,1] + ζDhat[2,2])/8
+        ζDhat[1,nq] = (2*ζDhat[1,nq-1] + 4*ζDhat[1,nq] + ζDhat[2,nq-1] + 2*ζDhat[2,nq])/8
+        ζDhat[mq,1] = (2*ζDhat[mq-1,1] + ζDhat[mq-1,2] + 4*ζDhat[mq,1] + 2*ζDhat[mq,2])/8
+        ζDhat[mq,nq] = (ζDhat[mq-1,nq-1] + 2*ζDhat[mq-1,nq] + 2*ζDhat[mq,nq-1] + 4*ζDhat[mq,nq])/8
+
+    end
+
+    trace_filtered .= ζsqT
+    ζD_filtered .= ζDT
+    ζDhat_filtered .= ζDhat
+
+    return nothing
+
+end
+
 function ZB_momentum(u, v, S, Diag)
 
     @unpack γ₀, zb_filtered, N  = S.parameters
@@ -87,7 +156,6 @@ function ZB_momentum(u, v, S, Diag)
     Dhatsq .= Dhat.^2
 
     # Trace computation (second term in forcing term), only keeping ζ^2 and no other terms
-    # Ixy!(ξpDT, ξsq + Dsq)
     Ixy!(ζsqT, ζsq)
 
     # Computing ζ ⋅ D and placing on cell centers
@@ -96,76 +164,13 @@ function ZB_momentum(u, v, S, Diag)
 
     # Computing ζ ⋅ Dhat, cell corners
     Ixy!(Dhatq, Dhat)
-    for j ∈ 1:nq
-        for k ∈ 1:mq 
-            ζDhat[k,j] = κ_BC * ζ[k,j] * Dhatq[k,j]
-        end
+    for kj in eachindex(ζDhat,ζ,Dhatq) 
+        @inbounds ζDhat[kj] = κ_BC * ζ[kj] * Dhatq[kj]
     end
-    # for kj in eachindex(ζDhat,ζ,Dhatq) 
-    #     ζDhat[kj] = κ_BC * ζ[kj] * Dhatq[kj]
-    # end
 
     if zb_filtered
 
-        for i = 1:N
-
-            for j ∈ 2:nT-1 
-                for k ∈ 2:mT-1 
-                    ζsqT[k,j] = Gconvolve(@view ζsqT[k-1:k+1,j-1:j+1])
-                    ζDT[k,j] = Gconvolve(@view ζDT[k-1:k+1,j-1:j+1])
-                end
-            end
-
-            for h ∈ 2:nT-1
-                ζsqT[1,h] = Gconvolve23all(@view ζsqT[1:2,h-1:h+1])
-                ζsqT[mT,h] = Gconvolve12all(@view ζsqT[mT-1:mT,h-1:h+1])
-                ζDT[1,h] = Gconvolve23all(@view ζDT[1:2,h-1:h+1])
-                ζDT[mT,h] = Gconvolve12all(@view ζDT[mT-1:mT,h-1:h+1])
-            end
-
-            for v ∈ 2:mT-1
-                ζsqT[v,1] = Gconvolveall23(ζsqT[v-1:v+1,1:2])
-                ζsqT[v,nT] = Gconvolveall12(ζsqT[v-1:v+1,nT-1:nT])
-                ζDT[v,1] = Gconvolveall23(ζDT[v-1:v+1,1:2])
-                ζDT[v,nT] = Gconvolveall12(ζDT[v-1:v+1,nT-1:nT])
-            end
-
-            ζsqT[1,1] = (4*ζsqT[1,1] + 2*ζsqT[1,2] + 2*ζsqT[2,1] + ζsqT[2,2])/8
-            ζsqT[1,nT] = (2*ζsqT[1,nT-1] + 4*ζsqT[1,nT] + ζsqT[2,nT-1] + 2*ζsqT[2,nT])/8
-            ζsqT[mT,1] = (2*ζsqT[mT-1,1] + ζsqT[mT-1,2] + 4*ζsqT[mT,1] + 2*ζsqT[mT,2])/8
-            ζsqT[mT,nT] = (ζsqT[mT-1,nT-1] + 2*ζsqT[mT-1,nT] + 2*ζsqT[mT,nT-1] + 4*ζsqT[mT,nT])/8
-
-            ζDT[1,1] = (4*ζDT[1,1] + 2*ζDT[1,2] + 2*ζDT[2,1] + ζDT[2,2])/8
-            ζDT[1,nT] = (2*ζDT[1,nT-1] + 4*ζDT[1,nT] + ζDT[2,nT-1] + 2*ζDT[2,nT])/8
-            ζDT[mT,1] = (2*ζDT[mT-1,1] + ζDT[mT-1,2] + 4*ζDT[mT,1] + 2*ζDT[mT,2])/8
-            ζDT[mT,nT] = (ζDT[mT-1,nT-1] + 2*ζDT[mT-1,nT] + 2*ζDT[mT,nT-1] + 4*ζDT[mT,nT])/8
-
-            for j ∈ 2:nq-1
-                for k ∈ 2:mq-1
-                    ζDhat[k,j] = Gconvolve(@view ζDhat[k-1:k+1,j-1:j+1])
-                end
-            end
-
-            for h ∈ 2:nq-1
-                ζDhat[1,h] = Gconvolve23all(ζDhat[1:2,h-1:h+1])
-                ζDhat[mq,h] = Gconvolve12all(ζDhat[mq-1:mq,h-1:h+1])
-            end
-
-            for v ∈ 2:mq-1
-                ζDhat[v,1] = Gconvolveall23(ζDhat[v-1:v+1,1:2])
-                ζDhat[v,nq] = Gconvolveall12(ζDhat[v-1:v+1,nq-1:nq])
-            end
-
-            ζDhat[1,1] = (4*ζDhat[1,1] + 2*ζDhat[1,2] + 2*ζDhat[2,1] + ζDhat[2,2])/8
-            ζDhat[1,nq] = (2*ζDhat[1,nq-1] + 4*ζDhat[1,nq] + ζDhat[2,nq-1] + 2*ζDhat[2,nq])/8
-            ζDhat[mq,1] = (2*ζDhat[mq-1,1] + ζDhat[mq-1,2] + 4*ζDhat[mq,1] + 2*ζDhat[mq,2])/8
-            ζDhat[mq,nq] = (ζDhat[mq-1,nq-1] + 2*ζDhat[mq-1,nq] + 2*ζDhat[mq,nq-1] + 4*ζDhat[mq,nq])/8
-
-            trace_filtered .= ζsqT
-            ζD_filtered .= ζDT
-            ζDhat_filtered .= ζDhat
-
-        end
+        apply_filter(N, ζsqT, ζDT, ζDhat, ζD_filtered, ζDhat_filtered, trace_filtered)
 
         ∂x!(dζDdx, ζD_filtered)
         ∂y!(dζDhatdy, ζDhat_filtered)
@@ -188,15 +193,14 @@ function ZB_momentum(u, v, S, Diag)
     end
 
     s = Δ^2 * scale
-    # for kj in eachindex(S_u,dζDdx,temp,dtracedx)
-    for j ∈ 1:nuy
+
+    @inbounds for j ∈ 1:nuy
         for k ∈ 1:nux
             S_u[k,j] = (-dζDdx[k,j] + dζDhatdy[k+1,j] + dtracedx[k,j]) / s
         end
     end
 
-    # for kj in eachindex(S_v,dζDdy,dtracedy)
-    for j ∈ 1:nvy
+    @inbounds for j ∈ 1:nvy
         for k ∈ 1:nvx
             S_v[k,j] = (dζDhatdx[k,j+1] + dζDdy[k,j] + dtracedy[k,j]) / s
         end
