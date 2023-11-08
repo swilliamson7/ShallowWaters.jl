@@ -479,8 +479,8 @@ end
     γ_v::Array{T,2} = zeros(T,nvx,nvy)
     G::Array{T,2} = zeros(3,3)
 
-    ξ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
-    ξsq::Array{T,2} = zeros(T,nqx,nqy)    # relative vorticity squared, cell corners 
+    ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
+    ζsq::Array{T,2} = zeros(T,nqx,nqy)    # relative vorticity squared, cell corners 
 
     D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners 
     Dsq::Array{T,2} = zeros(T,nqx,nqy)    # square of the tensor 
@@ -493,26 +493,26 @@ end
     Dhatsq::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)   # square of the tensor
     Dhatq::Array{T,2} = zeros(T,nqx,nqy)                  # tensor interpolated onto q-grid
 
-    ξpDT::Array{T,2} = zeros(T,nx,ny)     # ξ^2 + D^2 interpolated to cell centers, not currently used
-    ξsqT::Array{T,2} = zeros(T,nx,ny)     # ξ^2 interpolated to cell centers
-    ξD::Array{T,2} = zeros(T,nqx,nqy)     # ξ ⋅ D, cell corners
-    ξDT::Array{T,2} = zeros(T,nx,ny)      # ξ ⋅ D, placed on cell centers 
-    ξDhat::Array{T,2} = zeros(T,nqx,nqy)  # ξ ⋅ Dhat, cell corners
+    ζpDT::Array{T,2} = zeros(T,nx,ny)     # ζ^2 + D^2 interpolated to cell centers, not currently used
+    ζsqT::Array{T,2} = zeros(T,nx,ny)     # ζ^2 interpolated to cell centers
+    ζD::Array{T,2} = zeros(T,nqx,nqy)     # ζ ⋅ D, cell corners
+    ζDT::Array{T,2} = zeros(T,nx,ny)      # ζ ⋅ D, placed on cell centers
+    ζDhat::Array{T,2} = zeros(T,nqx,nqy)  # ζ ⋅ Dhat, cell corners
     
     trace::Array{T,2} = zeros(T,nx,ny)     # ξ^2 + D^2 + Dhat^2, cell centers
 
-    ξD_filtered::Array{T,2} = zeros(T,nx,ny)      # ξD with filter applied 
-    ξDhat_filtered::Array{T,2} = zeros(T,nqx,nqy)   # ξDhat with filter applied
-    trace_filtered::Array{T,2} = zeros(T,nx,ny)     # trace with filter applied 
+    ζD_filtered::Array{T,2} = zeros(T,nx,ny)      # ξD with filter applied
+    ζDhat_filtered::Array{T,2} = zeros(T,nqx,nqy)   # ξDhat with filter applied
+    trace_filtered::Array{T,2} = zeros(T,nx,ny)     # trace with filter applied
 
-    dξDdx::Array{T,2} = zeros(T,nux,nuy)             # u-grid
-    dξDhatdy::Array{T,2} = zeros(T,nux+halo,nuy)     # u-grid, initially with extra halo points
+    dζDdx::Array{T,2} = zeros(T,nux,nuy)             # u-grid
+    dζDhatdy::Array{T,2} = zeros(T,nux+halo,nuy)     # u-grid, initially with extra halo points
     dtracedx::Array{T,2} = zeros(T,nux,nuy)          # u-grid 
 
     S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction
 
-    dξDhatdx::Array{T,2} = zeros(T,nvx,nvy+halo)   # v-grid, initially with extra halo points
-    dξDdy::Array{T,2} = zeros(T,nvx,nvy)           # v-grid
+    dζDhatdx::Array{T,2} = zeros(T,nvx,nvy+halo)   # v-grid, initially with extra halo points
+    dζDdy::Array{T,2} = zeros(T,nvx,nvy)           # v-grid
     dtracedy::Array{T,2} = zeros(T,nvx,nvy)        # v-grid
 
     S_v::Array{T,2} = zeros(T,nvx,nvy)             # total forcing in y-direction

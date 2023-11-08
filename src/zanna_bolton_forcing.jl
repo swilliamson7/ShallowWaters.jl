@@ -1,15 +1,21 @@
 """
-This function will compute an additional forcing term that will (hopefully) act
+This function will compute an additional forcing term S that will (hopefully) act
 as the eddy parameterization. I'm doing this by 
-(1) adding a new structure that will preallocate all of the operators I need (called ZB_momentum)
-(2) I compute the main operators that appear in the new term: ξ, D, Dhat. ξ is the relative vorticity,
+(1) Adding a new structure that will preallocate all of the operators I need (called ZB_momentum)
+(2) Computing the main operators that appear in the new term: ζ, D, Dhat. ζ is the relative vorticity,
 D is the shear deformation of the flow field (both of these live on cell corners), and Dhat is the stretch
-deformation of the flow field (this lives on the cell centers)
-(3) Using ξ, D, and Dhat I then compute the individual pieces of the forcing that appear, comments
-below explain on which grid they live and so on 
-The first few functions are in regards to the convolutional kernel that's supposed to help the 
-parameterization behave better over time
+deformation of the flow field (this lives on the cell centers). The computation of these operators was 
+extensively checked for accuracy by MK and SW
+(3) Using ζ, D, and Dhat, then compute the individual pieces of S that appear, comments
+below explain on which grid they live and so on
+
+There is also an option to apply a filter to S. The first few inline functions relate to this 
+operation. The application of the filter (or convolutional kernal) is done in three stages: 
+(1) applying the filter only to the internal points
+(2) applying the filter to points on the boundary, not including corners
+(3) applying the filter to points on the corners
 """
+
 @inline function Gconvolve(array)
     return (array[1, 1] + 2*array[1, 2] + array[1, 3] + 2*array[2, 1] + 4*array[2, 2] + 2*array[2, 3] + array[3, 1] + 2*array[3, 2] + array[3, 3]) / 16
 end
@@ -26,21 +32,21 @@ end
     return (2*array[1, 1] + array[1, 2] + 4*array[2, 1] + 2*array[2, 2] + 2*array[3, 1] + array[3, 2]) / 12
 end
 
-function ZB_momentum(u, v, S, Diag) 
+function ZB_momentum(u, v, S, Diag)
 
     @unpack γ₀, zb_filtered, N  = S.parameters
-    @unpack ξ, ξsq, D, Dsq, Dhat, Dhatsq, Dhatq = Diag.ZBVars
-    @unpack ξD, ξDT, ξDhat, ξsqT, trace = Diag.ZBVars
-    @unpack ξpDT = Diag.ZBVars
+    @unpack ζ, ζsq, D, Dsq, Dhat, Dhatsq, Dhatq = Diag.ZBVars
+    @unpack ζD, ζDT, ζDhat, ζsqT, trace = Diag.ZBVars
+    @unpack ζpDT = Diag.ZBVars
     @unpack dudx, dudy, dvdx, dvdy = Diag.ZBVars
 
-    @unpack dξDdx, dξDhatdy, dtracedx = Diag.ZBVars
-    @unpack dξDhatdx, dξDdy, dtracedy = Diag.ZBVars
+    @unpack dζDdx, dζDhatdy, dtracedx = Diag.ZBVars
+    @unpack dζDhatdx, dζDdy, dtracedy = Diag.ZBVars
     @unpack S_u, S_v = Diag.ZBVars
     @unpack Δ, scale, f₀ = S.grid
 
     @unpack G = Diag.ZBVars
-    @unpack ξD_filtered, ξDhat_filtered, trace_filtered = Diag.ZBVars
+    @unpack ζD_filtered, ζDhat_filtered, trace_filtered = Diag.ZBVars
 
     @unpack halo, haloη, ep, nux, nuy, nvx, nvy = S.grid
 
@@ -52,148 +58,147 @@ function ZB_momentum(u, v, S, Diag)
     ∂x!(dvdx, v)
     ∂y!(dvdy, v)
 
-    mq,nq = size(ξ)
+    mq,nq = size(ζ)
     mTh,nTh = size(Dhat)
     mT,nT = size(trace)
 
-    ##### check #########
+    ##### CHECK #########
     @boundscheck (mq+2,nq+2) == size(dvdx) || throw(BoundsError())
     @boundscheck (mTh+1,nTh+1) == size(dvdx) || throw(BoundsError())
     @boundscheck (mq+2+ep,nq+2) == size(dudy) || throw(BoundsError())
     
     # Relative vorticity and shear deformation, cell corners
-    for j ∈ 1:nq
+    @inbounds for j ∈ 1:nq
         for k ∈ 1:mq
-            ξ[k,j] = dvdx[k+1,j+1] - dudy[k+1,j+1]
+            ζ[k,j] = dvdx[k+1,j+1] - dudy[k+1,j+1]
             D[k,j] = dudy[k+1,j+1] + dvdx[k+1,j+1]
         end
     end
 
     # Stretch deformation, cell centers (with halo)
-    for j ∈ 1:nTh
+    @inbounds for j ∈ 1:nTh
         for k ∈ 1:mTh
             Dhat[k,j] = dudx[k,j+1] - dvdy[k+1,j]
         end
     end
     
-    ξsq .= κ_BC .* ξ.^2
+    ζsq .= κ_BC .* ζ.^2
     Dsq .= D.^2
     Dhatsq .= Dhat.^2
 
-    # Trace computation (second term in forcing term), only keeping ξ^2 and no other terms 
+    # Trace computation (second term in forcing term), only keeping ζ^2 and no other terms
     # Ixy!(ξpDT, ξsq + Dsq)
-    Ixy!(ξsqT, ξsq)
+    Ixy!(ζsqT, ζsq)
 
-    # Computing ξ ⋅ D and placing on cell centers 
-    ξD .= κ_BC .* (ξ .* D)
-    Ixy!(ξDT, ξD)
+    # Computing ζ ⋅ D and placing on cell centers
+    ζD .= κ_BC .* (ζ .* D)
+    Ixy!(ζDT, ζD)
 
-    # Computing ξ ⋅ Dhat, cell corners 
+    # Computing ζ ⋅ Dhat, cell corners
     Ixy!(Dhatq, Dhat)
-    @inbounds for j ∈ 1:nq
+    for j ∈ 1:nq
         for k ∈ 1:mq 
-            ξDhat[k,j] = κ_BC * ξ[k,j] * Dhatq[k,j]
+            ζDhat[k,j] = κ_BC * ζ[k,j] * Dhatq[k,j]
         end
     end
-    # for kj in eachindex(ξDhat,ξ,Dhatq) 
-    #     # ξDhat[kj] = κ_BC * ξ[kj] * Dhatq[kj]
-    #     ξDhat[kj] = ξ[kj] * Dhatq[kj]
+    # for kj in eachindex(ζDhat,ζ,Dhatq) 
+    #     ζDhat[kj] = κ_BC * ζ[kj] * Dhatq[kj]
     # end
 
-    # Now, before computing the final divergence, we want to apply a
-    # filter to each element of S a total of N times 
-
-    if zb_filtered 
-        # applying the filter to ξsqT, doing this in three stages:
-        # (1) applying the filter only to the internal points
-        # (2) applying the filter to points on the boundary, just ignoring
-        # the portions of G that don't have a corresponding point in the grid
-        # (3) applying the filter to points on the corner, still just ignoring
-        # the portions of G that don't have a corresponding point in the grid
+    if zb_filtered
 
         for i = 1:N
+
             for j ∈ 2:nT-1 
                 for k ∈ 2:mT-1 
-                    trace_filtered[k,j] = Gconvolve(@view ξsqT[k-1:k+1,j-1:j+1])
-                    ξD_filtered[k,j] = Gconvolve(@view ξDT[k-1:k+1,j-1:j+1])
+                    ζsqT[k,j] = Gconvolve(@view ζsqT[k-1:k+1,j-1:j+1])
+                    ζDT[k,j] = Gconvolve(@view ζDT[k-1:k+1,j-1:j+1])
                 end
             end
+
             for h ∈ 2:nT-1
-                trace_filtered[1,h] = Gconvolve23all(@view ξsqT[1:2,h-1:h+1])
-                trace_filtered[mT,h] = Gconvolve12all(@view ξsqT[mT-1:mT,h-1:h+1])
-                ξD_filtered[1,h] = Gconvolve23all(@view ξDT[1:2,h-1:h+1])
-                ξD_filtered[mT,h] = Gconvolve12all(@view ξDT[mT-1:mT,h-1:h+1])
+                ζsqT[1,h] = Gconvolve23all(@view ζsqT[1:2,h-1:h+1])
+                ζsqT[mT,h] = Gconvolve12all(@view ζsqT[mT-1:mT,h-1:h+1])
+                ζDT[1,h] = Gconvolve23all(@view ζDT[1:2,h-1:h+1])
+                ζDT[mT,h] = Gconvolve12all(@view ζDT[mT-1:mT,h-1:h+1])
             end
-            for v ∈ 2:mT-1 
-                trace_filtered[v,1] = Gconvolveall23(ξsqT[v-1:v+1,1:2])
-                trace_filtered[v,nT] = Gconvolveall12(ξsqT[v-1:v+1,nT-1:nT])
-                ξD_filtered[v,1] = Gconvolveall23(ξDT[v-1:v+1,1:2])
-                ξD_filtered[v,nT] = Gconvolveall12(ξDT[v-1:v+1,nT-1:nT])
-            end 
 
-            trace_filtered[1,1] = (4*ξsqT[1,1] + 2*ξsqT[1,2] + 2*ξsqT[2,1] + ξsqT[2,2])/8
-            trace_filtered[1,nT] = (2*ξsqT[1,nT-1] + 4*ξsqT[1,nT] + ξsqT[2,nT-1] + 2*ξsqT[2,nT])/8
-            trace_filtered[mT,1] = (2*ξsqT[mT-1,1] + ξsqT[mT-1,2] + 4*ξsqT[mT,1] + 2*ξsqT[mT,2])/8
-            trace_filtered[mT,nT] = (ξsqT[mT-1,nT-1] + 2*ξsqT[mT-1,nT] + 2*ξsqT[mT,nT-1] + 4*ξsqT[mT,nT])/8
+            for v ∈ 2:mT-1
+                ζsqT[v,1] = Gconvolveall23(ζsqT[v-1:v+1,1:2])
+                ζsqT[v,nT] = Gconvolveall12(ζsqT[v-1:v+1,nT-1:nT])
+                ζDT[v,1] = Gconvolveall23(ζDT[v-1:v+1,1:2])
+                ζDT[v,nT] = Gconvolveall12(ζDT[v-1:v+1,nT-1:nT])
+            end
 
-            ξD_filtered[1,1] = (4*ξDT[1,1] + 2*ξDT[1,2] + 2*ξDT[2,1] + ξDT[2,2])/8
-            ξD_filtered[1,nT] = (2*ξDT[1,nT-1] + 4*ξDT[1,nT] + ξDT[2,nT-1] + 2*ξDT[2,nT])/8
-            ξD_filtered[mT,1] = (2*ξDT[mT-1,1] + ξDT[mT-1,2] + 4*ξDT[mT,1] + 2*ξDT[mT,2])/8
-            ξD_filtered[mT,nT] = (ξDT[mT-1,nT-1] + 2*ξDT[mT-1,nT] + 2*ξDT[mT,nT-1] + 4*ξDT[mT,nT])/8
+            ζsqT[1,1] = (4*ζsqT[1,1] + 2*ζsqT[1,2] + 2*ζsqT[2,1] + ζsqT[2,2])/8
+            ζsqT[1,nT] = (2*ζsqT[1,nT-1] + 4*ζsqT[1,nT] + ζsqT[2,nT-1] + 2*ζsqT[2,nT])/8
+            ζsqT[mT,1] = (2*ζsqT[mT-1,1] + ζsqT[mT-1,2] + 4*ζsqT[mT,1] + 2*ζsqT[mT,2])/8
+            ζsqT[mT,nT] = (ζsqT[mT-1,nT-1] + 2*ζsqT[mT-1,nT] + 2*ζsqT[mT,nT-1] + 4*ζsqT[mT,nT])/8
 
-            for j ∈ 2:nq-1 
-                for k ∈ 2:mq-1 
-                    ξDhat_filtered[k,j] = Gconvolve(@view ξDhat[k-1:k+1,j-1:j+1])
+            ζDT[1,1] = (4*ζDT[1,1] + 2*ζDT[1,2] + 2*ζDT[2,1] + ζDT[2,2])/8
+            ζDT[1,nT] = (2*ζDT[1,nT-1] + 4*ζDT[1,nT] + ζDT[2,nT-1] + 2*ζDT[2,nT])/8
+            ζDT[mT,1] = (2*ζDT[mT-1,1] + ζDT[mT-1,2] + 4*ζDT[mT,1] + 2*ζDT[mT,2])/8
+            ζDT[mT,nT] = (ζDT[mT-1,nT-1] + 2*ζDT[mT-1,nT] + 2*ζDT[mT,nT-1] + 4*ζDT[mT,nT])/8
+
+            for j ∈ 2:nq-1
+                for k ∈ 2:mq-1
+                    ζDhat[k,j] = Gconvolve(@view ζDhat[k-1:k+1,j-1:j+1])
                 end
             end
-            for h ∈ 2:nq-1
-                ξDhat_filtered[1,h] = Gconvolve23all(ξDhat[1:2,h-1:h+1])
-                ξDhat_filtered[mq,h] = Gconvolve12all(ξDhat[mq-1:mq,h-1:h+1])
-            end
-            for v ∈ 2:mq-1
-                ξDhat_filtered[v,1] = Gconvolveall23(ξDhat[v-1:v+1,1:2])
-                ξDhat_filtered[v,nq] = Gconvolveall12(ξDhat[v-1:v+1,nq-1:nq])
-            end 
 
-            ξDhat_filtered[1,1] = (4*ξDhat[1,1] + 2*ξDhat[1,2] + 2*ξDhat[2,1] + ξDhat[2,2])/8
-            ξDhat_filtered[1,nq] = (2*ξDhat[1,nq-1] + 4*ξDhat[1,nq] + ξDhat[2,nq-1] + 2*ξDhat[2,nq])/8
-            ξDhat_filtered[mq,1] = (2*ξDhat[mq-1,1] + ξDhat[mq-1,2] + 4*ξDhat[mq,1] + 2*ξDhat[mq,2])/8
-            ξDhat_filtered[mq,nq] = (ξDhat[mq-1,nq-1] + 2*ξDhat[mq-1,nq] + 2*ξDhat[mq,nq-1] + 4*ξDhat[mq,nq])/8
+            for h ∈ 2:nq-1
+                ζDhat[1,h] = Gconvolve23all(ζDhat[1:2,h-1:h+1])
+                ζDhat[mq,h] = Gconvolve12all(ζDhat[mq-1:mq,h-1:h+1])
+            end
+
+            for v ∈ 2:mq-1
+                ζDhat[v,1] = Gconvolveall23(ζDhat[v-1:v+1,1:2])
+                ζDhat[v,nq] = Gconvolveall12(ζDhat[v-1:v+1,nq-1:nq])
+            end
+
+            ζDhat[1,1] = (4*ζDhat[1,1] + 2*ζDhat[1,2] + 2*ζDhat[2,1] + ζDhat[2,2])/8
+            ζDhat[1,nq] = (2*ζDhat[1,nq-1] + 4*ζDhat[1,nq] + ζDhat[2,nq-1] + 2*ζDhat[2,nq])/8
+            ζDhat[mq,1] = (2*ζDhat[mq-1,1] + ζDhat[mq-1,2] + 4*ζDhat[mq,1] + 2*ζDhat[mq,2])/8
+            ζDhat[mq,nq] = (ζDhat[mq-1,nq-1] + 2*ζDhat[mq-1,nq] + 2*ζDhat[mq,nq-1] + 4*ζDhat[mq,nq])/8
+
+            trace_filtered .= ζsqT
+            ζD_filtered .= ζDT
+            ζDhat_filtered .= ζDhat
+
         end
 
-        ∂x!(dξDdx, ξD_filtered)
-        ∂y!(dξDhatdy, ξDhat_filtered)
+        ∂x!(dζDdx, ζD_filtered)
+        ∂y!(dζDhatdy, ζDhat_filtered)
         ∂x!(dtracedx, trace_filtered)
-
-        ∂x!(dξDhatdx, ξDhat_filtered)
-        ∂y!(dξDdy, ξD_filtered)
+    
+        ∂x!(dζDhatdx, ζDhat_filtered)
+        ∂y!(dζDdy, ζD_filtered)
         ∂y!(dtracedy, trace_filtered)
 
-    else 
-        # compute final derivatives of everything with no filter 
-        ∂x!(dξDdx, ξDT)
-        ∂y!(dξDhatdy, ξDhat)
-        ∂x!(dtracedx, ξsqT)
+    else
 
-        ∂x!(dξDhatdx, ξDhat)
-        ∂y!(dξDdy, ξDT)
-        ∂y!(dtracedy, ξsqT)
+        ∂x!(dζDdx, ζDT)
+        ∂y!(dζDhatdy, ζDhat)
+        ∂x!(dtracedx, ζsqT)
+    
+        ∂x!(dζDhatdx, ζDhat)
+        ∂y!(dζDdy, ζDT)
+        ∂y!(dtracedy, ζsqT)
+
     end
 
     s = Δ^2 * scale
-    # for kj in eachindex(S_u,dξDdx,temp,dtracedx)
+    # for kj in eachindex(S_u,dζDdx,temp,dtracedx)
     for j ∈ 1:nuy
         for k ∈ 1:nux
-            # S_u[k,j] = (-dξDdx[k,j] + dξDhatdy[k+1,j] + dtracedx[k,j]) / s
-            S_u[k,j] = (-dξDdx[k,j] + dξDhatdy[k+1,j] + dtracedx[k,j]) / s
+            S_u[k,j] = (-dζDdx[k,j] + dζDhatdy[k+1,j] + dtracedx[k,j]) / s
         end
     end
 
-    # for kj in eachindex(S_v,dξDdy,dtracedy)
+    # for kj in eachindex(S_v,dζDdy,dtracedy)
     for j ∈ 1:nvy
         for k ∈ 1:nvx
-            # S_v[k,j] = (dξDhatdx[k,j+1] + dξDdy[k,j] + dtracedy[k,j]) / s
-            S_v[k,j] = (dξDhatdx[k,j+1] + dξDdy[k,j] + dtracedy[k,j]) / s
+            S_v[k,j] = (dζDhatdx[k,j+1] + dζDdy[k,j] + dtracedy[k,j]) / s
         end
     end
 
@@ -209,7 +214,7 @@ end
 # ∂x!(dvdx, v)
 # ∂y!(dvdy, v)
 
-# mq,nq = size(ξ)
+# mq,nq = size(ζ)
 # mTh,nTh = size(Dhat)
 # mT,nT = size(trace)
 
@@ -220,7 +225,7 @@ end
 # # Relative vorticity and shear deformation, cell corners
 # @inbounds for j ∈ 1:nq
 #     for k ∈ 1:mq
-#         ξ[k,j] = dvdx[k+1,j+1] - dudy[k+1,j+1]
+#         ζ[k,j] = dvdx[k+1,j+1] - dudy[k+1,j+1]
 #     end
 # end
 
@@ -242,22 +247,22 @@ end
 #     end
 # end
 
-# ξsq .= ξ.^2 
+# ξsq .= ζ.^2 
 
 # # Last interpolation of D, moving to corners without halo
 # Ixy!(D_q, D_nT)
 
-# # Move ξ^2 to cell centers (128,128)
+# # Move ζ^2 to cell centers (128,128)
 # Ixy!(ξsqT, ξsq)
 
-# # Computing ξ ⋅ D and placing on cell centers 
-# Ixy!(ξD, ξ .* D_q)
+# # Computing ζ ⋅ D and placing on cell centers 
+# Ixy!(ξD, ζ .* D_q)
 
-# # Computing ξ ⋅ Dhat, cell corners 
+# # Computing ζ ⋅ Dhat, cell corners 
 # Ixy!(Dhatq, Dhat)
 # @inbounds for j ∈ 1:nq
 #     for k ∈ 1:mq 
-#         ξDhat[k,j] = ξ[k,j] * Dhatq[k,j]
+#         ξDhat[k,j] = ζ[k,j] * Dhatq[k,j]
 #     end
 # end
 

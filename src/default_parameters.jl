@@ -70,11 +70,11 @@
     α::Real=0.                          # lateral boundary condition parameter
                                         # 0 free-slip, 0<α<2 partial-slip, 2 no-slip
 
-    # ZANNA-BOLTON FORCING 
+    # ZANNA-BOLTON FORCING OPTIONS
     zb_forcing::Bool=false              # add in ZB forcing term?
-    zb_filtered::Bool=false             # apply a filter to entries in the forcing tensor? 
+    zb_filtered::Bool=false             # apply a filter to entries in the forcing tensor?
     N::Int=1                            # how many times to apply filter to entries in forcing tensor
-    γ₀::Float32=0.5                     # coefficient for forcing term 
+    γ₀::Float32=0.3                     # coefficient for forcing term parameter
 
     # MOMENTUM ADVECTION OPTIONS
     adv_scheme::String="Sadourny"       # "Sadourny" or "ArakawaHsu"
@@ -86,7 +86,7 @@
     τD::Real=300.                       # bottom drag coefficient [days] for linear
 
     # DIFFUSION OPTIONS
-    diffusion::String="Smagorinsky"     # "Smagorinsky" or "constant", biharmonic in both cases
+    diffusion::String="constant"        # "Smagorinsky" or "constant", biharmonic in both cases
     νB::Real=500.0                      # [m^2/s] scaling constant for constant biharmonic diffusion
     cSmag::Real=0.15                    # Smagorinsky coefficient [dimensionless]
 
