@@ -5,6 +5,7 @@ module ShallowWaters
     using NetCDF, Parameters, Printf, Dates, Interpolations
 
     using Enzyme#main
+    using Checkpointing
     Enzyme.API.maxtypeoffset!(3500)
 
     include("default_parameters.jl")

@@ -923,9 +923,8 @@ function time_integration_nofeedback(S::ModelSetup{T,Tprog}) where {T<:AbstractF
 
 end
 
-# For checkpointing. Includes a cost function evaluation and adds additional forcing term as 
-# described in Bolton and Zanna (2020)
-function time_integration_cp(S::ModelSetup{T,Tprog}) where {T<:AbstractFloat,Tprog<:AbstractFloat}
+# For checkpointing. Includes a cost function evaluation
+function checkpointed_time_integration(S::ModelSetup{T,Tprog}) where {T<:AbstractFloat,Tprog<:AbstractFloat}
 
     Diag = S.Diag
     Prog = S.Prog
@@ -980,7 +979,7 @@ function time_integration_cp(S::ModelSetup{T,Tprog}) where {T<:AbstractFloat,Tpr
 
     nans_detected = false
     t = 0                       # model time
-    for i = 1:nt
+    @checkpoint_struct scheme S for i = 1:nt
 
         # ghost point copy for boundary conditions
         ghost_points!(u,v,η,S)
