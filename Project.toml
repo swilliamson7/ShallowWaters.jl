@@ -4,6 +4,7 @@ authors = ["Milan Kloewer"]
 version = "0.5.0"
 
 [deps]
+Checkpointing = "eb46d486-4f9c-4c3d-b445-a617f2a2f1ca"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"

@@ -32,5 +32,6 @@ module ShallowWaters
     include("run_model.jl")
 
     include("zanna_bolton_forcing.jl")
+    include("coarse_grain.jl")
 
 end

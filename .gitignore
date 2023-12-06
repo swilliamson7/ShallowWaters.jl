@@ -54,3 +54,7 @@ figs/vsnapshot.png
 my_scripts/for_meeting.png
 my_scripts/wrong_energy.png
 *.png
+my_scripts/plotting.jl
+my_scripts/compute_energy_spectra.jl
+my_scripts/compute_energy_spectra.jl
+my_scripts/compute_energy_spectra.jl

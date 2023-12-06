@@ -290,7 +290,7 @@ function time_integration_withreturn(S::ModelSetup{T,Tprog}) where {T<:AbstractF
         copyto!(v,v0)
         copyto!(η,η0)
 
-        # compute and store energy 
+        # compute and store energy
         temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
         energy[i] = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny) 
 
