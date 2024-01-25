@@ -308,7 +308,7 @@ function time_integration_withreturn(S::ModelSetup{T,Tprog}) where {T<:AbstractF
 
 end
 
-##### No return value versions ############################################################################################
+##### No return value versions #########################################################
 
 # Returns nothing, includes feedback lines
 function time_integration_noreturn(S::ModelSetup{T,Tprog}) where {T<:AbstractFloat,Tprog<:AbstractFloat}
@@ -611,7 +611,7 @@ function time_integration_noreturn(S::ModelSetup{T,Tprog}) where {T<:AbstractFlo
     #     return PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
     # end
 
-    return nothing 
+    return nothing
 
 end
 
@@ -924,6 +924,9 @@ function time_integration_nofeedback(S::ModelSetup{T,Tprog}) where {T<:AbstractF
 end
 
 # For checkpointing. Includes a cost function evaluation
+# The cost function we want to compute is dependent on what sort of data is included in the model,
+# should maybe consider branching this into different cost functions? Allowing different
+# types of data?
 function checkpointed_time_integration(S::ModelSetup{T,Tprog}) where {T<:AbstractFloat,Tprog<:AbstractFloat}
 
     Diag = S.Diag
@@ -970,7 +973,7 @@ function checkpointed_time_integration(S::ModelSetup{T,Tprog}) where {T<:Abstrac
     # store initial conditions of sst for relaxation
     copyto!(Diag.SemiLagrange.sst_ref,sst)
 
-    # adding causes bug in Enzyme, don't really need these functions
+    # adding these lines causes bug in Enzyme, don't really need these functions
     # (or at least it doesn't seem like I do)
     # feedback, output initialisation and storing initial conditions
     # feedback = feedback_init(S)

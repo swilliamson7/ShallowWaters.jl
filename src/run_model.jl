@@ -10,7 +10,7 @@ julia> u,v,η,sst = run_model(Float64,nx=200,output=true)
 ```
 """
 
-## Forward run modified ####################################################################################################
+## Forward run modified ###########################################################################
 
 function run_model(::Type{T}=Float32;     # number format
     kwargs...                             # all additional parameters
@@ -46,7 +46,7 @@ function run_model(::Type{T},P::Parameter) where {T<:AbstractFloat}
 
 end
 
-#### for checking that the modified time_integration still works 
+#### for checking that the modified time_integration still works ##################################
 
 function run_check(::Type{T}=Float32;     # number format
     kwargs...                             # all additional parameters
@@ -84,7 +84,7 @@ end
 
 ##################################################################
 
-## Built in Enzyme run ####################################################################################################
+## Built in Enzyme run #######################################################################
 
 function run_enzyme(::Type{T}=Float32;     # number format
     kwargs...                             # all additional parameters
@@ -106,7 +106,6 @@ function run_enzyme(::Type{T},P::Parameter) where {T<:AbstractFloat}
     G = Grid{T,Tprog}(P)
     C = Constants{T,Tprog}(P,G)
     F = Forcing{T}(P,G)
-    # S = ModelSetup{T,Tprog}(P,G,C,F)
 
     Prog = initial_conditions(Tprog,G,P,C)
     Diag = preallocate(T,Tprog,G)
@@ -120,7 +119,6 @@ function run_enzyme(::Type{T},P::Parameter) where {T<:AbstractFloat}
     return S, dS
 
 end
-
 
 #### Setup run #########################################################################################################
 
@@ -161,6 +159,8 @@ function run_setup(::Type{T},P::Parameter) where {T<:AbstractFloat}
 end
 
 #### Original ##################################################################################
+
+# In order to run the following you need to change lines in model_setup.jl
 
 function mk_run_model(::Type{T}=Float32;     # number format
     kwargs...                            # all additional parameters

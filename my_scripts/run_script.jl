@@ -1,5 +1,5 @@
 include("../src/ShallowWaters.jl")
-using .ShallowWaters 
+using .ShallowWaters
 using Enzyme#main
 
 P = ShallowWaters.run_model(nx=128,Ndays=1,initial_cond="ncfile")
