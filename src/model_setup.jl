@@ -16,7 +16,7 @@
 
 @with_kw mutable struct AdjointVariables
     data_steps::Array{Int, 1} = [0]             # Timesteps where data exists
-    data::Array{Float32, 2}                     # model data
+    data::Array{Float32, 2} = [0.]            # model data
     J::Float64 = 0.                             # Placeholder for cost function evaluation
     j::Int = 0                                  # For keeping track of the entry in data
     i::Int = 0                                  # Placeholder for current timestep, needed for Checkpointing.jl
@@ -24,7 +24,6 @@ end
 
 # """
 #     P = ProgVars{T}(u,v,η,sst)
-
 # Struct containing the prognostic variables u,v,η and sst.
 # """
 mutable struct PrognosticVars{T<:AbstractFloat}
