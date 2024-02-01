@@ -292,7 +292,7 @@ function time_integration_withreturn(S::ModelSetup{T,Tprog}) where {T<:AbstractF
 
         # compute and store energy
         temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
-        energy[i] = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny) 
+        energy[i] = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
 
     end
 
@@ -927,12 +927,10 @@ end
 # The cost function we want to compute is dependent on what sort of data is included in the model,
 # should maybe consider branching this into different cost functions? Allowing different
 # types of data?
-function checkpointed_time_integration(S::ModelSetup{T,Tprog}) where {T<:AbstractFloat,Tprog<:AbstractFloat}
+function checkpointed_time_integration(S::ModelSetup{T,Tprog}, scheme) where {T<:AbstractFloat,Tprog<:AbstractFloat}
 
     Diag = S.Diag
     Prog = S.Prog
-
-    @unpack data_steps, J, j, i = S.Adjoint
 
     @unpack u,v,η,sst = Prog
     @unpack u0,v0,η0 = Diag.RungeKutta
@@ -950,6 +948,9 @@ function checkpointed_time_integration(S::ModelSetup{T,Tprog}) where {T<:Abstrac
 
     @unpack nt,dtint = S.grid
     @unpack nstep_advcor,nstep_diff,nadvstep,nadvstep_half = S.grid
+
+    # For optimization problem
+    @unpack data_steps, data, J, i = S.parameters
 
     # calculate layer thicknesses for initial conditions
     thickness!(Diag.VolumeFluxes.h,η,S.forcing.H)
@@ -1218,8 +1219,14 @@ function checkpointed_time_integration(S::ModelSetup{T,Tprog}) where {T<:Abstrac
 
         #### cost function evaluation, writing here for each changes 
 
-        if i in data_steps 
-            J += 1
+        if i in data_steps
+
+            temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
+            energy_lr = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
+
+            # spacially averaged energy objective function
+            J += (energy_lr - data[i])^2
+
         end
 
         ####

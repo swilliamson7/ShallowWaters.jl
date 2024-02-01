@@ -14,13 +14,13 @@
 # Structure that will contain additional terms needed for the adjoint experiments,
 # such as a location to store cost function evaluation
 
-@with_kw mutable struct AdjointVariables
-    data_steps::Array{Int, 1} = [0]             # Timesteps where data exists
-    data::Array{Float32, 2} = [0.]            # model data
-    J::Float64 = 0.                             # Placeholder for cost function evaluation
-    j::Int = 0                                  # For keeping track of the entry in data
-    i::Int = 0                                  # Placeholder for current timestep, needed for Checkpointing.jl
-end
+# @with_kw mutable struct AdjointVariables
+#     data_steps::Array{Int, 1} = [0]             # Timesteps where data exists
+#     data::Array{Float32, 2} = [0. 0.;0. 0.]           # model data
+#     J::Float64 = 0.                             # Placeholder for cost function evaluation
+#     j::Int = 0                                  # For keeping track of the entry in data
+#     i::Int = 0                                  # Placeholder for current timestep, needed for Checkpointing.jl
+# end
 
 # """
 #     P = ProgVars{T}(u,v,η,sst)
@@ -55,5 +55,5 @@ mutable struct ModelSetup{T<:AbstractFloat,Tprog<:AbstractFloat}
     forcing::Forcing{T}
     Prog::PrognosticVars{T}
     Diag::DiagnosticVars{T, Tprog}
-    Adjoint::AdjointVariables
+    # Adjoint::AdjointVariables
 end

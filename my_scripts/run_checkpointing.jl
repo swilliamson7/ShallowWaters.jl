@@ -1,8 +1,11 @@
 include("../src/ShallowWaters.jl")
 using .ShallowWaters 
 using NetCDF, Parameters, Printf, Dates, Interpolations
+using JLD2
 using Enzyme#main
 using Checkpointing
+
+Enzyme.API.runtimeActivity!(true)
 
 ### Checkpointing check
 
@@ -29,6 +32,15 @@ function checkpoint_function(S, scheme)
     @unpack nt,dtint = S.grid
     @unpack nstep_advcor,nstep_diff,nadvstep,nadvstep_half = S.grid
 
+    ###### for optimization problem
+    data_steps = S.parameters.data_steps
+    data = S.parameters.data
+    J = S.parameters.J
+    i = S.parameters.i
+    j = S.parameters.j
+    # @unpack data_steps, data, J, i = S.parameters
+    #######
+
     # calculate layer thicknesses for initial conditions
     ShallowWaters.thickness!(Diag.VolumeFluxes.h,η,S.forcing.H)
     ShallowWaters.Ix!(Diag.VolumeFluxes.h_u,Diag.VolumeFluxes.h)
@@ -42,7 +54,6 @@ function checkpoint_function(S, scheme)
 
     ShallowWaters.advection_coriolis!(urhs,vrhs,ηrhs,Diag,S)
     ShallowWaters.PVadvection!(Diag,S)
-
 
     # propagate initial conditions
     copyto!(u0,u)
@@ -296,6 +307,22 @@ function checkpoint_function(S, scheme)
         #     break
         # end
 
+        #### cost function evaluation, writing here for each changes
+
+        if i in data_steps
+
+            temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
+            energy_lr = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
+
+            # spacially averaged energy objective function
+            J += (energy_lr - data[j])^2
+
+            j += 1
+
+        end
+
+        #############################################################
+
         # Copy back from substeps
         copyto!(u,u0)
         copyto!(v,v0)
@@ -308,9 +335,10 @@ function checkpoint_function(S, scheme)
 
 end
 
+# working
 function run_checkpointing()
 
-    S = ShallowWaters.run_setup(nx = 128, Ndays = 1, zb_forcing=true, zb_filtered=true)
+    S = ShallowWaters.run_setup(nx = 128, Ndays = 1, zb_forcing_momentum=true, zb_filtered=true)
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
     snaps = Int(floor(sqrt(S.grid.nt)))
     revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt, snaps; verbose=1, gc=true, write_checkpoints=false)
@@ -323,5 +351,43 @@ function run_checkpointing()
 
 end
 
-# @time S, dS = run_checkpointing()
+# not working
+function run_energy_checkpointing()
+
+    energy_high_resolution = load_object("data_files_gamma0.3/512_post_spinup_4years/energy_post_spinup_512_4years_012524.jld2")
+    grid_scale = 4
+
+    # aiming to have data about every 30 days
+    data_steps = 6750*12:6750*12
+    data = [energy_high_resolution[6750*12*grid_scale]]
+
+    S = ShallowWaters.run_setup(nx = 128,
+        Ndays = 365,
+        zb_forcing_dissipation=true,
+        zb_filtered=true,
+        data_steps=data_steps,
+        data=data,
+    )
+
+    dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
+
+    snaps = Int(floor(sqrt(S.grid.nt)))
+    revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt,
+        snaps;
+        verbose=1,
+        gc=true,
+        write_checkpoints=false
+    )
+
+    autodiff(Enzyme.ReverseWithPrimal,
+        checkpoint_function,
+        Duplicated(S, dS),
+        revolve
+    )
+
+    return S, dS
+
+end
+
+@time S, dS = run_energy_checkpointing()
 # S, dS = ShallowWaters.run_enzyme(nx=30,Ndays=1)

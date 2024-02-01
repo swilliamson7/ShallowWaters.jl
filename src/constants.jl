@@ -1,7 +1,7 @@
 """Coefficients for strong stability-preserving Runge-Kutta 3rd order.
 From: KETCHESON, LOĆZI, AND PARSANI, 2014. INTERNAL ERROR PROPAGATION IN EXPLICIT RUNGE–KUTTA METHODS,
 SIAM J NUMER ANAL 52/5. DOI:10.1137/130936245"""
-mutable struct SSPRK3coeff{T<:AbstractFloat}
+struct SSPRK3coeff{T<:AbstractFloat}
     n::Int
     s::Int
     kn::Int
