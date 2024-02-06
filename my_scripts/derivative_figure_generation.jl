@@ -32,7 +32,7 @@ function run_checkpointing()
         write_checkpoints=false
     )
 
-    autodiff(Enzyme.ReverseWithPrimal,
+    autodiff(Reverse,
         ShallowWaters.checkpointed_time_integration,
         Duplicated(S, dS),
         revolve

@@ -1253,8 +1253,7 @@ function checkpointed_time_integration(S::ModelSetup{T,Tprog}, scheme) where {T<
 
     temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
     # S.parameters.J = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
-    S.parameters.J = temp.η[25,25]
-    return S.parameters.J
+    return temp.η[25,25]
 
 end
 
