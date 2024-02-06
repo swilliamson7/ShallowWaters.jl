@@ -70,7 +70,7 @@ function checkpoint_function(S, scheme)
     # netCDFfiles = NcFiles(feedback,S)
     # output_nc!(0,netCDFfiles,Prog,Diag,S)
 
-    nans_detected = false
+    # nans_detected = false
     t = 0                       # model time
     # run integration loop with checkpointing
     @checkpoint_struct scheme S for i = 1:nt
@@ -309,17 +309,17 @@ function checkpoint_function(S, scheme)
 
         #### cost function evaluation, writing here for each changes
 
-        if i in data_steps
+        # if i in data_steps
 
-            temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
-            energy_lr = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
+        #     temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
+        #     energy_lr = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
 
-            # spacially averaged energy objective function
-            J += (energy_lr - data[j])^2
+        #     # spacially averaged energy objective function
+        #     J += (energy_lr - data[j])^2
 
-            j += 1
+        #     j += 1
 
-        end
+        # end
 
         #############################################################
 
@@ -330,22 +330,20 @@ function checkpoint_function(S, scheme)
 
     end
 
-    # return nothing 
+    # return nothing
     return S.Prog.u[24,24]
 
 end
 
-# working
+# was working, no longer is
 function run_checkpointing()
 
-    S = ShallowWaters.run_setup(nx = 128, Ndays = 1, zb_forcing_momentum=true, zb_filtered=true)
+    S = ShallowWaters.run_setup(nx = 50, Ndays = 1, zb_forcing_momentum=false, zb_filtered=false)
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
     snaps = Int(floor(sqrt(S.grid.nt)))
     revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt, snaps; verbose=1, gc=true, write_checkpoints=false)
 
     autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), revolve)
-
-    # @time S, dS = ShallowWaters.run_enzyme(nx=50, Ndays=1)
 
     return S, dS
 
@@ -389,5 +387,5 @@ function run_energy_checkpointing()
 
 end
 
-@time S, dS = run_energy_checkpointing()
+@time S, dS = run_checkpointing()
 # S, dS = ShallowWaters.run_enzyme(nx=30,Ndays=1)

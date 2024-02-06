@@ -977,9 +977,9 @@ function checkpointed_time_integration(S::ModelSetup{T,Tprog}, scheme) where {T<
     # adding these lines causes bug in Enzyme, don't really need these functions
     # (or at least it doesn't seem like I do)
     # feedback, output initialisation and storing initial conditions
-    # feedback = feedback_init(S)
-    # netCDFfiles = NcFiles(feedback,S)
-    # output_nc!(0,netCDFfiles,Prog,Diag,S)
+    feedback = feedback_init(S)
+    netCDFfiles = NcFiles(feedback,S)
+    output_nc!(0,netCDFfiles,Prog,Diag,S)
 
     nans_detected = false
     t = 0                       # model time
@@ -1209,25 +1209,25 @@ function checkpointed_time_integration(S::ModelSetup{T,Tprog}, scheme) where {T<
         tracer!(i,u0rhs,v0rhs,Prog,Diag,S)
 
         # feedback and output
-        # feedback.i = i
-        # feedback!(Prog,feedback,S)
-        # output_nc!(i,netCDFfiles,Prog,Diag,S)       # uses u0,v0,η0
+        feedback.i = i
+        feedback!(Prog,feedback,S)
+        output_nc!(i,netCDFfiles,Prog,Diag,S)       # uses u0,v0,η0
 
         # if feedback.nans_detected
         #     break
         # end
 
-        #### cost function evaluation, writing here for each changes 
+        #### cost function evaluation, writing here for each changes, not currently working
 
-        if i in data_steps
+        # if i in data_steps
 
-            temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
-            energy_lr = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
+        #     temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
+        #     energy_lr = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
 
-            # spacially averaged energy objective function
-            J += (energy_lr - data[i])^2
+        #     # spacially averaged energy objective function
+        #     J += (energy_lr - data[i])^2
 
-        end
+        # end
 
         ####
 
@@ -1239,8 +1239,8 @@ function checkpointed_time_integration(S::ModelSetup{T,Tprog}, scheme) where {T<
     end
 
     # finalise feedback and output
-    # feedback_end!(feedback)
-    # output_close!(netCDFfiles,feedback,S)
+    feedback_end!(feedback)
+    output_close!(netCDFfiles,feedback,S)
 
     # if S.parameters.return_time
     #     return feedback.tend - feedback.t0
@@ -1248,7 +1248,13 @@ function checkpointed_time_integration(S::ModelSetup{T,Tprog}, scheme) where {T<
     #     return PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
     # end
 
-    return nothing
+    # return the objective value. should fit the sentence "I want a derivative of ____ w.r.t. model"
+    # dS will contain the derivatives of this w.r.t. everything
+
+    temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
+    # S.parameters.J = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
+    S.parameters.J = temp.η[25,25]
+    return S.parameters.J
 
 end
 
