@@ -331,7 +331,7 @@ function checkpoint_function(S, scheme)
     end
 
     temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
-    return temp.u[24,24]
+    return temp.η[24,24]
 
     # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
     # S.parameters.J = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
@@ -397,7 +397,15 @@ end
 # working (fingers crossed)
 function run_checkpointing()
 
-    S = ShallowWaters.run_setup(nx = 50, Ndays = 1, zb_forcing_momentum=false, zb_filtered=false)
+
+    S = ShallowWaters.run_setup(nx = 128,
+    Ndays = 1,
+    zb_forcing_momentum=false,
+    zb_filtered=false,
+    initial_cond = "ncfile",
+    initpath="./data_files_gamma0.3/128_spinup_noforcing"
+    )
+
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
     snaps = Int(floor(sqrt(S.grid.nt)))
     revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt, snaps; verbose=1, gc=true, write_checkpoints=false)
