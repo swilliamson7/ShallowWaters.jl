@@ -33,11 +33,11 @@ function checkpoint_function(S, scheme)
     @unpack nstep_advcor,nstep_diff,nadvstep,nadvstep_half = S.grid
 
     ###### for optimization problem
-    data_steps = S.parameters.data_steps
-    data = S.parameters.data
-    J = S.parameters.J
-    i = S.parameters.i
-    j = S.parameters.j
+    # data_steps = S.parameters.data_steps
+    # data = S.parameters.data
+    # J = S.parameters.J
+    # i = S.parameters.i
+    # j = S.parameters.j
     # @unpack data_steps, data, J, i = S.parameters
     #######
 
@@ -67,13 +67,13 @@ function checkpoint_function(S, scheme)
     # (or at least it doesn't seem like I do)
     # feedback, output initialisation and storing initial conditions
     # feedback = feedback_init(S)
-    # netCDFfiles = NcFiles(feedback,S)
-    # output_nc!(0,netCDFfiles,Prog,Diag,S)
+    # netCDFfiles = ShallowWaters.NcFiles(feedback,S)
+    # ShallowWaters.output_nc!(0,netCDFfiles,Prog,Diag,S)
 
     # nans_detected = false
     t = 0                       # model time
     # run integration loop with checkpointing
-    @checkpoint_struct scheme S for i = 1:nt
+    @checkpoint_struct scheme S for S.parameters.i = 1:nt
 
         # ghost point copy for boundary conditions
         ShallowWaters.ghost_points!(u,v,η,S)
@@ -284,7 +284,7 @@ function checkpoint_function(S, scheme)
         # DIFFUSIVE TERMS - SEMI-IMPLICIT EULER
         # use u0 = u^(n+1) to evaluate tendencies, add to u0 = u^n + rhs
         # evaluate only every nstep_diff time steps
-        if (i % nstep_diff) == 0
+        if (S.parameters.i % nstep_diff) == 0
             ShallowWaters.bottom_drag!(u0rhs,v0rhs,η0rhs,Diag,S)
             ShallowWaters.diffusion!(u0rhs,v0rhs,Diag,S)
             ShallowWaters.add_drag_diff_tendencies!(u0,v0,Diag,S)
@@ -301,7 +301,7 @@ function checkpoint_function(S, scheme)
         # # feedback and output
         # feedback.i = i
         # feedback!(Prog,feedback,S)
-        # output_nc!(i,netCDFfiles,Prog,Diag,S)       # uses u0,v0,η0
+        # ShallowWaters.output_nc!(S.parameters.i,netCDFfiles,Prog,Diag,S)       # uses u0,v0,η0
 
         # if feedback.nans_detected
         #     break
@@ -309,15 +309,15 @@ function checkpoint_function(S, scheme)
 
         #### cost function evaluation, writing here for each changes
 
-        # if i in data_steps
+        # if S.parameters.i in S.parameters.data_steps
 
-        #     temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
+        #     temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
         #     energy_lr = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
 
         #     # spacially averaged energy objective function
-        #     J += (energy_lr - data[j])^2
+        #     S.parameters.J += (energy_lr - S.parameters.data[j])^2
 
-        #     j += 1
+        #     S.parameters.j += 1
 
         # end
 
@@ -335,7 +335,7 @@ function checkpoint_function(S, scheme)
 
     # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
     # S.parameters.J = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
-    # return S.parameters.J
+    # return J
 
 end
 
@@ -399,11 +399,12 @@ function run_checkpointing()
 
 
     S = ShallowWaters.run_setup(nx = 128,
-    Ndays = 1,
+    Ndays = 365,
     zb_forcing_momentum=false,
     zb_filtered=false,
     initial_cond = "ncfile",
-    initpath="./data_files_gamma0.3/128_spinup_noforcing"
+    initpath="./data_files_gamma0.3/128_spinup_noforcing",
+    output=false
     )
 
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
@@ -427,11 +428,13 @@ function run_energy_checkpointing()
     data = [energy_high_resolution[6750*12*grid_scale]]
 
     S = ShallowWaters.run_setup(nx = 128,
-        Ndays = 365,
+        Ndays = 1,
         zb_forcing_dissipation=true,
         zb_filtered=true,
         data_steps=data_steps,
         data=data,
+        initial_cond="ncfile",
+        initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/"
     )
 
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
@@ -454,4 +457,4 @@ function run_energy_checkpointing()
 
 end
 
-@time S, dS = run_checkpointing()
+@time S90_initcond, dS90_initcond = run_checkpointing()
