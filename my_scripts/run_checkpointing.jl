@@ -36,9 +36,8 @@ function checkpoint_function(S, scheme)
     # data_steps = S.parameters.data_steps
     # data = S.parameters.data
     # J = S.parameters.J
-    # i = S.parameters.i
+    i = S.parameters.i
     # j = S.parameters.j
-    # @unpack data_steps, data, J, i = S.parameters
     #######
 
     # calculate layer thicknesses for initial conditions
@@ -307,7 +306,7 @@ function checkpoint_function(S, scheme)
         #     break
         # end
 
-        #### cost function evaluation, writing here for each changes
+        #### cost function evaluation
 
         # if S.parameters.i in S.parameters.data_steps
 
@@ -315,7 +314,7 @@ function checkpoint_function(S, scheme)
         #     energy_lr = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
 
         #     # spacially averaged energy objective function
-        #     S.parameters.J += (energy_lr - S.parameters.data[j])^2
+        #     S.parameters.J += (energy_lr - S.parameters.data[S.parameters.j])^2
 
         #     S.parameters.j += 1
 
@@ -335,7 +334,7 @@ function checkpoint_function(S, scheme)
 
     # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
     # S.parameters.J = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
-    # return J
+    # return S.parameters.J
 
 end
 
@@ -402,8 +401,8 @@ function run_checkpointing()
     Ndays = 365,
     zb_forcing_momentum=false,
     zb_filtered=false,
-    initial_cond = "ncfile",
-    initpath="./data_files_gamma0.3/128_spinup_noforcing",
+    # initial_cond = "ncfile",
+    # initpath="./data_files_gamma0.3/128_spinup_noforcing",
     output=false
     )
 
@@ -424,11 +423,11 @@ function run_energy_checkpointing()
     grid_scale = 4
 
     # aiming to have data about every 30 days
-    data_steps = 6750*12:6750*12
-    data = [energy_high_resolution[6750*12*grid_scale]]
+    data_steps = 6733:6733
+    data = [energy_high_resolution[6733*grid_scale]]
 
     S = ShallowWaters.run_setup(nx = 128,
-        Ndays = 1,
+        Ndays = 30,
         zb_forcing_dissipation=true,
         zb_filtered=true,
         data_steps=data_steps,
@@ -457,4 +456,4 @@ function run_energy_checkpointing()
 
 end
 
-@time S90_initcond, dS90_initcond = run_checkpointing()
+@time S365_energy, dS365_energy = run_checkpointing()
