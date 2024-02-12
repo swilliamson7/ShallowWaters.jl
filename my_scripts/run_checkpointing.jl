@@ -398,7 +398,7 @@ function run_checkpointing()
 
 
     S = ShallowWaters.run_setup(nx = 128,
-    Ndays = 365,
+    Ndays = 60,
     zb_forcing_momentum=false,
     zb_filtered=false,
     # initial_cond = "ncfile",
