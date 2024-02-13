@@ -42,7 +42,6 @@ function checkpoint_function(S)
 
 end
 
-# working (fingers crossed)
 function run_checkpointing()
 
 
