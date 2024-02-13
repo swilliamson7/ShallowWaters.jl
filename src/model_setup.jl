@@ -33,7 +33,7 @@ mutable struct PrognosticVars{T<:AbstractFloat}
     sst::Array{T,2}         # tracer / sea surface temperature
 end
 
-mutable struct DiagnosticVars{T,Tprog}
+struct DiagnosticVars{T,Tprog}
     RungeKutta::RungeKuttaVars{Tprog}
     Tendencies::TendencyVars{Tprog}
     VolumeFluxes::VolumeFluxVars{T}
@@ -55,6 +55,5 @@ mutable struct ModelSetup{T<:AbstractFloat,Tprog<:AbstractFloat}
     forcing::Forcing{T}
     Prog::PrognosticVars{T}
     Diag::DiagnosticVars{T, Tprog}
-    t::Int
     # Adjoint::AdjointVariables
 end

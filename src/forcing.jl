@@ -1,4 +1,4 @@
-mutable struct Forcing{T<:AbstractFloat}
+struct Forcing{T<:AbstractFloat}
     Fx::Array{T,2}
     Fy::Array{T,2}
     H::Array{T,2}

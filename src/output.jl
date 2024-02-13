@@ -1,4 +1,4 @@
-mutable struct NcFiles
+struct NcFiles
     u::Union{NcFile,Nothing}        # zonal velocity
     v::Union{NcFile,Nothing}        # meridional velocity
     η::Union{NcFile,Nothing}        # sea surface height anomaly
@@ -175,7 +175,7 @@ function get_run_id_path(S::ModelSetup)
     @unpack output,outpath,get_id_mode = S.parameters
 
     if output
-
+        
         pattern = r"run_\d\d\d\d"               # run_???? in regex
         runlist = filter(x->startswith(x,pattern),readdir(outpath))
         runlist = filter(x->endswith(x,pattern),runlist)
@@ -187,7 +187,7 @@ function get_run_id_path(S::ModelSetup)
         else
             run_id = maximum(existing_runs)+1   # next run gets id +1
         end
-
+        
         id = @sprintf("%04d",run_id)
 
         run_id2 = string("run_",id)
@@ -200,5 +200,5 @@ function get_run_id_path(S::ModelSetup)
     else
         return 0,"no runpath"
     end
-
+    
 end
