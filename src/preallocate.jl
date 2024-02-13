@@ -1,5 +1,5 @@
 """Runge Kutta time stepping scheme diagnostic cariables collected in a struct."""
-@with_kw struct RungeKuttaVars{T<:AbstractFloat}
+@with_kw mutable struct RungeKuttaVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -38,7 +38,7 @@ end
 ###################################################
 
 """Tendencies collected in a struct."""
-@with_kw struct TendencyVars{T<:AbstractFloat}
+@with_kw mutable struct TendencyVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -62,12 +62,12 @@ end
     dη::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # tendency of η without time step
 
     # sum of tendencies (incl time step) over all sub-steps
-    du_sum::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo) 
+    du_sum::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)
     dv_sum::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)
     dη_sum::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)
 
     # compensation for tendencies (variant of Kahan summation)
-    du_comp::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo) 
+    du_comp::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)
     dv_comp::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)
     dη_comp::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)
 end
@@ -84,7 +84,7 @@ end
 ###########################################################
 
 """VolumeFluxes collected in a struct."""
-@with_kw struct VolumeFluxVars{T<:AbstractFloat}
+@with_kw mutable struct VolumeFluxVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -126,7 +126,7 @@ end
 ###############################################################
 
 """Vorticity variables collected in a struct."""
-@with_kw struct VorticityVars{T<:AbstractFloat}
+@with_kw mutable struct VorticityVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -179,7 +179,7 @@ end
 ####################################################################
 
 """Bernoulli variables collected in a struct."""
-@with_kw struct BernoulliVars{T<:AbstractFloat}
+@with_kw mutable struct BernoulliVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -221,7 +221,7 @@ end
 ####################################################################
 
 """Bottomdrag variables collected in a struct."""
-@with_kw struct BottomdragVars{T<:AbstractFloat}
+@with_kw mutable struct BottomdragVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -260,7 +260,7 @@ end
 ####################################################################
 
 """ArakawaHsu variables collected in a struct."""
-@with_kw struct ArakawaHsuVars{T<:AbstractFloat}
+@with_kw mutable struct ArakawaHsuVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -298,7 +298,7 @@ end
 ####################################################################
 
 """Laplace variables collected in a struct."""
-@with_kw struct LaplaceVars{T<:AbstractFloat}
+@with_kw mutable struct LaplaceVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -339,7 +339,7 @@ end
 ####################################################################
 
 """Smagorinsky variables collected in a struct."""
-@with_kw struct SmagorinskyVars{T<:AbstractFloat}
+@with_kw mutable struct SmagorinskyVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -395,7 +395,7 @@ end
 ####################################################################
 
 """SemiLagrange variables collected in a struct."""
-@with_kw struct SemiLagrangeVars{T<:AbstractFloat}
+@with_kw mutable struct SemiLagrangeVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -450,8 +450,8 @@ end
 
 ###################################################################
 
-""" Variables that appear in Zanna-Bolton forcing term """ 
-@with_kw struct ZBVars{T<:AbstractFloat}
+""" Variables that appear in Zanna-Bolton forcing term """
+@with_kw mutable struct ZBVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -481,14 +481,14 @@ end
 
     G::Array{T,2} = zeros(3,3)    # convolutional kernal
 
-    ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
-    ζsq::Array{T,2} = zeros(T,nqx,nqy)    # relative vorticity squared, cell corners 
+    ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners
+    ζsq::Array{T,2} = zeros(T,nqx,nqy)    # relative vorticity squared, cell corners
 
-    D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners 
-    Dsq::Array{T,2} = zeros(T,nqx,nqy)    # square of the tensor 
+    D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners
+    Dsq::Array{T,2} = zeros(T,nqx,nqy)    # square of the tensor
 
     D_n::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)
-    D_nT::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη) 
+    D_nT::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)
     D_q::Array{T,2} = zeros(T,nqx,nqy)
 
     Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
@@ -500,7 +500,7 @@ end
     ζD::Array{T,2} = zeros(T,nqx,nqy)     # ζ ⋅ D, cell corners
     ζDT::Array{T,2} = zeros(T,nx,ny)      # ζ ⋅ D, placed on cell centers
     ζDhat::Array{T,2} = zeros(T,nqx,nqy)  # ζ ⋅ Dhat, cell corners
-    
+
     trace::Array{T,2} = zeros(T,nx,ny)     # ξ^2 + D^2 + Dhat^2, cell centers
 
     ζD_filtered::Array{T,2} = zeros(T,nx,ny)      # ξD with filter applied
@@ -509,7 +509,7 @@ end
 
     dζDdx::Array{T,2} = zeros(T,nux,nuy)             # u-grid
     dζDhatdy::Array{T,2} = zeros(T,nux+halo,nuy)     # u-grid, initially with extra halo points
-    dtracedx::Array{T,2} = zeros(T,nux,nuy)          # u-grid 
+    dtracedx::Array{T,2} = zeros(T,nux,nuy)          # u-grid
 
     S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction
 
@@ -529,15 +529,15 @@ function ZBVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack halosstx,halossty = G
 
     G = zeros(3,3)
-    G[1,1] = 1 
-    G[1,2] = 2 
+    G[1,1] = 1
+    G[1,2] = 2
     G[1,3] = 1
-    G[2,1] = 2 
-    G[2,2] = 4 
-    G[2,3] = 2 
-    G[3,1] = 1 
-    G[3,2] = 2 
-    G[3,3] = 1 
+    G[2,1] = 2
+    G[2,2] = 4
+    G[2,3] = 2
+    G[3,1] = 1
+    G[3,2] = 2
+    G[3,3] = 1
 
     return ZBVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
                             halosstx=halosstx,halossty=halossty,G=G)

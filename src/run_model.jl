@@ -37,8 +37,8 @@ function run_model(::Type{T},P::Parameter) where {T<:AbstractFloat}
     Prog = initial_conditions(Tprog,G,P,C)
     Diag = preallocate(T,Tprog,G)
 
-    # one structure with everything already inside 
-    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag)
+    # one structure with everything already inside
+    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,0)
     S, e, P = time_integration_withreturn(S)
 
     return S, e, P
@@ -73,7 +73,7 @@ function run_check(::Type{T},P::Parameter) where {T<:AbstractFloat}
     Diag = preallocate(T,Tprog,G)
 
     # one structure with everything already inside
-    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag)
+    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,0)
     P = time_integration_mine(S)
 
     return P
@@ -109,7 +109,7 @@ function run_enzyme(::Type{T},P::Parameter) where {T<:AbstractFloat}
     Diag = preallocate(T,Tprog,G)
 
     # one structure with everything already inside
-    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag)
+    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,0)
     dS = deepcopy(S)
     autodiff(Reverse, ShallowWaters.time_integration_nofeedback, Duplicated(S, dS))
 
@@ -146,8 +146,8 @@ function run_setup(::Type{T},P::Parameter) where {T<:AbstractFloat}
     Prog = initial_conditions(Tprog,G,P,C)
     Diag = preallocate(T,Tprog,G)
 
-    # one structure with everything inside 
-    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag)
+    # one structure with everything inside
+    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,0)
 
     return S
 
@@ -177,7 +177,7 @@ function mk_run_model(::Type{T},P::Parameter) where {T<:AbstractFloat}
     G = Grid{T,Tprog}(P)
     C = Constants{T,Tprog}(P,G)
     F = Forcing{T}(P,G)
-    S = ModelSetup{T,Tprog}(P,G,C,F)
+    S = ModelSetup{T,Tprog}(P,G,C,F,0)
 
     Prog = initial_conditions(Tprog,S)
     Diag = preallocate(T,Tprog,G)
