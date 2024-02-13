@@ -1,9 +1,9 @@
 include("../src/ShallowWaters.jl")
-using .ShallowWaters 
+using .ShallowWaters
 using NetCDF, Parameters, Printf, Dates, Interpolations
 using JLD2
 using Enzyme#main
-using Checkpointing
+using Checkpointing#main
 
 Enzyme.API.runtimeActivity!(true)
 
