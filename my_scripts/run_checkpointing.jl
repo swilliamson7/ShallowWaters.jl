@@ -1,9 +1,9 @@
 include("../src/ShallowWaters.jl")
-using .ShallowWaters
+using .ShallowWaters 
 using NetCDF, Parameters, Printf, Dates, Interpolations
 using JLD2
 using Enzyme#main
-using Checkpointing#main
+using Checkpointing
 
 Enzyme.API.runtimeActivity!(true)
 
@@ -396,9 +396,8 @@ end
 # working (fingers crossed)
 function run_checkpointing()
 
-
-    S = ShallowWaters.run_setup(nx = 50,
-    Ndays = 60,
+    S = ShallowWaters.run_setup(nx = 30,
+    Ndays = 1,
     zb_forcing_momentum=false,
     zb_filtered=false,
     # initial_cond = "ncfile",
@@ -426,7 +425,7 @@ function run_energy_checkpointing()
     data_steps = 6733:6733
     data = [energy_high_resolution[6733*grid_scale]]
 
-    S = ShallowWaters.run_setup(nx = 128,
+    S = ShallowWaters.run_setup(nx = 50,
         Ndays = 30,
         zb_forcing_dissipation=true,
         zb_filtered=true,
