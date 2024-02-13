@@ -397,7 +397,7 @@ end
 function run_checkpointing()
 
 
-    S = ShallowWaters.run_setup(nx = 128,
+    S = ShallowWaters.run_setup(nx = 50,
     Ndays = 60,
     zb_forcing_momentum=false,
     zb_filtered=false,
