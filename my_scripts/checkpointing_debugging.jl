@@ -72,7 +72,45 @@ function checkpoint_function(S, scheme)
     # nans_detected = false
     t = 0                       # model time
     # run integration loop with checkpointing
-    @checkpoint_struct scheme S for S.parameters.i = 1:nt
+    loop(S, scheme)
+
+    # end
+
+    temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
+    return temp.η[24,24]
+
+    # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
+    # S.parameters.J = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
+    # return S.parameters.J
+
+end
+
+function loop(S,scheme)
+
+    @checkpoint_struct scheme S for S.parameters.i = 1:S.grid.nt
+    # for S.parameters.i = 1:S.grid.nt
+
+        Diag = S.Diag
+        Prog = S.Prog
+    
+        @unpack u,v,η,sst = Prog
+        @unpack u0,v0,η0 = Diag.RungeKutta
+        @unpack u1,v1,η1 = Diag.RungeKutta
+        @unpack du,dv,dη = Diag.Tendencies
+        @unpack du_sum,dv_sum,dη_sum = Diag.Tendencies
+        @unpack du_comp,dv_comp,dη_comp = Diag.Tendencies
+    
+        @unpack um,vm = Diag.SemiLagrange
+    
+        @unpack dynamics,RKo,RKs,tracer_advection = S.parameters
+        @unpack time_scheme,compensated = S.parameters
+        @unpack RKaΔt,RKbΔt = S.constants
+        @unpack Δt_Δ,Δt_Δs = S.constants
+    
+        @unpack nt,dtint = S.grid
+        @unpack nstep_advcor,nstep_diff,nadvstep,nadvstep_half = S.grid
+        t = S.t
+        i = S.parameters.i
 
         # ghost point copy for boundary conditions
         ShallowWaters.ghost_points!(u,v,η,S)
@@ -99,7 +137,7 @@ function checkpoint_function(S, scheme)
                 η1rhs = convert(Diag.PrognosticVarsRHS.η,η1)
 
                 ShallowWaters.rhs!(u1rhs,v1rhs,η1rhs,Diag,S,t)          # momentum only
-                ShallowWaters.continuity!(u1rhs,v1rhs,η1rhs,Diag,S,t)   # continuity equation 
+                ShallowWaters.continuity!(u1rhs,v1rhs,η1rhs,Diag,S,t)   # continuity equation
 
                 if rki < RKo
                     ShallowWaters.caxb!(u1,u,RKbΔt[rki],du)   #u1 .= u .+ RKb[rki]*Δt*du
@@ -108,7 +146,7 @@ function checkpoint_function(S, scheme)
                 end
 
                 if compensated      # accumulate tendencies
-                    ShallowWaters.axb!(du_sum,RKaΔt[rki],du)   
+                    ShallowWaters.axb!(du_sum,RKaΔt[rki],du)
                     ShallowWaters.axb!(dv_sum,RKaΔt[rki],dv)
                     ShallowWaters.axb!(dη_sum,RKaΔt[rki],dη)
                 else    # sum RK-substeps on the go
@@ -120,14 +158,14 @@ function checkpoint_function(S, scheme)
 
             if compensated
                 # add compensation term to total tendency
-                ShallowWaters.axb!(du_sum,-1,du_comp)             
+                ShallowWaters.axb!(du_sum,-1,du_comp)
                 ShallowWaters.axb!(dv_sum,-1,dv_comp)
                 ShallowWaters.axb!(dη_sum,-1,dη_comp)
 
                 ShallowWaters.axb!(u0,1,du_sum)   # update prognostic variable with total tendency
                 ShallowWaters.axb!(v0,1,dv_sum)
                 ShallowWaters.axb!(η0,1,dη_sum)
-                
+
                 ShallowWaters.dambmc!(du_comp,u0,u,du_sum)    # compute new compensation
                 ShallowWaters.dambmc!(dv_comp,v0,v,dv_sum)
                 ShallowWaters.dambmc!(dη_comp,η0,η,dη_sum)
@@ -164,7 +202,7 @@ function checkpoint_function(S, scheme)
             ShallowWaters.cxayb!(u0,a,u,b,u1)
             ShallowWaters.cxayb!(v0,a,v,b,v1)
             ShallowWaters.cxayb!(η0,a,η,b,η1)
-        
+
         elseif time_scheme == "SSPRK3"  # s-stage 3rd order SSPRK
 
             @unpack s,kn,mn,kna,knb,Δt_Δnc,Δt_Δn = S.constants.SSPRK3c
@@ -187,15 +225,15 @@ function checkpoint_function(S, scheme)
 
                 rhs!(u1rhs,v1rhs,η1rhs,Diag,S,t)
 
-                if rki == kn    # special case combining more previous stages  
+                if rki == kn    # special case combining more previous stages
                     ShallowWaters.dxaybzc!(u1,kna,u1,knb,u0,Δt_Δnc,du)
                     ShallowWaters.dxaybzc!(v1,kna,v1,knb,v0,Δt_Δnc,dv)
                 else                                # normal update case
-                    ShallowWaters.axb!(u1,Δt_Δn,du)   
+                    ShallowWaters.axb!(u1,Δt_Δn,du)
                     ShallowWaters.axb!(v1,Δt_Δn,dv)
 
                     # if compensated
-                    #     axb!(du_sum,Δt_Δn,du)   
+                    #     axb!(du_sum,Δt_Δn,du)
                     #     axb!(dv_sum,Δt_Δn,dv)
                     # end
                 end
@@ -224,9 +262,9 @@ function checkpoint_function(S, scheme)
                     copyto!(η0,η1)
                 end
             end
-            
+
         elseif time_scheme == "4SSPRK3"   # 4-stage SSPRK3
-        
+
             for rki = 1:4
                 if rki > 1
                     ShallowWaters.ghost_points!(u1,v1,η1,S)
@@ -249,7 +287,7 @@ function checkpoint_function(S, scheme)
                 u1rhs = convert(Diag.PrognosticVarsRHS.u,u1)
                 v1rhs = convert(Diag.PrognosticVarsRHS.v,v1)
                 ShallowWaters.continuity!(u1rhs,v1rhs,η1rhs,Diag,S,t)
-                
+
                 ShallowWaters.caxb!(η0,η1,Δt_Δ,dη)    # store Euler update into η0
                 ShallowWaters.cxab!(η1,1/2,η1,η0)         # average η0,η1 and store in η1
 
@@ -329,75 +367,15 @@ function checkpoint_function(S, scheme)
 
     end
 
-    temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
-    return temp.η[24,24]
-
-    # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
-    # S.parameters.J = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
-    # return S.parameters.J
-
-end
-
-function check_derivative(dS)
-
-    # u = S.Prog.u
-    # v = S.Prog.v
-    # η = S.Prog.η
-    # sst = S.Prog.sst
-
-    du = dS.Prog.u
-    dv = dS.Prog.v
-    dη = dS.Prog.η
-    dsst = dS.Prog.sst
-
-    # P = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
-    # dP = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(du,dv,dη,dsst,dS)...)
-
-    # du = dP.u
-    # dv = dP.v
-    # dη = dP.η
-
-    enzyme_calculated_derivative = dv[24, 24]
-
-    steps = [10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-10]
-
-    S_outer = ShallowWaters.run_setup(nx = 50,
-    Ndays = 1,
-    zb_forcing_momentum=false,
-    zb_filtered=false,
-    output=false
-    )
-
-    S_unperturbed, _, _ = ShallowWaters.time_integration_withreturn(S_outer)
-
-    diffs = []
-
-    for s in  steps
-
-        S_inner = ShallowWaters.run_setup(nx = 50,
-        Ndays = 1,
-        zb_forcing_momentum=false,
-        zb_filtered=false,
-        output=false
-        )
-
-        S_inner.Prog.v[24, 24] += s
-
-        S_perturbed, _, _ = ShallowWaters.time_integration_withreturn(S_inner)
-
-        push!(diffs, (S_unperturbed.Prog.u[24, 24] - S_perturbed.Prog.u[24, 24]) / s)
-
-    end
-
-    return diffs, enzyme_calculated_derivative
+    return nothing
 
 end
 
 # working (fingers crossed)
 function run_checkpointing()
 
-    S = ShallowWaters.run_setup(nx = 30,
-    Ndays = 1,
+    S = ShallowWaters.run_setup(nx = 128,
+    Ndays = 30,
     zb_forcing_momentum=false,
     zb_filtered=false,
     # initial_cond = "ncfile",
@@ -407,21 +385,69 @@ function run_checkpointing()
 
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
     snaps = Int(floor(sqrt(S.grid.nt)))
-    revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt,
-    snaps;
-    verbose=1,
-    gc=true,
-    write_checkpoints=false
-    )
+    revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt, snaps; verbose=1, gc=true, write_checkpoints=false)
 
-    autodiff(Enzyme.ReverseWithPrimal,
-    checkpoint_function,
-    Duplicated(S, dS),
-    revolve
-    )
+    autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), revolve)
+
+    # _ = checkpoint_function(S, revolve)
 
     return S, dS
 
 end
 
-@time S365_energy, dS365_energy = run_checkpointing()
+# @time S365_energy, dS365_energy = run_checkpointing()
+
+# function check_derivative(dS)
+
+#     # u = S.Prog.u
+#     # v = S.Prog.v
+#     # η = S.Prog.η
+#     # sst = S.Prog.sst
+
+#     du = dS.Prog.u
+#     dv = dS.Prog.v
+#     dη = dS.Prog.η
+#     dsst = dS.Prog.sst
+
+#     # P = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
+#     # dP = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(du,dv,dη,dsst,dS)...)
+
+#     # du = dP.u
+#     # dv = dP.v
+#     # dη = dP.η
+
+#     enzyme_calculated_derivative = dv[24, 24]
+
+#     steps = [10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-10]
+
+#     S_outer = ShallowWaters.run_setup(nx = 50,
+#     Ndays = 1,
+#     zb_forcing_momentum=false,
+#     zb_filtered=false,
+#     output=false
+#     )
+
+#     S_unperturbed, _, _ = ShallowWaters.time_integration_withreturn(S_outer)
+
+#     diffs = []
+
+#     for s in  steps
+
+#         S_inner = ShallowWaters.run_setup(nx = 50,
+#         Ndays = 1,
+#         zb_forcing_momentum=false,
+#         zb_filtered=false,
+#         output=false
+#         )
+
+#         S_inner.Prog.v[24, 24] += s
+
+#         S_perturbed, _, _ = ShallowWaters.time_integration_withreturn(S_inner)
+
+#         push!(diffs, (S_unperturbed.Prog.u[24, 24] - S_perturbed.Prog.u[24, 24]) / s)
+
+#     end
+
+#     return diffs, enzyme_calculated_derivative
+
+# end

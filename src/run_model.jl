@@ -147,7 +147,7 @@ function run_setup(::Type{T},P::Parameter) where {T<:AbstractFloat}
     Diag = preallocate(T,Tprog,G)
 
     # one structure with everything inside 
-    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag)
+    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,0)
 
     return S
 

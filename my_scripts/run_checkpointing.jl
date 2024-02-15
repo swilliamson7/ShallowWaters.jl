@@ -73,7 +73,7 @@ function checkpoint_function(S, scheme)
     t = 0                       # model time
     # run integration loop with checkpointing
     @checkpoint_struct scheme S for S.parameters.i = 1:nt
-
+    # for S.parameters.i = 1:S.grid.nt
         # ghost point copy for boundary conditions
         ShallowWaters.ghost_points!(u,v,η,S)
         copyto!(u1,u)
@@ -396,8 +396,8 @@ end
 # working (fingers crossed)
 function run_checkpointing()
 
-    S = ShallowWaters.run_setup(nx = 50,
-    Ndays = 1,
+    S = ShallowWaters.run_setup(nx = 128,
+    Ndays = 30,
     zb_forcing_momentum=false,
     zb_filtered=false,
     # initial_cond = "ncfile",
@@ -410,6 +410,8 @@ function run_checkpointing()
     revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt, snaps; verbose=1, gc=true, write_checkpoints=false)
 
     autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), revolve)
+
+    # _ = checkpoint_function(S)
 
     return S, dS
 
@@ -455,4 +457,4 @@ function run_energy_checkpointing()
 
 end
 
-@time S365_energy, dS365_energy = run_checkpointing()
+# @time S365_energy, dS365_energy = run_checkpointing()
