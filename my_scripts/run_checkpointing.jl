@@ -457,4 +457,4 @@ function run_energy_checkpointing()
 
 end
 
-# @time S365_energy, dS365_energy = run_checkpointing()
+@time S, dS = run_checkpointing()
