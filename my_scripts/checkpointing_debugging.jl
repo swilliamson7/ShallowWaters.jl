@@ -76,8 +76,8 @@ function checkpoint_function(S, scheme)
 
     # end
 
-    temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
-    return temp.η[24,24]
+    # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
+    return S.Prog.η[24,24]
 
     # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
     # S.parameters.J = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
@@ -375,7 +375,7 @@ end
 function run_checkpointing()
 
     S = ShallowWaters.run_setup(nx = 128,
-    Ndays = 30,
+    Ndays = 90,
     zb_forcing_momentum=false,
     zb_filtered=false,
     # initial_cond = "ncfile",
@@ -397,57 +397,57 @@ end
 
 # @time S365_energy, dS365_energy = run_checkpointing()
 
-# function check_derivative(dS)
+function check_derivative(dS)
 
-#     # u = S.Prog.u
-#     # v = S.Prog.v
-#     # η = S.Prog.η
-#     # sst = S.Prog.sst
+    # u = S.Prog.u
+    # v = S.Prog.v
+    # η = S.Prog.η
+    # sst = S.Prog.sst
 
-#     du = dS.Prog.u
-#     dv = dS.Prog.v
-#     dη = dS.Prog.η
-#     dsst = dS.Prog.sst
+    du = dS.Prog.u
+    dv = dS.Prog.v
+    dη = dS.Prog.η
+    dsst = dS.Prog.sst
 
-#     # P = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
-#     # dP = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(du,dv,dη,dsst,dS)...)
+    # P = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
+    # dP = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(du,dv,dη,dsst,dS)...)
 
-#     # du = dP.u
-#     # dv = dP.v
-#     # dη = dP.η
+    # du = dP.u
+    # dv = dP.v
+    # dη = dP.η
 
-#     enzyme_calculated_derivative = dv[24, 24]
+    enzyme_calculated_derivative = dv[24, 24]
 
-#     steps = [10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-10]
+    steps = [10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-10]
 
-#     S_outer = ShallowWaters.run_setup(nx = 50,
-#     Ndays = 1,
-#     zb_forcing_momentum=false,
-#     zb_filtered=false,
-#     output=false
-#     )
+    S_outer = ShallowWaters.run_setup(nx = 128,
+    Ndays = 30,
+    zb_forcing_momentum=false,
+    zb_filtered=false,
+    output=false
+    )
 
-#     S_unperturbed, _, _ = ShallowWaters.time_integration_withreturn(S_outer)
+    S_unperturbed, _, _ = ShallowWaters.time_integration_withreturn(S_outer)
 
-#     diffs = []
+    diffs = []
 
-#     for s in  steps
+    for s in  steps
 
-#         S_inner = ShallowWaters.run_setup(nx = 50,
-#         Ndays = 1,
-#         zb_forcing_momentum=false,
-#         zb_filtered=false,
-#         output=false
-#         )
+        S_inner = ShallowWaters.run_setup(nx = 128,
+        Ndays = 30,
+        zb_forcing_momentum=false,
+        zb_filtered=false,
+        output=false
+        )
 
-#         S_inner.Prog.v[24, 24] += s
+        S_inner.Prog.v[24, 24] += s
 
-#         S_perturbed, _, _ = ShallowWaters.time_integration_withreturn(S_inner)
+        S_perturbed, _, _ = ShallowWaters.time_integration_withreturn(S_inner)
 
-#         push!(diffs, (S_unperturbed.Prog.u[24, 24] - S_perturbed.Prog.u[24, 24]) / s)
+        push!(diffs, (S_unperturbed.Prog.η[24, 24] - S_perturbed.Prog.η[24, 24]) / s)
 
-#     end
+    end
 
-#     return diffs, enzyme_calculated_derivative
+    return diffs, enzyme_calculated_derivative
 
-# end
+end

@@ -385,7 +385,7 @@ function check_derivative(dS)
 
         S_perturbed, _, _ = ShallowWaters.time_integration_withreturn(S_inner)
 
-        push!(diffs, (S_unperturbed.Prog.u[24, 24] - S_perturbed.Prog.u[24, 24]) / s)
+        push!(diffs, (S_unperturbed.Prog.η[24, 24] - S_perturbed.Prog.η[24, 24]) / s)
 
     end
 
