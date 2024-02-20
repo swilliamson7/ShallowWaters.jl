@@ -374,10 +374,10 @@ end
 # working (fingers crossed)
 function run_checkpointing()
 
-    S = ShallowWaters.run_setup(nx = 128,
+    S = ShallowWaters.run_setup(nx = 50,
     Ndays = 90,
-    zb_forcing_momentum=false,
-    zb_filtered=false,
+    zb_forcing_momentum=true,
+    zb_filtered=true,
     # initial_cond = "ncfile",
     # initpath="./data_files_gamma0.3/128_spinup_noforcing",
     output=false
@@ -395,7 +395,7 @@ function run_checkpointing()
 
 end
 
-# @time S365_energy, dS365_energy = run_checkpointing()
+@time S, dS = run_checkpointing()
 
 function check_derivative(dS)
 
@@ -416,14 +416,14 @@ function check_derivative(dS)
     # dv = dP.v
     # dη = dP.η
 
-    enzyme_calculated_derivative = dv[24, 24]
+    enzyme_calculated_derivative = dS.parameters.γ₀
 
     steps = [10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-10]
 
-    S_outer = ShallowWaters.run_setup(nx = 128,
-    Ndays = 30,
-    zb_forcing_momentum=false,
-    zb_filtered=false,
+    S_outer = ShallowWaters.run_setup(nx = 50,
+    Ndays = 90,
+    zb_forcing_momentum=true,
+    zb_filtered=true,
     output=false
     )
 
@@ -431,23 +431,25 @@ function check_derivative(dS)
 
     diffs = []
 
-    for s in  steps
+    for s in steps
 
-        S_inner = ShallowWaters.run_setup(nx = 128,
-        Ndays = 30,
-        zb_forcing_momentum=false,
-        zb_filtered=false,
+        S_inner = ShallowWaters.run_setup(nx = 50,
+        Ndays = 90,
+        zb_forcing_momentum=true,
+        zb_filtered=true,
         output=false
         )
 
-        S_inner.Prog.v[24, 24] += s
+        # S_inner.Prog.v[10, 10] += s
+        S_inner.parameters.γ₀ += s
 
         S_perturbed, _, _ = ShallowWaters.time_integration_withreturn(S_inner)
 
-        push!(diffs, (S_unperturbed.Prog.η[24, 24] - S_perturbed.Prog.η[24, 24]) / s)
+        push!(diffs, (S_perturbed.Prog.η[24, 24] - S_unperturbed.Prog.η[24, 24]) / s)
 
     end
 
     return diffs, enzyme_calculated_derivative
 
 end
+
