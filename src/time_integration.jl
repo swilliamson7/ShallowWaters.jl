@@ -923,11 +923,11 @@ function time_integration_nofeedback(S::ModelSetup{T,Tprog}) where {T<:AbstractF
 
 end
 
-# For checkpointing. Includes a cost function evaluation
+# Includes a cost function evaluation
 # The cost function we want to compute is dependent on what sort of data is included in the model,
 # should maybe consider branching this into different cost functions? Allowing different
 # types of data?
-function checkpointed_time_integration(S::ModelSetup{T,Tprog}, scheme) where {T<:AbstractFloat,Tprog<:AbstractFloat}
+function time_integration_costfunction(S::ModelSetup{T,Tprog}) where {T<:AbstractFloat,Tprog<:AbstractFloat}
 
     Diag = S.Diag
     Prog = S.Prog
@@ -950,7 +950,7 @@ function checkpointed_time_integration(S::ModelSetup{T,Tprog}, scheme) where {T<
     @unpack nstep_advcor,nstep_diff,nadvstep,nadvstep_half = S.grid
 
     # For optimization problem
-    @unpack data_steps, data, J, i = S.parameters
+    @unpack data_steps, data, J, i, j = S.parameters
 
     # calculate layer thicknesses for initial conditions
     thickness!(Diag.VolumeFluxes.h,η,S.forcing.H)
@@ -983,7 +983,7 @@ function checkpointed_time_integration(S::ModelSetup{T,Tprog}, scheme) where {T<
 
     nans_detected = false
     t = 0                       # model time
-    @checkpoint_struct scheme S for i = 1:nt
+    for S.parameters.i = 1:nt
 
         # ghost point copy for boundary conditions
         ghost_points!(u,v,η,S)
@@ -1217,19 +1217,22 @@ function checkpointed_time_integration(S::ModelSetup{T,Tprog}, scheme) where {T<
         #     break
         # end
 
-        #### cost function evaluation, writing here for each changes, not currently working
+        #### cost function evaluation, writing here for each changes
 
-        # if i in data_steps
+        # spacially averaged energy
+        if S.parameters.i in S.parameters.data_steps
 
-        #     temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
-        #     energy_lr = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
+            temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
+            energy_lr = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
 
-        #     # spacially averaged energy objective function
-        #     J += (energy_lr - data[i])^2
+            # spacially averaged energy objective function
+            S.parameters.J += (energy_lr - S.parameters.data[S.parameters.j])^2
 
-        # end
+            S.parameters.j += 1
 
-        ####
+        end
+
+        ###################################
 
         # Copy back from substeps
         copyto!(u,u0)
@@ -1250,10 +1253,7 @@ function checkpointed_time_integration(S::ModelSetup{T,Tprog}, scheme) where {T<
 
     # return the objective value. should fit the sentence "I want a derivative of ____ w.r.t. model"
     # dS will contain the derivatives of this w.r.t. everything
-
-    temp = PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
-    # S.parameters.J = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
-    return temp.η[25,25]
+    return S.parameters.J
 
 end
 

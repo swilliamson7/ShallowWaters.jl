@@ -1,9 +1,10 @@
 include("../src/ShallowWaters.jl")
-using .ShallowWaters 
+using .ShallowWaters
 using NetCDF, Parameters, Printf, Dates, Interpolations
 using JLD2
 using Enzyme#main
 using Checkpointing
+using Optim
 
 Enzyme.API.runtimeActivity!(true)
 
@@ -76,21 +77,13 @@ function checkpoint_function(S, scheme)
 
     # end
 
-    # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
     return S.parameters.J
-
-    # return S.Prog.η[24,24]
-
-    # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
-    # S.parameters.J = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
-    # return S.parameters.J
 
 end
 
 function loop(S,scheme)
 
     @checkpoint_struct scheme S for S.parameters.i = 1:S.grid.nt
-    # for S.parameters.i = 1:S.grid.nt
 
         Diag = S.Diag
         Prog = S.Prog
@@ -373,24 +366,50 @@ function loop(S,scheme)
 
 end
 
-# working (fingers crossed)
-function run_checkpointing()
+function cost_eval(param_guess)
 
     energy_high_resolution = load_object("data_files_gamma0.3/512_post_spinup_4years/energy_post_spinup_512_4years_012524.jld2")
     grid_scale = 4
 
+    # aiming to have data about every 30 days
     data_steps = 6733:6733
     data = [energy_high_resolution[6733*grid_scale]]
 
-    S = ShallowWaters.run_setup(nx = 128,
-    Ndays = 30,
-    zb_forcing_momentum=true,
-    zb_filtered=true,
-    # initial_cond = "ncfile",
-    # initpath="./data_files_gamma0.3/128_spinup_noforcing",
-    output=false,
-    data=data,
-    data_steps=data_steps
+    S = ShallowWaters.run_setup(Ndays = 30,
+        nx = 128,
+        zb_forcing_dissipation=true,
+        zb_filtered=true,
+        data_steps=data_steps,
+        data=data,
+        γ₀ = param_guess[1],
+        initial_cond="ncfile",
+        initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/"
+    )
+
+    J = ShallowWaters.time_integration_costfunction(S)
+
+    return J
+
+end
+
+function gradient_eval(G, param_guess)
+
+    energy_high_resolution = load_object("data_files_gamma0.3/512_post_spinup_4years/energy_post_spinup_512_4years_012524.jld2")
+    grid_scale = 4
+
+    # aiming to have data about every 30 days
+    data_steps = 6733:6733
+    data = [energy_high_resolution[6733*grid_scale]]
+
+    S = ShallowWaters.run_setup(Ndays = 30,
+        nx = 128,
+        zb_forcing_dissipation=true,
+        zb_filtered=true,
+        data_steps=data_steps,
+        data=data,
+        γ₀ = param_guess[1],
+        initial_cond="ncfile",
+        initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass"
     )
 
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
@@ -399,67 +418,49 @@ function run_checkpointing()
 
     autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), revolve)
 
-    # _ = checkpoint_function(S, revolve)
+    G[1] = dS.parameters.γ₀
 
-    return S, dS
+    return nothing
 
 end
 
-@time S3, dS3 = run_checkpointing()
+function FG(F, G, param_guess)
 
-function check_derivative(dS)
+    G === nothing || gradient_eval(G, param_guess)
+    F === nothing || return cost_eval(param_guess)
 
-    # u = S.Prog.u
-    # v = S.Prog.v
-    # η = S.Prog.η
-    # sst = S.Prog.sst
+end
 
-    du = dS.Prog.u
-    dv = dS.Prog.v
-    dη = dS.Prog.η
-    dsst = dS.Prog.sst
+function run_optim_experiments()
 
-    # P = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
-    # dP = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(du,dv,dη,dsst,dS)...)
+    # energy_high_resolution = load_object("data_files_gamma0.3/512_post_spinup_4years/energy_post_spinup_512_4years_012524.jld2")
+    # grid_scale = 4
 
-    # du = dP.u
-    # dv = dP.v
-    # dη = dP.η
+    # # aiming to have data about every 30 days
+    # data_steps = 6733:6733
+    # data = [energy_high_resolution[6733*grid_scale]]
 
-    enzyme_calculated_derivative = dS.parameters.γ₀
+    # S = run_setup(Ndays = 30,
+    #     nx = 128,
+    #     zb_forcing_dissipation=true,
+    #     zb_filtered=true,
+    #     data_steps=data_steps,
+    #     data=data,
+    #     initial_cond="ncfile",
+    #     initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/"
+    # )
 
-    steps = [10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-10]
+    # fg!_closure(F, G, param_guess) = FG(F, G, param_guess)
 
-    S_outer = ShallowWaters.run_setup(nx = 50,
-    Ndays = 90,
-    zb_forcing_momentum=true,
-    zb_filtered=true,
-    output=false
+    obj_fg = Optim.only_fg!(FG)
+
+    result = Optim.optimize(obj_fg,
+        [0.3],
+        Optim.LBFGS(),
+        Optim.Options(
+        iterations = 20)
     )
 
-    S_unperturbed, _, _ = ShallowWaters.time_integration_withreturn(S_outer)
-
-    diffs = []
-
-    for s in steps
-
-        S_inner = ShallowWaters.run_setup(nx = 50,
-        Ndays = 90,
-        zb_forcing_momentum=true,
-        zb_filtered=true,
-        output=false
-        )
-
-        # S_inner.Prog.v[10, 10] += s
-        S_inner.parameters.γ₀ += s
-
-        S_perturbed, _, _ = ShallowWaters.time_integration_withreturn(S_inner)
-
-        push!(diffs, (S_perturbed.Prog.η[24, 24] - S_unperturbed.Prog.η[24, 24]) / s)
-
-    end
-
-    return diffs, enzyme_calculated_derivative
+    return result
 
 end
-

@@ -1,3 +1,7 @@
+using DSP, FFTW
+using NetCDF, Parameters, Printf, Dates, Interpolations
+using Plots
+
 function plot_energy_spectra()
 
     u_noforcing = ncread("./data_files_gamma0.3/128_spinup_noforcing/u.nc", "u")
