@@ -8,8 +8,6 @@ using Optim
 
 Enzyme.API.runtimeActivity!(true)
 
-### Checkpointing check
-
 function checkpoint_function(S, scheme)
 
     # setup 
@@ -414,7 +412,12 @@ function gradient_eval(G, param_guess)
 
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
     snaps = Int(floor(sqrt(S.grid.nt)))
-    revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt, snaps; verbose=1, gc=true, write_checkpoints=false)
+    revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt,
+        snaps;
+        verbose=1,
+        gc=true,
+        write_checkpoints=false
+    )
 
     autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), revolve)
 

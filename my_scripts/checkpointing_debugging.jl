@@ -384,7 +384,7 @@ function run_checkpointing()
 
     S = ShallowWaters.run_setup(nx = 128,
     Ndays = 30,
-    zb_forcing_momentum=true,
+    zb_forcing_dissipation=true,
     zb_filtered=true,
     # initial_cond = "ncfile",
     # initpath="./data_files_gamma0.3/128_spinup_noforcing",
@@ -405,7 +405,7 @@ function run_checkpointing()
 
 end
 
-@time S3, dS3 = run_checkpointing()
+@time S4, dS4 = run_checkpointing()
 
 function check_derivative(dS)
 
