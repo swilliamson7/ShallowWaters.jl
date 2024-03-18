@@ -38,7 +38,7 @@ function run_model(::Type{T},P::Parameter) where {T<:AbstractFloat}
     Diag = preallocate(T,Tprog,G)
 
     # one structure with everything already inside 
-    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag)
+    S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag, 0)
     S, e, P = time_integration_withreturn(S)
 
     return S, e, P

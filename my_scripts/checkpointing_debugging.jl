@@ -11,7 +11,7 @@ Enzyme.API.runtimeActivity!(true)
 
 function checkpoint_function(S, scheme)
 
-    # setup 
+    # setup
     Diag = S.Diag
     Prog = S.Prog
 
@@ -76,11 +76,13 @@ function checkpoint_function(S, scheme)
 
     # end
 
-    # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
+    # separately defined J
     return S.parameters.J
 
+    # final state cost function
     # return S.Prog.η[24,24]
 
+    # spatially averaged energy cost function
     # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)
     # S.parameters.J = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
     # return S.parameters.J
@@ -337,7 +339,7 @@ function loop(S,scheme)
         v0rhs = convert(Diag.PrognosticVarsRHS.v,v0)
         ShallowWaters.tracer!(i,u0rhs,v0rhs,Prog,Diag,S)
 
-        # # feedback and output
+        # feedback and output
         # feedback.i = i
         # feedback!(Prog,feedback,S)
         # ShallowWaters.output_nc!(S.parameters.i,netCDFfiles,Prog,Diag,S)       # uses u0,v0,η0
@@ -383,7 +385,7 @@ function run_checkpointing()
     data = [energy_high_resolution[6733*grid_scale]]
 
     S = ShallowWaters.run_setup(nx = 128,
-    Ndays = 30,
+    Ndays = 90,
     zb_forcing_dissipation=true,
     zb_filtered=true,
     # initial_cond = "ncfile",
@@ -394,8 +396,15 @@ function run_checkpointing()
     )
 
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
+
     snaps = Int(floor(sqrt(S.grid.nt)))
-    revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt, snaps; verbose=1, gc=true, write_checkpoints=false)
+
+    revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt,
+    snaps;
+    verbose=1,
+    gc=true,
+    write_checkpoints=false
+    )
 
     autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), revolve)
 
@@ -405,7 +414,7 @@ function run_checkpointing()
 
 end
 
-@time S4, dS4 = run_checkpointing()
+@time S, dS = run_checkpointing();
 
 function check_derivative(dS)
 
@@ -428,34 +437,52 @@ function check_derivative(dS)
 
     enzyme_calculated_derivative = dS.parameters.γ₀
 
-    steps = [10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-10]
+    energy_high_resolution = load_object("data_files_gamma0.3/512_post_spinup_4years/energy_post_spinup_512_4years_012524.jld2")
+    grid_scale = 4
 
-    S_outer = ShallowWaters.run_setup(nx = 50,
+    data_steps = 6733:6733
+    data = [energy_high_resolution[6733*grid_scale]]
+
+    steps = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-10]
+
+    S_outer = ShallowWaters.run_setup(nx = 128,
     Ndays = 90,
-    zb_forcing_momentum=true,
+    zb_forcing_dissipation=true,
     zb_filtered=true,
-    output=false
+    # initial_cond = "ncfile",
+    # initpath="./data_files_gamma0.3/128_spinup_noforcing",
+    output=false,
+    data=data,
+    data_steps=data_steps
     )
 
-    S_unperturbed, _, _ = ShallowWaters.time_integration_withreturn(S_outer)
+    # S_unperturbed, _, _ = ShallowWaters.time_integration_withreturn(S_outer)
+
+    J_unperturbed = ShallowWaters.time_integration_costfunction(S_outer)
 
     diffs = []
 
     for s in steps
 
-        S_inner = ShallowWaters.run_setup(nx = 50,
+        S_inner = ShallowWaters.run_setup(nx = 128,
         Ndays = 90,
-        zb_forcing_momentum=true,
+        zb_forcing_dissipation=true,
         zb_filtered=true,
-        output=false
+        # initial_cond = "ncfile",
+        # initpath="./data_files_gamma0.3/128_spinup_noforcing",
+        output=false,
+        data=data,
+        data_steps=data_steps
         )
 
         # S_inner.Prog.v[10, 10] += s
         S_inner.parameters.γ₀ += s
 
-        S_perturbed, _, _ = ShallowWaters.time_integration_withreturn(S_inner)
+        # S_perturbed, _, _ = ShallowWaters.time_integration_withreturn(S_inner)
+        J_perturbed = ShallowWaters.time_integration_costfunction(S_inner)
 
-        push!(diffs, (S_perturbed.Prog.η[24, 24] - S_unperturbed.Prog.η[24, 24]) / s)
+        # push!(diffs, (S_perturbed.Prog.η[24,24] - S_unperturbed.Prog.η[24,24]) / s)
+        push!(diffs, (J_perturbed - J_unperturbed) / s)
 
     end
 

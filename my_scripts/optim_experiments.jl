@@ -10,7 +10,7 @@ Enzyme.API.runtimeActivity!(true)
 
 function checkpoint_function(S, scheme)
 
-    # setup 
+    # setup
     Diag = S.Diag
     Prog = S.Prog
 
@@ -35,7 +35,7 @@ function checkpoint_function(S, scheme)
     # data_steps = S.parameters.data_steps
     # data = S.parameters.data
     # J = S.parameters.J
-    i = S.parameters.i
+    # i = S.parameters.i
     # j = S.parameters.j
     #######
 
@@ -69,7 +69,7 @@ function checkpoint_function(S, scheme)
     # ShallowWaters.output_nc!(0,netCDFfiles,Prog,Diag,S)
 
     # nans_detected = false
-    t = 0                       # model time
+    
     # run integration loop with checkpointing
     loop(S, scheme)
 
@@ -370,8 +370,8 @@ function cost_eval(param_guess)
     grid_scale = 4
 
     # aiming to have data about every 30 days
-    data_steps = 6733:6733
-    data = [energy_high_resolution[6733*grid_scale]]
+    data_steps = 6730:6730
+    data = [energy_high_resolution[6730*grid_scale]]
 
     S = ShallowWaters.run_setup(Ndays = 30,
         nx = 128,
@@ -396,8 +396,9 @@ function gradient_eval(G, param_guess)
     grid_scale = 4
 
     # aiming to have data about every 30 days
-    data_steps = 6733:6733
-    data = [energy_high_resolution[6733*grid_scale]]
+    # 225 steps = 1 day of integration of the low res model
+    data_steps = 6730:6730
+    data = [energy_high_resolution[6730*grid_scale]]
 
     S = ShallowWaters.run_setup(Ndays = 30,
         nx = 128,
@@ -461,9 +462,51 @@ function run_optim_experiments()
         [0.3],
         Optim.LBFGS(),
         Optim.Options(
-        iterations = 20)
+        iterations = 5)
     )
 
     return result
 
 end
+
+_, e_hr, _ = ShallowWaters.run_model(nx=512,
+initial_cond="ncfile",
+initpath="./data_files_gamma0.3/512_spinup/", 
+Ndays=30
+)
+
+_, e_lr, _ = ShallowWaters.run_model(nx=128,
+initial_cond="ncfile",
+initpath="./data_files_gamma0.3/128_spinup_noforcing/",
+Ndays=30
+)
+
+_, e_lr_withclosure, _ = ShallowWaters.run_model(nx=128,
+initial_cond="ncfile",
+zb_forcing_dissipation=true,
+zb_filtered=true,
+initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/",
+Ndays=30
+)
+
+_, e_lr_tuned, _ = ShallowWaters.run_model(nx=128,
+initial_cond="ncfile",
+zb_forcing_dissipation=true,
+zb_filtered=true,
+γ₀ =  -0.24189026815856723,
+initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/",
+Ndays=30
+)
+
+l1 = length(e_lr)
+l2 = length(e_hr)
+
+x1 = LinRange(0, 30, l1)
+x2 = LinRange(0, 30, l2)
+
+plot(x1, e_lr, dpi=300, label="30km no closure")
+plot!(x1, e_lr_withclosure, dpi=300, label="30km with closure")
+plot!(x1, e_lr_tuned, dpi=300, label="30km tuned closure")
+plot!(x2, e_hr, dpi=300, label="7.5km no closure", legend=:bottomleft)
+xlabel!("Days")
+ylabel!("Spatially averaged energy")

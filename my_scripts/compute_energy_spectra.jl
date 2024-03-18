@@ -65,3 +65,23 @@ function plot_energy_spectra()
 
 end
 
+function plot_stuff()
+
+    u_hr = ncread("./data_files_gamma0.3/512_spinup/u.nc", "u")
+    v_hr = ncread("./data_files_gamma0.3/512_spinup/v.nc", "v")
+
+    u = u_hr[:, :, end]'
+    v = v_hr[:, :, end]'
+
+    v = [v; zeros(512)']
+    u = [u zeros(512)]
+
+    uplot = heatmap(u, clim=(-1, 1), dpi = 300, c=:balance, title=L"u(3650, x,y)", )
+    energy = heatmap(u.^2 + v.^2, clim = (0,1), dpi=300, title=L"u^2(3650, x, y) + v^2(3650, x, y)", c=:grays)
+    plot(uplot, energy, layout=grid(1,2), size = (800, 300), margin=4mm)
+    xlabel!(L"x")
+    ylabel!(L"y")
+
+
+
+end
