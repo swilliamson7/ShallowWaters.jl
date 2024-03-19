@@ -1,4 +1,4 @@
-include("../src/ShallowWaters.jl")
+include("../../src/ShallowWaters.jl")
 using .ShallowWaters
 using NetCDF, Parameters, Printf, Dates, Interpolations
 using JLD2
@@ -364,24 +364,23 @@ function loop(S,scheme)
 
 end
 
-function cost_eval(param_guess)
+function cost_eval(param_guess, options)
 
-    energy_high_resolution = load_object("data_files_gamma0.3/512_post_spinup_4years/energy_post_spinup_512_4years_012524.jld2")
-    grid_scale = 4
+    energy_high_resolution = load_object("../data_files_gamma0.3/512_post_spinup_4years/energy_post_spinup_512_4years_012524.jld2")
 
     # aiming to have data about every 30 days
-    data_steps = 6730:6730
-    data = [energy_high_resolution[6730*grid_scale]]
+    data_steps = options[3]
+    data = energy_high_resolution[options[4]]
 
-    S = ShallowWaters.run_setup(Ndays = 30,
-        nx = 128,
+    S = ShallowWaters.run_setup(Ndays = options[1],
+        nx = options[2],
         zb_forcing_dissipation=true,
         zb_filtered=true,
         data_steps=data_steps,
         data=data,
         γ₀ = param_guess[1],
         initial_cond="ncfile",
-        initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/"
+        initpath="../data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/"
     )
 
     J = ShallowWaters.time_integration_costfunction(S)
@@ -390,25 +389,23 @@ function cost_eval(param_guess)
 
 end
 
-function gradient_eval(G, param_guess)
+function gradient_eval(G, param_guess, options)
 
-    energy_high_resolution = load_object("data_files_gamma0.3/512_post_spinup_4years/energy_post_spinup_512_4years_012524.jld2")
-    grid_scale = 4
+    energy_high_resolution = load_object("../data_files_gamma0.3/512_post_spinup_4years/energy_post_spinup_512_4years_012524.jld2")
 
     # aiming to have data about every 30 days
-    # 225 steps = 1 day of integration of the low res model
-    data_steps = 6730:6730
-    data = [energy_high_resolution[6730*grid_scale]]
+    data_steps = options[3]
+    data = energy_high_resolution[options[4]]
 
-    S = ShallowWaters.run_setup(Ndays = 30,
-        nx = 128,
+    S = ShallowWaters.run_setup(Ndays = options[1],
+        nx = options[2],
         zb_forcing_dissipation=true,
         zb_filtered=true,
         data_steps=data_steps,
         data=data,
         γ₀ = param_guess[1],
         initial_cond="ncfile",
-        initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass"
+        initpath="../data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass"
     )
 
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
@@ -428,38 +425,33 @@ function gradient_eval(G, param_guess)
 
 end
 
-function FG(F, G, param_guess)
+function FG(F, G, param_guess, options)
 
-    G === nothing || gradient_eval(G, param_guess)
-    F === nothing || return cost_eval(param_guess)
+    G === nothing || gradient_eval(G, param_guess, options)
+    F === nothing || return cost_eval(param_guess, options)
 
 end
 
-function run_optim_experiments()
+function run_optim_experiments(initial_γ)
 
-    # energy_high_resolution = load_object("data_files_gamma0.3/512_post_spinup_4years/energy_post_spinup_512_4years_012524.jld2")
-    # grid_scale = 4
+    # 225 steps = 1 day of integration of the low res model
+    grid_scale = 4
+    Ndays = 10
+    nx = 128
+    data_steps_lr = 220:220
+    data_steps_hr = grid_scale*220:grid_scale*220
 
-    # # aiming to have data about every 30 days
-    # data_steps = 6733:6733
-    # data = [energy_high_resolution[6733*grid_scale]]
+    options = [Ndays,
+    nx,
+    data_steps_lr,
+    data_steps_hr]
 
-    # S = run_setup(Ndays = 30,
-    #     nx = 128,
-    #     zb_forcing_dissipation=true,
-    #     zb_filtered=true,
-    #     data_steps=data_steps,
-    #     data=data,
-    #     initial_cond="ncfile",
-    #     initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/"
-    # )
-
-    # fg!_closure(F, G, param_guess) = FG(F, G, param_guess)
-
-    obj_fg = Optim.only_fg!(FG)
+    G = [0.0]
+    fg!_closure(F, G, param_guess) = FG(F, G, param_guess, options)
+    obj_fg = Optim.only_fg!(fg!_closure)
 
     result = Optim.optimize(obj_fg,
-        [0.3],
+        [initial_γ],
         Optim.LBFGS(),
         Optim.Options(
         iterations = 5)
@@ -469,44 +461,44 @@ function run_optim_experiments()
 
 end
 
-_, e_hr, _ = ShallowWaters.run_model(nx=512,
-initial_cond="ncfile",
-initpath="./data_files_gamma0.3/512_spinup/", 
-Ndays=30
-)
+# _, e_hr, _ = ShallowWaters.run_model(nx=512,
+# initial_cond="ncfile",
+# initpath="../data_files_gamma0.3/512_spinup/", 
+# Ndays=30
+# )
 
-_, e_lr, _ = ShallowWaters.run_model(nx=128,
-initial_cond="ncfile",
-initpath="./data_files_gamma0.3/128_spinup_noforcing/",
-Ndays=30
-)
+# _, e_lr, _ = ShallowWaters.run_model(nx=128,
+# initial_cond="ncfile",
+# initpath="../data_files_gamma0.3/128_spinup_noforcing/",
+# Ndays=30
+# )
 
-_, e_lr_withclosure, _ = ShallowWaters.run_model(nx=128,
-initial_cond="ncfile",
-zb_forcing_dissipation=true,
-zb_filtered=true,
-initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/",
-Ndays=30
-)
+# _, e_lr_withclosure, _ = ShallowWaters.run_model(nx=128,
+# initial_cond="ncfile",
+# zb_forcing_dissipation=true,
+# zb_filtered=true,
+# initpath="../data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/",
+# Ndays=30
+# )
 
-_, e_lr_tuned, _ = ShallowWaters.run_model(nx=128,
-initial_cond="ncfile",
-zb_forcing_dissipation=true,
-zb_filtered=true,
-γ₀ =  -0.24189026815856723,
-initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/",
-Ndays=30
-)
+# _, e_lr_tuned, _ = ShallowWaters.run_model(nx=128,
+# initial_cond="ncfile",
+# zb_forcing_dissipation=true,
+# zb_filtered=true,
+# γ₀ =   0.17221264846398954,
+# initpath="../data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/",
+# Ndays=30
+# )
 
-l1 = length(e_lr)
-l2 = length(e_hr)
+# l1 = length(e_lr)
+# l2 = length(e_hr)
 
-x1 = LinRange(0, 30, l1)
-x2 = LinRange(0, 30, l2)
+# x1 = LinRange(0, 90, l1)
+# x2 = LinRange(0, 90, l2)
 
-plot(x1, e_lr, dpi=300, label="30km no closure")
-plot!(x1, e_lr_withclosure, dpi=300, label="30km with closure")
-plot!(x1, e_lr_tuned, dpi=300, label="30km tuned closure")
-plot!(x2, e_hr, dpi=300, label="7.5km no closure", legend=:bottomleft)
-xlabel!("Days")
-ylabel!("Spatially averaged energy")
+# plot(x1, e_lr, dpi=300, label="30km no closure")
+# plot!(x1, e_lr_withclosure, dpi=300, label="30km with closure")
+# plot!(x1, e_lr_tuned, dpi=300, label="30km tuned closure")
+# plot!(x2, e_hr, dpi=300, label="7.5km no closure", legend=:bottomleft)
+# xlabel!("Days")
+# ylabel!("Spatially averaged energy")
