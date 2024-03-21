@@ -461,44 +461,44 @@ function run_optim_experiments(initial_γ)
 
 end
 
-# _, e_hr, _ = ShallowWaters.run_model(nx=512,
-# initial_cond="ncfile",
-# initpath="../data_files_gamma0.3/512_spinup/", 
-# Ndays=30
-# )
+_, e_hr, _ = ShallowWaters.run_model(nx=512,
+initial_cond="ncfile",
+initpath="./data_files_gamma0.3/512_spinup/", 
+Ndays=30
+)
 
-# _, e_lr, _ = ShallowWaters.run_model(nx=128,
-# initial_cond="ncfile",
-# initpath="../data_files_gamma0.3/128_spinup_noforcing/",
-# Ndays=30
-# )
+_, e_lr, _ = ShallowWaters.run_model(nx=128,
+initial_cond="ncfile",
+initpath="./data_files_gamma0.3/128_spinup_noforcing/",
+Ndays=30
+)
 
-# _, e_lr_withclosure, _ = ShallowWaters.run_model(nx=128,
-# initial_cond="ncfile",
-# zb_forcing_dissipation=true,
-# zb_filtered=true,
-# initpath="../data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/",
-# Ndays=30
-# )
+_, e_lr_withclosure, _ = ShallowWaters.run_model(nx=128,
+initial_cond="ncfile",
+zb_forcing_dissipation=true,
+zb_filtered=true,
+initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/",
+Ndays=30
+)
 
-# _, e_lr_tuned, _ = ShallowWaters.run_model(nx=128,
-# initial_cond="ncfile",
-# zb_forcing_dissipation=true,
-# zb_filtered=true,
-# γ₀ =   0.17221264846398954,
-# initpath="../data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/",
-# Ndays=30
-# )
+_, e_lr_tuned, _ = ShallowWaters.run_model(nx=128,
+initial_cond="ncfile",
+zb_forcing_dissipation=true,
+zb_filtered=true,
+γ₀ =   0.17221264846398954,
+initpath="./data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass/",
+Ndays=30
+)
 
-# l1 = length(e_lr)
-# l2 = length(e_hr)
+l1 = length(e_lr)
+l2 = length(e_hr)
 
-# x1 = LinRange(0, 90, l1)
-# x2 = LinRange(0, 90, l2)
+x1 = LinRange(0, 90, l1)
+x2 = LinRange(0, 90, l2)
 
-# plot(x1, e_lr, dpi=300, label="30km no closure")
-# plot!(x1, e_lr_withclosure, dpi=300, label="30km with closure")
-# plot!(x1, e_lr_tuned, dpi=300, label="30km tuned closure")
-# plot!(x2, e_hr, dpi=300, label="7.5km no closure", legend=:bottomleft)
-# xlabel!("Days")
-# ylabel!("Spatially averaged energy")
+plot(x1, e_lr, dpi=300, label="30km no closure")
+plot!(x1, e_lr_withclosure, dpi=300, label="30km with closure")
+plot!(x1, e_lr_tuned, dpi=300, label="30km tuned closure")
+plot!(x2, e_hr, dpi=300, label="7.5km no closure", legend=:bottomleft)
+xlabel!("Days")
+ylabel!("Spatially averaged energy")
