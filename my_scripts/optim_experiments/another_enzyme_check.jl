@@ -377,11 +377,11 @@ function gradient_eval()
     monthly = 6750
 
     # aiming to have data about every 30 days
-    # data_steps = daily:daily:6700
-    # data = energy_high_resolution[daily*grid_scale:daily*grid_scale:6700*grid_scale]
+    data_steps = daily:daily:20200
+    data = energy_high_resolution[daily*grid_scale:daily*grid_scale:20200*grid_scale]
 
-    data_steps = 6700:6700:6700
-    data = [energy_high_resolution[6700*grid_scale]]
+    # data_steps = 6700:6700:6700
+    # data = [energy_high_resolution[6700*grid_scale]]
 
     for j = 1:100
 
