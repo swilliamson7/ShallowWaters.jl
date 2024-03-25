@@ -397,6 +397,7 @@ function gradient_eval(G, param_guess)
 
     # aiming to have data about every 30 days
     # 225 steps = 1 day of integration of the low res model
+
     data_steps = 1:225:20190
     data = energy_high_resolution[1*grid_scale:225*grid_scale:20190*grid_scale]
 
