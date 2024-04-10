@@ -385,11 +385,11 @@ function run_checkpointing()
     data = [energy_high_resolution[6733*grid_scale]]
 
     S = ShallowWaters.run_setup(nx = 128,
-    Ndays = 90,
+    Ndays = 30,
     zb_forcing_dissipation=true,
     zb_filtered=true,
-    # initial_cond = "ncfile",
-    # initpath="./data_files_gamma0.3/128_spinup_noforcing",
+    initial_cond = "ncfile",
+    initpath="./data_files_gamma0.3/128_spinup_noforcing",
     output=false,
     data=data,
     data_steps=data_steps
