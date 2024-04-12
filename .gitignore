@@ -58,3 +58,4 @@ my_scripts/plotting.jl
 my_scripts/compute_energy_spectra.jl
 my_scripts/compute_energy_spectra.jl
 my_scripts/compute_energy_spectra.jl
+*.ipynb
