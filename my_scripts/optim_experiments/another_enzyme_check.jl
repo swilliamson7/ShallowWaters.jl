@@ -369,7 +369,7 @@ end
 
 function gradient_eval()
 
-    energy_high_resolution = load_object("../data_files_gamma0.3/512_post_spinup_4years/energy_post_spinup_512_4years_012524.jld2")
+    energy_high_resolution = load_object("/Users/swilliamson/Documents/GitHub/ShallowWaters.jl/my_scripts/data_files_gamma0.3/512_post_spinup_4years/energy_post_spinup_512_4years_012524.jld2")
     grid_scale = 4
 
     daily = 225
@@ -393,7 +393,7 @@ function gradient_eval()
             data=data,
             γ₀ = 0.3,
             initial_cond="ncfile",
-            initpath="../data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass"
+            initpath="/Users/swilliamson/Documents/GitHub/ShallowWaters.jl/my_scripts/data_files_gamma0.3/128_spinup_wforcing_dissipation_wfilter_1pass"
         )
 
         dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
@@ -405,7 +405,7 @@ function gradient_eval()
             write_checkpoints=false
         )
 
-        autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), revolve)
+        autodiff(Enzyme.ReverseWithPrimal, checkpoint_function, Duplicated(S, dS), Const(revolve))
 
     end
 
