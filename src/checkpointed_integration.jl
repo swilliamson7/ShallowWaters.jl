@@ -52,10 +52,10 @@ function checkpointed_integration(S, scheme)
     # end
 
     # separately defined J
-    return S.parameters.J
+    # return S.parameters.J
 
     # final state cost function
-    # return S.Prog.η[24,24]
+    return S.Prog.η[24,24]
 
     # spatially averaged energy cost function
     # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(u,v,η,sst,S)...)

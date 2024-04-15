@@ -56,5 +56,4 @@ mutable struct ModelSetup{T<:AbstractFloat,Tprog<:AbstractFloat}
     Prog::PrognosticVars{T}
     Diag::DiagnosticVars{T, Tprog}
     t::Int
-    # Adjoint::AdjointVariables
 end
