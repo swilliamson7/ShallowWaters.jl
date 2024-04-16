@@ -1,4 +1,4 @@
-struct PrognosticVars{T<:AbstractFloat}
+mutable struct PrognosticVars{T<:AbstractFloat}
     u::Array{T,2}           # u-velocity
     v::Array{T,2}           # v-velocity
     η::Array{T,2}           # sea surface height / interface displacement
