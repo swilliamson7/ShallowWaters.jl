@@ -8,11 +8,11 @@
 
     # DOMAIN RESOLUTION AND RATIO
     nx::Int=128                         # number of grid cells in x-direction
-    Lx::Int=3840e3                      # length of the domain in x-direction [m]
-    L_ratio::Int=1                      # Domain aspect ratio of Lx/Ly
+    Lx::Real=3840e3                     # length of the domain in x-direction [m]
+    L_ratio::Real=1                     # Domain aspect ratio of Lx/Ly
 
     # PHYSICAL CONSTANTS
-    g::Real=9.81                       # gravitational acceleration [m^2/s] 
+    g::Real=9.81                        # gravitational acceleration [m^2/s]
     H::Real=500.                        # layer thickness at rest [m]
     ρ::Real=1e3                         # water density [kg/m^3]
     ϕ::Real=35.                         # central latitude of the domain (for coriolis) [°]

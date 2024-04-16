@@ -1,4 +1,4 @@
-mutable struct PrognosticVars{T<:AbstractFloat}
+struct PrognosticVars{T<:AbstractFloat}
     u::Array{T,2}           # u-velocity
     v::Array{T,2}           # v-velocity
     η::Array{T,2}           # sea surface height / interface displacement
@@ -25,6 +25,6 @@ mutable struct ModelSetup{T<:AbstractFloat,Tprog<:AbstractFloat}
     constants::Constants{T,Tprog}
     forcing::Forcing{T}
     Prog::PrognosticVars{T}
-    Diag::DiagnosticVars{T, Tprog}
+    Diag::DiagnosticVars{T,Tprog}
     t::Int                              # SW: I believe this has something to do with Checkpointing, need to verify
 end

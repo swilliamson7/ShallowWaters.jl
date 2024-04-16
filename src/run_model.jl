@@ -37,6 +37,6 @@ function run_model(::Type{T},P::Parameter) where {T<:AbstractFloat}
     S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,0)
     P = time_integration(S)
 
-    return S, P
+    return P
 
 end

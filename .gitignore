@@ -40,3 +40,5 @@ run_*/
 
 # no nohup outputs
 nohup.out
+my_scripts/data_files_gamma0.3/1024_spinup/energy_during_spinup_1024_10years_110823.jld2
+/my_scripts
