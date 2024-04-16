@@ -7,8 +7,8 @@
     Tini=Tprog                # number format to reduce precision for initial conditions
 
     # DOMAIN RESOLUTION AND RATIO
-    nx::Int=128                         # number of grid cells in x-direction
-    Lx::Real=3840e3                     # length of the domain in x-direction [m]
+    nx::Real=128                        # number of grid cells in x-direction
+    Lx::Float64=3840e3                  # length of the domain in x-direction [m]
     L_ratio::Real=1                     # Domain aspect ratio of Lx/Ly
 
     # PHYSICAL CONSTANTS
@@ -80,7 +80,7 @@
     i::Int = 0                                  # Placeholder for current timestep, needed for Checkpointing.jl
 
     # MOMENTUM ADVECTION OPTIONS
-    adv_scheme::String="Sadourny"       # "Sadourny" or "ArakawaHsu"
+    adv_scheme::String="ArakawaHsu"     # "Sadourny" or "ArakawaHsu"
     dynamics::String="nonlinear"        # "linear" or "nonlinear"
 
     # BOTTOM FRICTION OPTIONS
