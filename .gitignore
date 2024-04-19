@@ -10,3 +10,5 @@ parameter.txt
 # committed for packages, but should be committed for applications that require a static
 # environment.
 Manifest.toml
+my_scripts/data_files_gamma0.3/128_spinup_wforcing_dissipation_nofilter/energy_during_spinup_128_withzb_dissipation_wofilter_10years_110823.jld2
+/my_scripts
