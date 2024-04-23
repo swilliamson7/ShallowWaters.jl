@@ -53,7 +53,7 @@ mutable struct ModelSetup{T<:AbstractFloat,Tprog<:AbstractFloat}
     grid::Grid{T,Tprog}
     constants::Constants{T,Tprog}
     forcing::Forcing{T}
-    Prog::PrognosticVars{T}
+    Prog::PrognosticVars{Tprog}
     Diag::DiagnosticVars{T, Tprog}
     t::Int
 end
