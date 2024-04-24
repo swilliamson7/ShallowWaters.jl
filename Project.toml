@@ -12,13 +12,17 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [weakdeps]
 Checkpointing = "eb46d486-4f9c-4c3d-b445-a617f2a2f1ca"
+Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+
+[extensions]
+ShallowWatersCheckpointingExt = "Checkpointing" 
 
 [compat]
-Checkpointing = "0.9"
+Checkpointing = "0.9, 0.9.1"
+Dates = "^1.2"
 Interpolations = "0.12, 0.13, 0.14"
 NetCDF = "0.10, 0.11"
 Parameters = "0.12, 0.13"
-Dates = "^1.2"
 Printf = "^1.2"
 julia = "^1.2"
 

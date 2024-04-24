@@ -1,44 +1,3 @@
-module ShallowWatersCheckpointingExt
-
-using ShallowWaters, Checkpointing, Enzyme
-
-# define functions here that are only loaded when `using Checkpointing`
-
-# include("checkpointed_integration.jl")
-# include("run_checkpoint_model.jl")
-
-function run_checkpoint_model(::Type{T}=Float32;     # number format
-    kwargs...                             # all additional parameters
-    ) where {T<:AbstractFloat}
-
-    P = ShallowWaters.Parameter(T=T;kwargs...)
-    return run_checkpoint_model(T,P)
-end
-
-function run_checkpoint_model(P::Parameter)
-    @unpack T = P
-    return run_checkpoint_model(T,P)
-end
-
-function run_checkpoint_model(::Type{T},P::Parameter) where {T<:AbstractFloat}
-
-    @unpack Tprog = P
-
-    G = ShallowWaters.Grid{T,Tprog}(P)
-    C = ShallowWaters.Constants{T,Tprog}(P,G)
-    F = ShallowWaters.Forcing{T}(P,G)
-
-    Prog = ShallowWaters.initial_conditions(Tprog,G,P,C)
-    Diag = ShallowWaters.preallocate(T,Tprog,G)
-
-    # one structure with everything already inside 
-    S = ShallowWaters.ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,0)
-    Prog = ShallowWaters.checkpointed_integration_integration(S)
-
-    return Prog
-
-end
-
 # """Integrate ShallowWaters forward AND checkpoints the integration. This is the
 # integration function needed if we want to use Enzyme on the model."""
 
@@ -355,5 +314,3 @@ function loop(S,scheme)
     return nothing
 
 end
-
-end # module
