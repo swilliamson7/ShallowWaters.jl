@@ -141,7 +141,6 @@ function run_setup(::Type{T},P::Parameter) where {T<:AbstractFloat}
     G = Grid{T,Tprog}(P)
     C = Constants{T,Tprog}(P,G)
     F = Forcing{T}(P,G)
-    # S = ModelSetup{T,Tprog}(P,G,C,F)
 
     Prog = initial_conditions(Tprog,G,P,C)
     Diag = preallocate(T,Tprog,G)
