@@ -79,7 +79,7 @@
 
     # PARAMETERS FOR ADJOINT METHOD
     data_steps::StepRange{Int,Int} = 0:1:0      # Timesteps where data exists
-    data::Array{Float32, 1} = [0.]              # model data
+    data::Array{Float64} = zeros(1, 1, 1)       # model data
     J::Float64 = 0.                             # Placeholder for cost function evaluation
     j::Int = 1                                  # For keeping track of the entry in data
 
