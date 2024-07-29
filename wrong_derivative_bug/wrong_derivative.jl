@@ -8,7 +8,7 @@
 include("../src/ShallowWaters.jl")
 using .ShallowWaters
 
-using Enzyme#main
+using Enzyme
 using Checkpointing
 
 Enzyme.API.looseTypeAnalysis!(true)
@@ -70,8 +70,8 @@ end
 
 function loop(S,scheme)
 
-    # eta_avg = zeros(128,128)
-    eta_avg = 0.0
+    eta_avg = zeros(128,128)
+    # eta_avg = 0.0
 
     @checkpoint_struct scheme S for S.parameters.i = 1:S.grid.nt
 
@@ -188,24 +188,44 @@ function loop(S,scheme)
         v0rhs = convert(Diag.PrognosticVarsRHS.v,v0)
         ShallowWaters.tracer!(i,u0rhs,v0rhs,Prog,Diag,S)
 
-        # Cost function evaluation #####################################################################
-
-        temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(S.Prog.u,
-        S.Prog.v,
-        S.Prog.η,
-        S.Prog.sst,S)...)
-
-        eta_avg = eta_avg .+ temp.η
+        # Cost function evaluation #################################################################
 
         if S.parameters.i in S.parameters.data_steps
 
-            S.parameters.J += sum(((eta_avg / S.parameters.i))) # - S.parameters.data[:, :, S.parameters.j]).^2)
+            temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(S.Prog.u,
+            S.Prog.v,
+            S.Prog.η,
+            S.Prog.sst,S)...)
+
+            eta_avg = eta_avg .+ temp.η
+
+            # This plus the else statement is the workaround for the zero 
+            # derivative issue
+            temp1 = eta_avg / S.parameters.i
+            temp3 = zeros(128,128)
+            for j = 1:128
+                for k = 1:128
+                    
+                    temp3[j,k] = temp1[j,k] 
+
+                end
+            end
+            S.parameters.J += sum(temp3.^2)
 
             S.parameters.j += 1
 
-        end
+        #######################################################################################
 
-        ################################################################################################
+        else
+
+            temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(S.Prog.u,
+            S.Prog.v,
+            S.Prog.η,
+            S.Prog.sst,S)...)
+
+            eta_avg = eta_avg .+ temp.η
+
+        end
 
         # Copy back from substeps
         copyto!(u,u0)
@@ -218,10 +238,12 @@ function loop(S,scheme)
 
 end
 
-function run_script(Ndays)
 
-    # 225 steps = 1 day of integration in the 128 model
-    data_steps = 225:225:225*(Ndays-1)
+function run_wrong_derivative_script(Ndays)
+
+    # 225 steps = 1 day of integration of the low res model
+    # 1800 steps = 1 day of integration of the high res model
+    data_steps = 225:225:(225*(Ndays-1))
 
     S = ShallowWaters.model_setup(output=false,
         L_ratio=1,
@@ -250,8 +272,68 @@ function run_script(Ndays)
 
     autodiff(Enzyme.ReverseWithPrimal, checkpointed_integration, Duplicated(S, dS), Const(revolve))
 
-    return S, dS
+    #### The remainder runs a finite difference check ##############################################
+    n = 40
+    m = 40
+    enzyme_deriv = dS.Prog.u[n, m]
+
+    steps = [50, 40, 30, 20, 10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7]
+
+    S_outer = ShallowWaters.model_setup(output=false,
+    L_ratio=1,
+    g=9.81,
+    H=500,
+    wind_forcing_x="double_gyre",
+    Lx=3840e3,
+    seasonal_wind_x=false,
+    topography="flat",
+    bc="nonperiodic",
+    α=2,
+    nx=128,
+    Ndays = Ndays,
+    zb_forcing_dissipation=true,
+    γ₀ = 0.3,
+    data_steps=data_steps)
+
+    snaps = Int(floor(sqrt(S_outer.grid.nt)))
+    revolve = Revolve{ShallowWaters.ModelSetup}(S_outer.grid.nt, snaps; 
+        verbose=1, 
+        gc=true, 
+        write_checkpoints=false
+    )
+
+    J_outer = checkpointed_integration(S_outer, revolve)
+
+    diffs = []
+
+    for s in steps
+
+        S_inner = ShallowWaters.model_setup(output=false,
+        L_ratio=1,
+        g=9.81,
+        H=500,
+        wind_forcing_x="double_gyre",
+        Lx=3840e3,
+        seasonal_wind_x=false,
+        topography="flat",
+        bc="nonperiodic",
+        α=2,
+        nx=128,
+        Ndays = Ndays,
+        zb_forcing_dissipation=true,
+        γ₀ = 0.3,
+        data_steps=data_steps)
+
+        S_inner.Prog.u[n, m] += s
+
+        J_inner = checkpointed_integration(S_inner, revolve)
+
+        push!(diffs, (J_inner - J_outer) / s)
+
+    end
+
+    return S, dS, enzyme_deriv, diffs
 
 end
 
-S, dS = run_script(2)
+S, dS, enzyme_deriv, diffs = run_wrong_derivative_script(10)
