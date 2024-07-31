@@ -1,0 +1,33 @@
+Starting ShallowWaters run 1 on Wed, 31 Jul 2024 10:52:42
+Model will integrate 4days at a resolution of 1024x1024 with Δ=3.75km
+Initial conditions are last time step of run 0.
+Boundary conditions are nonperiodic with lbc=2.
+Number format is Float32.
+
+All data will be stored in /Users/swilliamson/Documents/GitHub/ShallowWaters_work/my_scripts/run_0001
+
+Model integration will take approximately 3min, 34s,
+and is hopefully done on Wed, 31 Jul 2024 10:56:17
+
+5%
+10%
+15%
+20%
+25%
+30%
+35%
+40%
+45%
+50%
+55%
+60%
+65%
+70%
+75%
+80%
+85%
+90%
+95%
+100%
+Integration done in 3min, 36s.
+All data stored.
