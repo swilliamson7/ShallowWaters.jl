@@ -73,7 +73,8 @@ function loop(S,scheme)
     # eta_avg = zeros(128,128)
     eta_avg = 0.0
 
-    @checkpoint_struct scheme S for S.parameters.i = 1:S.grid.nt
+    # @checkpoint_struct scheme S for S.parameters.i = 1:S.grid.nt
+    for S.parameters.i = 1:S.grid.nt
 
         Diag = S.Diag
         Prog = S.Prog
@@ -218,6 +219,7 @@ function loop(S,scheme)
 
 end
 
+
 function run_script(Ndays)
 
     # 225 steps = 1 day of integration in the 128 model
@@ -254,4 +256,4 @@ function run_script(Ndays)
 
 end
 
-S, dS = run_script(2)
+S, dS = run_script(10)
