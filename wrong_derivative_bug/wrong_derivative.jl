@@ -73,7 +73,8 @@ function loop(S,scheme)
     eta_avg = zeros(128,128)
     # eta_avg = 0.0
 
-    @checkpoint_struct scheme S for S.parameters.i = 1:S.grid.nt
+    # @checkpoint_struct scheme S for S.parameters.i = 1:S.grid.nt
+    for S.parameters.i = 1:S.grid.nt
 
         Diag = S.Diag
         Prog = S.Prog
@@ -273,8 +274,8 @@ function run_wrong_derivative_script(Ndays)
     autodiff(Enzyme.ReverseWithPrimal, checkpointed_integration, Duplicated(S, dS), Const(revolve))
 
     #### The remainder runs a finite difference check ##############################################
-    n = 40
-    m = 40
+    n = 62
+    m = 20
     enzyme_deriv = dS.Prog.u[n, m]
 
     steps = [50, 40, 30, 20, 10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7]
