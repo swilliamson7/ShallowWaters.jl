@@ -11,6 +11,8 @@ using .ShallowWaters
 using Enzyme#main
 using Checkpointing
 
+using InteractiveUtils
+
 Enzyme.API.looseTypeAnalysis!(true)
 Enzyme.API.runtimeActivity!(true)
 
@@ -70,8 +72,8 @@ end
 
 function loop(S,scheme)
 
-    # eta_avg = zeros(128,128)
-    eta_avg = 0.0
+    eta_avg = zeros(128,128)
+    # eta_avg = 0.0
 
     # @checkpoint_struct scheme S for S.parameters.i = 1:S.grid.nt
     for S.parameters.i = 1:S.grid.nt
@@ -104,13 +106,6 @@ function loop(S,scheme)
         copyto!(v1,v)
         copyto!(η1,η)
 
-
-        if compensated
-            fill!(du_sum,zero(Tprog))
-            fill!(dv_sum,zero(Tprog))
-            fill!(dη_sum,zero(Tprog))
-        end
-
         for rki = 1:RKo
             if rki > 1
                 ShallowWaters.ghost_points!(u1,v1,η1,S)
@@ -141,53 +136,7 @@ function loop(S,scheme)
             end
         end
 
-        if compensated
-            # add compensation term to total tendency
-            ShallowWaters.axb!(du_sum,-1,du_comp)
-            ShallowWaters.axb!(dv_sum,-1,dv_comp)
-            ShallowWaters.axb!(dη_sum,-1,dη_comp)
-
-            ShallowWaters.axb!(u0,1,du_sum)   # update prognostic variable with total tendency
-            ShallowWaters.axb!(v0,1,dv_sum)
-            ShallowWaters.axb!(η0,1,dη_sum)
-
-            ShallowWaters.dambmc!(du_comp,u0,u,du_sum)    # compute new compensation
-            ShallowWaters.dambmc!(dv_comp,v0,v,dv_sum)
-            ShallowWaters.dambmc!(dη_comp,η0,η,dη_sum)
-        end
-
-
-        ShallowWaters.ghost_points!(u0,v0,η0,S)
-
-        # type conversion for mixed precision
-        u0rhs = convert(Diag.PrognosticVarsRHS.u,u0)
-        v0rhs = convert(Diag.PrognosticVarsRHS.v,v0)
-        η0rhs = convert(Diag.PrognosticVarsRHS.η,η0)
-
-        # ADVECTION and CORIOLIS TERMS
-        # although included in the tendency of every RK substep,
-        # only update every nstep_advcor steps if nstep_advcor > 0
-        if dynamics == "nonlinear" && nstep_advcor > 0 && (i % nstep_advcor) == 0
-            ShallowWaters.UVfluxes!(u0rhs,v0rhs,η0rhs,Diag,S)
-            ShallowWaters.advection_coriolis!(u0rhs,v0rhs,η0rhs,Diag,S)
-        end
-
-        # DIFFUSIVE TERMS - SEMI-IMPLICIT EULER
-        # use u0 = u^(n+1) to evaluate tendencies, add to u0 = u^n + rhs
-        # evaluate only every nstep_diff time steps
-        if (S.parameters.i % nstep_diff) == 0
-            ShallowWaters.bottom_drag!(u0rhs,v0rhs,η0rhs,Diag,S)
-            ShallowWaters.diffusion!(u0rhs,v0rhs,Diag,S)
-            ShallowWaters.add_drag_diff_tendencies!(u0,v0,Diag,S)
-            ShallowWaters.ghost_points_uv!(u0,v0,S)
-        end
-
         t += dtint
-
-        # TRACER ADVECTION
-        u0rhs = convert(Diag.PrognosticVarsRHS.u,u0) 
-        v0rhs = convert(Diag.PrognosticVarsRHS.v,v0)
-        ShallowWaters.tracer!(i,u0rhs,v0rhs,Prog,Diag,S)
 
         # Cost function evaluation #####################################################################
 
@@ -196,11 +145,11 @@ function loop(S,scheme)
         S.Prog.η,
         S.Prog.sst,S)...)
 
-        eta_avg = eta_avg .+ temp.η
+        eta_avg = eta_avg + temp.η
 
         if S.parameters.i in S.parameters.data_steps
 
-            S.parameters.J += sum(((eta_avg / S.parameters.i))) # - S.parameters.data[:, :, S.parameters.j]).^2)
+            S.parameters.J += sum(((eta_avg / S.parameters.i)))
 
             S.parameters.j += 1
 
@@ -250,7 +199,13 @@ function run_script(Ndays)
         write_checkpoints=false
     )
 
-    autodiff(Enzyme.ReverseWithPrimal, checkpointed_integration, Duplicated(S, dS), Const(revolve))
+    autodiff(Enzyme.ReverseWithPrimal, checkpointed_integration, Active, Duplicated(S, dS), Const(revolve))
+
+    # fn = sprint() do io
+    #     Enzyme.Compiler.enzyme_code_llvm(io, checkpointed_integration, Const, Tuple{Duplicated{typeof(S)}, Const{typeof(revolve)}}; dump_module=true)
+    # end
+
+    # @code_warntype checkpointed_integration(S,revolve)
 
     return S, dS
 
