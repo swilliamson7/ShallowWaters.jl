@@ -156,14 +156,29 @@ function loop(S,scheme)
 
 end
 
-
-function run_script(S, Ndays)
+function run_script()
 
     # 225 steps = 1 day of integration in the 128 model
+
+    Ndays=5
     data_steps = 1:1:88
     nx=10
 
-    S_outer = deepcopy(S)
+    S = ShallowWaters.model_setup(output=false,
+    L_ratio=1,
+    g=9.81,
+    H=500,
+    wind_forcing_x="double_gyre",
+    Lx=3840e3,
+    seasonal_wind_x=false,
+    topography="flat",
+    bc="nonperiodic",
+    α=2,
+    nx=nx,
+    Ndays = Ndays,
+    zb_forcing_dissipation=true,
+    γ₀ = 0.3,
+    data_steps=data_steps)
 
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
     snaps = Int(floor(sqrt(S.grid.nt)))
@@ -176,78 +191,69 @@ function run_script(S, Ndays)
 
     autodiff(Enzyme.ReverseWithPrimal, checkpointed_integration, Active, Duplicated(S, dS), Const(revolve))
 
-    # fn = sprint() do io
-    #     Enzyme.Compiler.enzyme_code_llvm(io, checkpointed_integration, Const, Tuple{Duplicated{typeof(S)}, Const{typeof(revolve)}}; dump_module=true)
-    # end
+    ###### The remainder runs a finite difference check ###########################
 
-    # @code_warntype checkpointed_integration(S,revolve)
+    n = 2
+    m = 5
+    enzyme_deriv = dS.Prog.u[n, m]
 
-     # enzyme_deriv = dS.parameters.γ₀
-     enzyme_deriv = dS.Prog.u[5, 5]
+    steps = [50, 40, 30, 20, 10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7]
 
-     steps = [50, 40, 30, 20, 10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7]
+    S_outer = ShallowWaters.model_setup(output=false,
+    L_ratio=1,
+    g=9.81,
+    H=500,
+    wind_forcing_x="double_gyre",
+    Lx=3840e3,
+    seasonal_wind_x=false,
+    topography="flat",
+    bc="nonperiodic",
+    α=2,
+    nx=nx,
+    Ndays = Ndays,
+    zb_forcing_dissipation=true,
+    γ₀ = 0.3,
+    data_steps=data_steps)
 
-     snaps = Int(floor(sqrt(S_outer.grid.nt)))
-     revolve = Revolve{ShallowWaters.ModelSetup}(S_outer.grid.nt, snaps; 
-         verbose=1, 
-         gc=true, 
-         write_checkpoints=false
-     )
- 
-     J_outer = checkpointed_integration(S_outer, revolve)
- 
-     diffs = []
- 
-     for s in steps
- 
-         S_inner = ShallowWaters.model_setup(output=false,
-         L_ratio=1,
-         g=9.81,
-         H=500,
-         wind_forcing_x="double_gyre",
-         Lx=3840e3,
-         seasonal_wind_x=false,
-         topography="flat",
-         bc="nonperiodic",
-         α=2,
-         nx=nx,
-         Ndays = Ndays,
-         zb_forcing_dissipation=true,
-         γ₀ = 0.3,
-         data_steps=data_steps)
+    snaps = Int(floor(sqrt(S_outer.grid.nt)))
+    revolve = Revolve{ShallowWaters.ModelSetup}(S_outer.grid.nt, snaps; 
+        verbose=1, 
+        gc=true, 
+        write_checkpoints=false
+    )
 
-         S_inner.Prog.u[5, 5] += s
+    J_outer = checkpointed_integration(S_outer, revolve)
 
-         J_inner = checkpointed_integration(S_inner, revolve)
+    diffs = []
 
-         push!(diffs, (J_inner - J_outer) / s)
+    for s in steps
 
-     end
+        S_inner = ShallowWaters.model_setup(output=false,
+        L_ratio=1,
+        g=9.81,
+        H=500,
+        wind_forcing_x="double_gyre",
+        Lx=3840e3,
+        seasonal_wind_x=false,
+        topography="flat",
+        bc="nonperiodic",
+        α=2,
+        nx=nx,
+        Ndays = Ndays,
+        zb_forcing_dissipation=true,
+        γ₀ = 0.3,
+        data_steps=data_steps)
+
+        S_inner.Prog.u[n, m] += s
+
+        J_inner = checkpointed_integration(S_inner, revolve)
+
+        push!(diffs, (J_inner - J_outer) / s)
+
+    end
 
     return S, dS, enzyme_deriv, diffs
 
 end
 
-Ndays=5
-data_steps = 1:1:88
-nx=10
-
-S = ShallowWaters.model_setup(output=false,
-L_ratio=1,
-g=9.81,
-H=500,
-wind_forcing_x="double_gyre",
-Lx=3840e3,
-seasonal_wind_x=false,
-topography="flat",
-bc="nonperiodic",
-α=2,
-nx=10,
-Ndays = Ndays,
-zb_forcing_dissipation=true,
-γ₀ = 0.3,
-data_steps=data_steps)
-
-S, dS, enzyme_deriv, diffs = run_script(S,Ndays)
-
-# diffs, enzyme_deriv = check_derivative(dS, 1, [0.0], 225:225:225*(Ndays-1))
+S, dS, enzyme_deriv, diffs = run_script()
