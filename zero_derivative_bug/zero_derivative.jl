@@ -71,11 +71,7 @@ function checkpointed_integration(S, scheme)
 end
 
 function loop(S,scheme)
-
-    eta_avg = zeros(128,128)
-    # eta_avg = 0.0
-
-    # @checkpoint_struct scheme S for S.parameters.i = 1:S.grid.nt
+    
     for S.parameters.i = 1:S.grid.nt
 
         Diag = S.Diag
@@ -145,15 +141,7 @@ function loop(S,scheme)
         S.Prog.η,
         S.Prog.sst,S)...)
 
-        eta_avg = eta_avg + temp.η
-
-        if S.parameters.i in S.parameters.data_steps
-
-            S.parameters.J += sum(((eta_avg / S.parameters.i)))
-
-            S.parameters.j += 1
-
-        end
+        S.parameters.J += sum(temp.η)
 
         ################################################################################################
 
@@ -169,26 +157,13 @@ function loop(S,scheme)
 end
 
 
-function run_script(Ndays)
+function run_script(S, Ndays)
 
     # 225 steps = 1 day of integration in the 128 model
-    data_steps = 225:225:225*(Ndays-1)
+    data_steps = 1:1:88
+    nx=10
 
-    S = ShallowWaters.model_setup(output=false,
-        L_ratio=1,
-        g=9.81,
-        H=500,
-        wind_forcing_x="double_gyre",
-        Lx=3840e3,
-        seasonal_wind_x=false,
-        topography="flat",
-        bc="nonperiodic",
-        α=2,
-        nx=128,
-        Ndays = Ndays,
-        zb_forcing_dissipation=true,
-        γ₀ = 0.3,
-        data_steps=data_steps)
+    S_outer = deepcopy(S)
 
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
     snaps = Int(floor(sqrt(S.grid.nt)))
@@ -207,8 +182,72 @@ function run_script(Ndays)
 
     # @code_warntype checkpointed_integration(S,revolve)
 
-    return S, dS
+     # enzyme_deriv = dS.parameters.γ₀
+     enzyme_deriv = dS.Prog.u[5, 5]
+
+     steps = [50, 40, 30, 20, 10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7]
+
+     snaps = Int(floor(sqrt(S_outer.grid.nt)))
+     revolve = Revolve{ShallowWaters.ModelSetup}(S_outer.grid.nt, snaps; 
+         verbose=1, 
+         gc=true, 
+         write_checkpoints=false
+     )
+ 
+     J_outer = checkpointed_integration(S_outer, revolve)
+ 
+     diffs = []
+ 
+     for s in steps
+ 
+         S_inner = ShallowWaters.model_setup(output=false,
+         L_ratio=1,
+         g=9.81,
+         H=500,
+         wind_forcing_x="double_gyre",
+         Lx=3840e3,
+         seasonal_wind_x=false,
+         topography="flat",
+         bc="nonperiodic",
+         α=2,
+         nx=nx,
+         Ndays = Ndays,
+         zb_forcing_dissipation=true,
+         γ₀ = 0.3,
+         data_steps=data_steps)
+
+         S_inner.Prog.u[5, 5] += s
+
+         J_inner = checkpointed_integration(S_inner, revolve)
+
+         push!(diffs, (J_inner - J_outer) / s)
+
+     end
+
+    return S, dS, enzyme_deriv, diffs
 
 end
 
-S, dS = run_script(10)
+Ndays=5
+data_steps = 1:1:88
+nx=10
+
+S = ShallowWaters.model_setup(output=false,
+L_ratio=1,
+g=9.81,
+H=500,
+wind_forcing_x="double_gyre",
+Lx=3840e3,
+seasonal_wind_x=false,
+topography="flat",
+bc="nonperiodic",
+α=2,
+nx=10,
+Ndays = Ndays,
+zb_forcing_dissipation=true,
+γ₀ = 0.3,
+data_steps=data_steps)
+
+S, dS, enzyme_deriv, diffs = run_script(S,Ndays)
+
+# diffs, enzyme_deriv = check_derivative(dS, 1, [0.0], 225:225:225*(Ndays-1))
