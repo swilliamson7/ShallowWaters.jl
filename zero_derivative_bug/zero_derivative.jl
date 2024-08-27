@@ -18,6 +18,92 @@ Enzyme.API.runtimeActivity!(true)
 
 using Parameters
 
+function axb!(a::Matrix{T},x::Real,b::Matrix{T}) where {T<:AbstractFloat}
+    m,n = size(a)
+    @boundscheck (m,n) == size(b) || throw(BoundsError())
+
+    xT = convert(T,x)
+
+    @inbounds for j ∈ 1:n
+        for i ∈ 1:m
+           a[i,j] += xT*b[i,j]
+        end
+    end
+end
+
+function caxb!(c::Array{T,2},a::Array{T,2},x::T,b::Array{T,2}) where {T<:AbstractFloat}
+    m,n = size(a)
+    @boundscheck (m,n) == size(b) || throw(BoundsError())
+    @boundscheck (m,n) == size(c) || throw(BoundsError())
+
+    @inbounds for j ∈ 1:n
+        for i ∈ 1:m
+           c[i,j] = a[i,j] + x*b[i,j]
+        end
+    end
+end
+
+function rhs_nonlinear!(u::AbstractMatrix,
+    v::AbstractMatrix,
+    η::AbstractMatrix,
+    Diag,
+    S,
+    t::Int)
+
+    @unpack h,h_u,h_v,U,V = Diag.VolumeFluxes
+    @unpack H = S.forcing
+    @unpack ep = S.grid
+
+    ShallowWaters.UVfluxes!(u,v,η,Diag,S)              # U,V needed for PV advection and in the continuity equation
+    if S.grid.nstep_advcor == 0              # evaluate every RK substep
+        ShallowWaters.advection_coriolis!(u,v,η,Diag,S)    # PV and non-linear Bernoulli terms
+    end
+    ShallowWaters.PVadvection!(Diag,S)                 # advect the PV with U,V
+
+    # Bernoulli potential - recalculate for new η, KEu,KEv are only updated in advection_coriolis
+    @unpack p,KEu,KEv,dpdx,dpdy = Diag.Bernoulli
+    @unpack g,scale,scale_inv = S.constants
+    g_scale = g*scale
+    ShallowWaters.bernoulli!(p,KEu,KEv,η,g_scale,ep,scale_inv)
+    ShallowWaters.∂x!(dpdx,p)
+    ShallowWaters.∂y!(dpdy,p)
+
+    # Check if adding Zanna Bolton forcing term 
+    if S.parameters.zb_forcing_momentum
+        ShallowWaters.ZB_momentum(u,v,S,Diag)
+    end
+
+    # adding the terms
+    ShallowWaters.momentum_u!(Diag,S,t)
+    ShallowWaters.momentum_v!(Diag,S,t)
+
+end
+
+# function continuity!(u::AbstractMatrix,
+#     v::AbstractMatrix,
+#     η::AbstractMatrix,
+#     Diag::DiagnosticVars,
+#     S::ModelSetup,
+#     t::Int)
+
+#     @unpack U,V,dUdx,dVdy = Diag.VolumeFluxes
+#     @unpack nstep_advcor = S.grid
+#     @unpack time_scheme,surface_relax,surface_forcing = S.parameters
+
+#     # divergence of mass flux
+#     ∂x!(dUdx,U)
+#     ∂y!(dVdy,V)
+
+#     if surface_relax
+#     ShallowWaters.continuity_surf_relax!(η,Diag,S,t)
+#     elseif surface_forcing
+#     ShallowWaters.continuity_forcing!(Diag,S,t)
+#     else
+#     continuity_itself!(Diag,S,t)
+#     end
+
+# end
+
 function checkpointed_integration(S, scheme)
 
     # setup
@@ -112,24 +198,19 @@ function loop(S,scheme)
             v1rhs = convert(Diag.PrognosticVarsRHS.v,v1)
             η1rhs = convert(Diag.PrognosticVarsRHS.η,η1)
 
-            ShallowWaters.rhs!(u1rhs,v1rhs,η1rhs,Diag,S,t)          # momentum only
+            rhs_nonlinear!(u1rhs,v1rhs,η1rhs,Diag,S,t)          # momentum only
             ShallowWaters.continuity!(u1rhs,v1rhs,η1rhs,Diag,S,t)   # continuity equation
 
             if rki < RKo
-                ShallowWaters.caxb!(u1,u,RKbΔt[rki],du)   #u1 .= u .+ RKb[rki]*Δt*du
-                ShallowWaters.caxb!(v1,v,RKbΔt[rki],dv)   #v1 .= v .+ RKb[rki]*Δt*dv
-                ShallowWaters.caxb!(η1,η,RKbΔt[rki],dη)   #η1 .= η .+ RKb[rki]*Δt*dη
+                caxb!(u1,u,RKbΔt[rki],du)   #u1 .= u .+ RKb[rki]*Δt*du
+                caxb!(v1,v,RKbΔt[rki],dv)   #v1 .= v .+ RKb[rki]*Δt*dv
+                caxb!(η1,η,RKbΔt[rki],dη)   #η1 .= η .+ RKb[rki]*Δt*dη
             end
 
-            if compensated      # accumulate tendencies
-                ShallowWaters.axb!(du_sum,RKaΔt[rki],du)
-                ShallowWaters.axb!(dv_sum,RKaΔt[rki],dv)
-                ShallowWaters.axb!(dη_sum,RKaΔt[rki],dη)
-            else    # sum RK-substeps on the go
-                ShallowWaters.axb!(u0,RKaΔt[rki],du)          #u0 .+= RKa[rki]*Δt*du
-                ShallowWaters.axb!(v0,RKaΔt[rki],dv)          #v0 .+= RKa[rki]*Δt*dv
-                ShallowWaters.axb!(η0,RKaΔt[rki],dη)          #η0 .+= RKa[rki]*Δt*dη
-            end
+                axb!(u0,RKaΔt[rki],du)          #u0 .+= RKa[rki]*Δt*du
+                axb!(v0,RKaΔt[rki],dv)          #v0 .+= RKa[rki]*Δt*dv
+                axb!(η0,RKaΔt[rki],dη)          #η0 .+= RKa[rki]*Δt*dη
+
         end
 
         t += dtint
@@ -193,7 +274,7 @@ function run_script()
 
     ###### The remainder runs a finite difference check ###########################
 
-    n = 2
+    n = 5
     m = 5
     enzyme_deriv = dS.Prog.u[n, m]
 
