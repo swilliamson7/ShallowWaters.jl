@@ -118,5 +118,4 @@ function coarse_grain_eta(η_hr, S_lr)
 
     return η̅_hr
 
-
 end

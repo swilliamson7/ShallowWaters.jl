@@ -12,45 +12,45 @@
     L_ratio::Int=1                      # Domain aspect ratio of Lx/Ly
 
     # PHYSICAL CONSTANTS
-    g::Real=9.81                       # gravitational acceleration [m^2/s] 
-    H::Real=500.                        # layer thickness at rest [m]
-    ρ::Real=1e3                         # water density [kg/m^3]
-    ϕ::Real=35.                         # central latitude of the domain (for coriolis) [°]
-    ω::Real=2π/(24*3600)                # Earth's angular frequency [s^-1]
-    R::Real=6.371e6                     # Earth's radius [m]
+    g::Float32=9.81                       # gravitational acceleration [m^2/s] 
+    H::Float32=500.                        # layer thickness at rest [m]
+    ρ::Float32=1e3                         # water density [kg/m^3]
+    ϕ::Float32=35.                         # central latitude of the domain (for coriolis) [°]
+    ω::Float32=2π/(24*3600)                # Earth's angular frequency [s^-1]
+    R::Float32=6.371e6                     # Earth's radius [m]
 
     # SCALE
-    scale::Real=2^6                     # multiplicative scale for the momentum equations u,v
-    scale_sst::Real=2^15                # multiplicative scale for sst
+    scale::Float32=2^6                     # multiplicative scale for the momentum equations u,v
+    scale_sst::Float32=2^15                # multiplicative scale for sst
 
     # WIND FORCING OPTIONS
     wind_forcing_x::String="double_gyre"   # "channel", "double_gyre", "shear","constant" or "none"
     wind_forcing_y::String="constant"   # "channel", "double_gyre", "shear","constant" or "none"
-    Fx0::Real=0.12                      # wind stress strength [Pa] in x-direction
-    Fy0::Real=0.0                       # wind stress strength [Pa] in y-direction
+    Fx0::Float32=0.12                      # wind stress strength [Pa] in x-direction
+    Fy0::Float32=0.0                       # wind stress strength [Pa] in y-direction
     seasonal_wind_x::Bool=false         # Change the wind stress with a sine of frequency ωFx,ωFy
     seasonal_wind_y::Bool=false         # same for y-component
-    ωFx::Real=2                         # frequency [1/year] for x component
-    ωFy::Real=2                         # frequency [1/year] for y component
+    ωFx::Float32=2                         # frequency [1/year] for x component
+    ωFy::Float32=2                         # frequency [1/year] for y component
 
     # BOTTOM TOPOGRAPHY OPTIONS
     topography::String="flat"         # "ridge", "seamount", "flat", "ridges", "bathtub"
     topo_ridges_positions::Vector = [0.05,0.25,0.45,0.9]
-    topo_height::Real=100.               # height of seamount [m]
-    topo_width::Real=300e3              # horizontal scale [m] of the seamount
+    topo_height::Float32=100.               # height of seamount [m]
+    topo_width::Float32=300e3              # horizontal scale [m] of the seamount
 
     # SURFACE RELAXATION
     surface_relax::Bool=false           # yes?
-    t_relax::Real=100.                  # time scale of the relaxation [days]
-    η_refh::Real=5.                     # height difference [m] of the interface relaxation profile
-    η_refw::Real=50e3                   # width [m] of the tangent used for the interface relaxation
+    t_relax::Float32=100.                  # time scale of the relaxation [days]
+    η_refh::Float32=5.                     # height difference [m] of the interface relaxation profile
+    η_refw::Float32=50e3                   # width [m] of the tangent used for the interface relaxation
 
     # SURFACE FORCING
     surface_forcing::Bool=false         # yes?
-    ωFη::Real=1.0                       # frequency [1/year] for surfance forcing
-    A::Real=3e-5                        # Amplitude [m/s]
-    ϕk::Real=ϕ                          # Central latitude of Kelvin wave pumping
-    wk::Real=10e3                       # width [m] in y of Gaussian used for surface forcing
+    ωFη::Float32=1.0                       # frequency [1/year] for surfance forcing
+    A::Float32=3e-5                        # Amplitude [m/s]
+    ϕk::Float32=ϕ                          # Central latitude of Kelvin wave pumping
+    wk::Float32=10e3                       # width [m] in y of Gaussian used for surface forcing
 
     # TIME STEPPING OPTIONS
     time_scheme::String="RK"            # Runge-Kutta ("RK") or strong-stability preserving RK
@@ -58,8 +58,8 @@
     RKo::Int=4                          # Order of the RK time stepping scheme (2, 3 or 4)
     RKs::Int=3                          # Number of stages for SSPRK2
     RKn::Int=5                          # n^2 = s = Number of stages  for SSPRK3
-    cfl::Real=0.9                       # CFL number (1.0 recommended for RK4, 0.6 for RK3)
-    Ndays::Real=5                       # number of days to integrate for
+    cfl::Float32=0.9                       # CFL number (1.0 recommended for RK4, 0.6 for RK3)
+    Ndays::Float32=5                       # number of days to integrate for
     nstep_diff::Int=1                   # diffusive part every nstep_diff time steps.
     nstep_advcor::Int=0                 # advection and coriolis update every nstep_advcor time steps.
                                         # 0 means it is included in every RK4 substep
@@ -67,7 +67,7 @@
 
     # BOUNDARY CONDITION OPTIONS
     bc::String="nonperiodic"            # "periodic" or anything else for nonperiodic
-    α::Real=0.                          # lateral boundary condition parameter
+    α::Float32=0.                          # lateral boundary condition parameter
                                         # 0 free-slip, 0<α<2 partial-slip, 2 no-slip
 
     # ZANNA-BOLTON FORCING OPTIONS
@@ -92,13 +92,13 @@
 
     # BOTTOM FRICTION OPTIONS
     bottom_drag::String="quadratic"     # "linear", "quadratic" or "none"
-    cD::Real=1e-5                       # bottom drag coefficient [dimensionless] for quadratic
-    τD::Real=300.                       # bottom drag coefficient [days] for linear
+    cD::Float32=1e-5                       # bottom drag coefficient [dimensionless] for quadratic
+    τD::Float32=300.                       # bottom drag coefficient [days] for linear
 
     # DIFFUSION OPTIONS
     diffusion::String="constant"        # "Smagorinsky" or "constant", biharmonic in both cases
-    νB::Real=500.0                      # [m^2/s] scaling constant for constant biharmonic diffusion
-    cSmag::Real=0.15                    # Smagorinsky coefficient [dimensionless]
+    νB::Float32=500.0                      # [m^2/s] scaling constant for constant biharmonic diffusion
+    cSmag::Float32=0.15                    # Smagorinsky coefficient [dimensionless]
 
     # TRACER ADVECTION
     tracer_advection::Bool=true         # yes?
@@ -107,21 +107,21 @@
     sst_initial::String="waves"         # "west", "south", "linear", "waves","rect", "flat" or "restart"
     sst_rect_coords::Array{Float64,1}=[0.,0.15,0.,1.0]
                                         # (x0,x1,y0,y1) are the size of the rectangle in [0,1]
-    Uadv::Real=0.2                      # Velocity scale [m/s] for tracer advection
-    SSTmax::Real=1.                     # tracer (sea surface temperature) max for initial conditions
-    SSTmin::Real=-1.                    # tracer (sea surface temperature) min for initial conditions
-    τSST::Real=100                      # tracer restoring time scale [days]
-    jSST::Real=365                      # tracer consumption [days]
-    SSTw::Real=5e5                      # width [m] of the tangent used for the IC and interface relaxation
-    SSTϕ::Real=0.5                      # latitude/longitude fraction ∈ [0,1] of sst edge
-    SSTwaves_ny::Real=4                 # wave crests/troughs in y
-    SSTwaves_nx::Real=SSTwaves_ny*L_ratio  # wave crests/troughs in x
-    SSTwaves_p::Real=1/2                # power for rectangles (p<1)/smootheness(p>=1) of waves
+    Uadv::Float32=0.2                      # Velocity scale [m/s] for tracer advection
+    SSTmax::Float32=1.                     # tracer (sea surface temperature) max for initial conditions
+    SSTmin::Float32=-1.                    # tracer (sea surface temperature) min for initial conditions
+    τSST::Float32=100                      # tracer restoring time scale [days]
+    jSST::Float32=365                      # tracer consumption [days]
+    SSTw::Float32=5e5                      # width [m] of the tangent used for the IC and interface relaxation
+    SSTϕ::Float32=0.5                      # latitude/longitude fraction ∈ [0,1] of sst edge
+    SSTwaves_ny::Float32=4                 # wave crests/troughs in y
+    SSTwaves_nx::Float32=SSTwaves_ny*L_ratio  # wave crests/troughs in x
+    SSTwaves_p::Float32=1/2                # power for rectangles (p<1)/smootheness(p>=1) of waves
 
     # OUTPUT OPTIONS
     output::Bool=false                  # netcdf output?
     output_vars::Array{String,1}=["u","v","η","sst"]  # which variables to output? "du","dv","dη" also allowed
-    output_dt::Real=24                  # output time step [hours]
+    output_dt::Float32=24                  # output time step [hours]
     outpath::String=pwd()               # path to output folder
     compression_level::Int=3            # compression level
     return_time::Bool=false             # return time of simulation of progn vars?
