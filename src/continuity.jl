@@ -3,7 +3,7 @@
 function continuity_surf_relax!(η::Array{T,2},
                                 Diag::DiagnosticVars{T,Tprog},
                                 S::ModelSetup{T,Tprog},
-                                t::Int) where {T,Tprog}
+                                t::Float64) where {T,Tprog}
 
     @unpack dη = Diag.Tendencies
     @unpack dUdx,dVdy = Diag.VolumeFluxes
@@ -26,7 +26,7 @@ end
 """Continuity equation's right-hand side with time&space dependent forcing."""
 function continuity_forcing!(   Diag::DiagnosticVars{T,Tprog},
                                 S::ModelSetup{T,Tprog},
-                                t::Int) where {T,Tprog}
+                                t::Float64) where {T,Tprog}
 
     @unpack dη = Diag.Tendencies
     @unpack dUdx,dVdy = Diag.VolumeFluxes
@@ -51,7 +51,7 @@ end
 """Continuity equation's right-hand side -∂x(uh) - ∂y(vh) without forcing."""
 function continuity_itself!(Diag::DiagnosticVars{T,Tprog},
                             S::ModelSetup{T,Tprog},
-                            t::Int) where {T,Tprog}
+                            t::Float64) where {T,Tprog}
 
     @unpack dη = Diag.Tendencies
     @unpack dUdx,dVdy = Diag.VolumeFluxes
@@ -74,7 +74,7 @@ function continuity!(   u::AbstractMatrix,
                         η::AbstractMatrix,
                         Diag::DiagnosticVars,
                         S::ModelSetup,
-                        t::Int)
+                        t::Float64)
     
     @unpack U,V,dUdx,dVdy = Diag.VolumeFluxes
     @unpack nstep_advcor = S.grid

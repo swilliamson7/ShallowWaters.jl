@@ -1,4 +1,4 @@
-@with_kw struct Grid{T<:AbstractFloat,Tprog<:AbstractFloat}
+@with_kw mutable struct Grid{T<:AbstractFloat,Tprog<:AbstractFloat}
 
     # Parameters taken from Parameter struct
     nx::Int                            # number of grid cells in x-direction

@@ -4,7 +4,7 @@ function rhs!(  u::Array{T,2},
                 η::Array{T,2},
                 Diag::DiagnosticVars{T,Tprog},
                 S::ModelSetup{T,Tprog},
-                t::Int) where {T,Tprog}
+                t::Float64) where {T,Tprog}
 
     @unpack dynamics = S.parameters
 
@@ -26,7 +26,7 @@ function rhs_nonlinear!(u::AbstractMatrix,
                         η::AbstractMatrix,
                         Diag::DiagnosticVars,
                         S::ModelSetup,
-                        t::Int)
+                        t::Float64)
 
     @unpack h,h_u,h_v,U,V = Diag.VolumeFluxes
     @unpack H = S.forcing
@@ -67,7 +67,7 @@ function rhs_linear!(   u::AbstractMatrix,
                         η::AbstractMatrix,
                         Diag::DiagnosticVars,
                         S::ModelSetup,
-                        t::Int)
+                        t::Float64)
 
     @unpack h,h_u,h_v,U,V,dUdx,dVdy = Diag.VolumeFluxes
     @unpack g,scale = S.constants
@@ -227,7 +227,7 @@ end
 """Sum up the tendencies of the non-diffusive right-hand side for the u-component."""
 function momentum_u!(   Diag::DiagnosticVars{T,Tprog},
                         S::ModelSetup,
-                        t::Int) where {T,Tprog}
+                        t::Float64) where {T,Tprog}
 
     @unpack du = Diag.Tendencies
     @unpack qhv = Diag.Vorticity
@@ -268,7 +268,7 @@ end
 """Sum up the tendencies of the non-diffusive right-hand side for the v-component."""
 function momentum_v!(   Diag::DiagnosticVars{T,Tprog},
                         S::ModelSetup,
-                        t::Int) where {T,Tprog}
+                        t::Float64) where {T,Tprog}
 
     @unpack dv = Diag.Tendencies
     @unpack qhu = Diag.Vorticity

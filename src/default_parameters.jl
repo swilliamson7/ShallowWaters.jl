@@ -82,6 +82,8 @@
     data::Array{Float64} = zeros(1, 1, 1)       # model data
     J::Float64 = 0.                             # Placeholder for cost function evaluation
     j::Int = 1                                  # For keeping track of the entry in data
+    # eta_avg::Matrix{Float64} = zeros(130,130)
+    eta_avg::Matrix{Float64} = zeros(130,130)
 
     # CHECKPOINTING VARIABLES
     i::Int = 0                                  # Placeholder for current timestep, needed for Checkpointing.jl

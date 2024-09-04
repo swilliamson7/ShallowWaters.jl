@@ -1,4 +1,4 @@
-struct Forcing{T<:AbstractFloat}
+mutable struct Forcing{T<:AbstractFloat}
     Fx::Array{T,2}
     Fy::Array{T,2}
     H::Array{T,2}
@@ -214,6 +214,6 @@ function KelvinPump(::Type{T},P::Parameter,G::Grid) where {T<:AbstractFloat}
 end
 
 """Time evolution of forcing."""
-function Ftime(::Type{T},t::Int,ω::Real) where {T<:AbstractFloat}
+function Ftime(::Type{T},t::Float64,ω::Real) where {T<:AbstractFloat}
     return convert(T,sin(ω*t))
 end

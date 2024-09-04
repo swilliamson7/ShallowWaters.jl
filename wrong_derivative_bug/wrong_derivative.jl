@@ -15,6 +15,13 @@ Enzyme.API.looseTypeAnalysis!(true)
 Enzyme.API.runtimeActivity!(true)
 
 using Parameters
+function outputS(S, name)
+    open("$name.txt", "w") do io
+        redirect_stdout(io) do
+            @show S
+        end
+    end
+end
 
 function checkpointed_integration(S, scheme)
 
@@ -70,11 +77,13 @@ end
 
 function loop(S,scheme)
 
-    eta_avg = zeros(128,128)
+    # eta_avg = zeros(128,128)
     # eta_avg = 0.0
-
-    # @checkpoint_struct scheme S for S.parameters.i = 1:S.grid.nt
-    for S.parameters.i = 1:S.grid.nt
+    fill!(S.parameters.eta_avg,0.0)
+    println("S.grid.nt: ", S.grid.nt)
+    S.parameters.i = 1
+    @checkpoint_struct scheme S for blob = 1:S.grid.nt
+    # for blob = 1:S.grid.nt
 
         Diag = S.Diag
         Prog = S.Prog
@@ -95,34 +104,34 @@ function loop(S,scheme)
     
         @unpack nt,dtint = S.grid
         @unpack nstep_advcor,nstep_diff,nadvstep,nadvstep_half = S.grid
-        t = S.t
-        i = S.parameters.i
+        # t = S.t
+        # i = S.parameters.i
 
         # ghost point copy for boundary conditions
-        ShallowWaters.ghost_points!(u,v,η,S)
+        # ShallowWaters.ghost_points!(u,v,η,S)
         copyto!(u1,u)
         copyto!(v1,v)
         copyto!(η1,η)
 
 
-        if compensated
-            fill!(du_sum,zero(Tprog))
-            fill!(dv_sum,zero(Tprog))
-            fill!(dη_sum,zero(Tprog))
-        end
+        # if compensated
+        #     fill!(du_sum,zero(Tprog))
+        #     fill!(dv_sum,zero(Tprog))
+        #     fill!(dη_sum,zero(Tprog))
+        # end
 
         for rki = 1:RKo
-            if rki > 1
+            # if rki > 1
                 ShallowWaters.ghost_points!(u1,v1,η1,S)
-            end
+            # end
 
             # type conversion for mixed precision
-            u1rhs = convert(Diag.PrognosticVarsRHS.u,u1)
-            v1rhs = convert(Diag.PrognosticVarsRHS.v,v1)
-            η1rhs = convert(Diag.PrognosticVarsRHS.η,η1)
+            u1rhs = u1
+            v1rhs = v1
+            η1rhs = η1
 
-            ShallowWaters.rhs!(u1rhs,v1rhs,η1rhs,Diag,S,t)          # momentum only
-            ShallowWaters.continuity!(u1rhs,v1rhs,η1rhs,Diag,S,t)   # continuity equation
+            ShallowWaters.rhs!(u1rhs,v1rhs,η1rhs,Diag,S,S.t)          # momentum only
+            ShallowWaters.continuity!(u1rhs,v1rhs,η1rhs,Diag,S,S.t)   # continuity equation
 
             if rki < RKo
                 ShallowWaters.caxb!(u1,u,RKbΔt[rki],du)   #u1 .= u .+ RKb[rki]*Δt*du
@@ -130,108 +139,111 @@ function loop(S,scheme)
                 ShallowWaters.caxb!(η1,η,RKbΔt[rki],dη)   #η1 .= η .+ RKb[rki]*Δt*dη
             end
 
-            if compensated      # accumulate tendencies
-                ShallowWaters.axb!(du_sum,RKaΔt[rki],du)
-                ShallowWaters.axb!(dv_sum,RKaΔt[rki],dv)
-                ShallowWaters.axb!(dη_sum,RKaΔt[rki],dη)
-            else    # sum RK-substeps on the go
+            # if compensated      # accumulate tendencies
+            #     ShallowWaters.axb!(du_sum,RKaΔt[rki],du)
+            #     ShallowWaters.axb!(dv_sum,RKaΔt[rki],dv)
+            #     ShallowWaters.axb!(dη_sum,RKaΔt[rki],dη)
+            # else    # sum RK-substeps on the go
                 ShallowWaters.axb!(u0,RKaΔt[rki],du)          #u0 .+= RKa[rki]*Δt*du
                 ShallowWaters.axb!(v0,RKaΔt[rki],dv)          #v0 .+= RKa[rki]*Δt*dv
                 ShallowWaters.axb!(η0,RKaΔt[rki],dη)          #η0 .+= RKa[rki]*Δt*dη
-            end
+            # end
         end
 
-        if compensated
-            # add compensation term to total tendency
-            ShallowWaters.axb!(du_sum,-1,du_comp)
-            ShallowWaters.axb!(dv_sum,-1,dv_comp)
-            ShallowWaters.axb!(dη_sum,-1,dη_comp)
+        # if compensated
+        #     # add compensation term to total tendency
+        #     ShallowWaters.axb!(du_sum,-1,du_comp)
+        #     ShallowWaters.axb!(dv_sum,-1,dv_comp)
+        #     ShallowWaters.axb!(dη_sum,-1,dη_comp)
 
-            ShallowWaters.axb!(u0,1,du_sum)   # update prognostic variable with total tendency
-            ShallowWaters.axb!(v0,1,dv_sum)
-            ShallowWaters.axb!(η0,1,dη_sum)
+        #     ShallowWaters.axb!(u0,1,du_sum)   # update prognostic variable with total tendency
+        #     ShallowWaters.axb!(v0,1,dv_sum)
+        #     ShallowWaters.axb!(η0,1,dη_sum)
 
-            ShallowWaters.dambmc!(du_comp,u0,u,du_sum)    # compute new compensation
-            ShallowWaters.dambmc!(dv_comp,v0,v,dv_sum)
-            ShallowWaters.dambmc!(dη_comp,η0,η,dη_sum)
-        end
+        #     ShallowWaters.dambmc!(du_comp,u0,u,du_sum)    # compute new compensation
+        #     ShallowWaters.dambmc!(dv_comp,v0,v,dv_sum)
+        #     ShallowWaters.dambmc!(dη_comp,η0,η,dη_sum)
+        # end
 
 
-        ShallowWaters.ghost_points!(u0,v0,η0,S)
+        # ShallowWaters.ghost_points!(u0,v0,η0,S)
 
-        # type conversion for mixed precision
-        u0rhs = convert(Diag.PrognosticVarsRHS.u,u0)
-        v0rhs = convert(Diag.PrognosticVarsRHS.v,v0)
-        η0rhs = convert(Diag.PrognosticVarsRHS.η,η0)
+        # # type conversion for mixed precision
+        # u0rhs = convert(Diag.PrognosticVarsRHS.u,u0)
+        # v0rhs = convert(Diag.PrognosticVarsRHS.v,v0)
+        # η0rhs = convert(Diag.PrognosticVarsRHS.η,η0)
 
-        # ADVECTION and CORIOLIS TERMS
-        # although included in the tendency of every RK substep,
-        # only update every nstep_advcor steps if nstep_advcor > 0
-        if dynamics == "nonlinear" && nstep_advcor > 0 && (i % nstep_advcor) == 0
-            ShallowWaters.UVfluxes!(u0rhs,v0rhs,η0rhs,Diag,S)
-            ShallowWaters.advection_coriolis!(u0rhs,v0rhs,η0rhs,Diag,S)
-        end
+        # # ADVECTION and CORIOLIS TERMS
+        # # although included in the tendency of every RK substep,
+        # # only update every nstep_advcor steps if nstep_advcor > 0
+        # if dynamics == "nonlinear" && nstep_advcor > 0 && (S.i % nstep_advcor) == 0
+        #     ShallowWaters.UVfluxes!(u0rhs,v0rhs,η0rhs,Diag,S)
+        #     ShallowWaters.advection_coriolis!(u0rhs,v0rhs,η0rhs,Diag,S)
+        # end
 
-        # DIFFUSIVE TERMS - SEMI-IMPLICIT EULER
-        # use u0 = u^(n+1) to evaluate tendencies, add to u0 = u^n + rhs
-        # evaluate only every nstep_diff time steps
-        if (S.parameters.i % nstep_diff) == 0
-            ShallowWaters.bottom_drag!(u0rhs,v0rhs,η0rhs,Diag,S)
-            ShallowWaters.diffusion!(u0rhs,v0rhs,Diag,S)
-            ShallowWaters.add_drag_diff_tendencies!(u0,v0,Diag,S)
-            ShallowWaters.ghost_points_uv!(u0,v0,S)
-        end
+        # # DIFFUSIVE TERMS - SEMI-IMPLICIT EULER
+        # # use u0 = u^(n+1) to evaluate tendencies, add to u0 = u^n + rhs
+        # # evaluate only every nstep_diff time steps
+        # if (S.parameters.i % nstep_diff) == 0
+        #     ShallowWaters.bottom_drag!(u0rhs,v0rhs,η0rhs,Diag,S)
+        #     ShallowWaters.diffusion!(u0rhs,v0rhs,Diag,S)
+        #     ShallowWaters.add_drag_diff_tendencies!(u0,v0,Diag,S)
+        #     ShallowWaters.ghost_points_uv!(u0,v0,S)
+        # end
 
-        t += dtint
+        S.t += dtint
 
-        # TRACER ADVECTION
-        u0rhs = convert(Diag.PrognosticVarsRHS.u,u0) 
-        v0rhs = convert(Diag.PrognosticVarsRHS.v,v0)
-        ShallowWaters.tracer!(i,u0rhs,v0rhs,Prog,Diag,S)
+        # # TRACER ADVECTION
+        # u0rhs = convert(Diag.PrognosticVarsRHS.u,u0) 
+        # v0rhs = convert(Diag.PrognosticVarsRHS.v,v0)
+        # ShallowWaters.tracer!(i,u0rhs,v0rhs,Prog,Diag,S)
 
-        # Cost function evaluation #################################################################
+        # # Cost function evaluation #################################################################
 
-        if S.parameters.i in S.parameters.data_steps
+        # if S.parameters.i in S.parameters.data_steps
 
-            temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(S.Prog.u,
-            S.Prog.v,
-            S.Prog.η,
-            S.Prog.sst,S)...)
+            # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(S.Prog.u,
+            # S.Prog.v,
+            # S.Prog.η,
+            # S.Prog.sst,S)...)
 
-            eta_avg = eta_avg .+ temp.η
+            # S.parameters.eta_avg = S.parameters.eta_avg .+ S.Prog.η[2:129,2:129]
+            S.parameters.eta_avg .= S.parameters.eta_avg .+ S.Prog.η
 
             # This plus the else statement is the workaround for the zero 
             # derivative issue
-            temp1 = eta_avg / S.parameters.i
-            temp3 = zeros(128,128)
-            for j = 1:128
-                for k = 1:128
+            # temp1 = S.parameters.eta_avg / S.parameters.i
+            # temp3 = zeros(128,128)
+            # for j = 1:128
+            #     for k = 1:128
                     
-                    temp3[j,k] = temp1[j,k] 
+            #         temp3[j,k] = temp1[j,k] 
 
-                end
-            end
-            S.parameters.J += sum(temp3.^2)
+            #     end
+            # end
+            # S.parameters.J += sum(temp3.^2)
+            S.parameters.J += sum(S.parameters.eta_avg.^2)
 
-            S.parameters.j += 1
+            # S.parameters.j += 1
 
         #######################################################################################
 
-        else
+        # else
 
-            temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(S.Prog.u,
-            S.Prog.v,
-            S.Prog.η,
-            S.Prog.sst,S)...)
+            # temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(S.Prog.u,
+            # S.Prog.v,
+            # S.Prog.η,
+            # S.Prog.sst,S)...)
 
-            eta_avg = eta_avg .+ temp.η
+            # S.parameters.eta_avg = S.parameters.eta_avg .+ S.Prog.η[2:129,2:129]
 
-        end
+        # end
 
         # Copy back from substeps
         copyto!(u,u0)
         copyto!(v,v0)
         copyto!(η,η0)
+        # S.parameters.i += 1
 
     end
 
@@ -261,24 +273,45 @@ function run_wrong_derivative_script(Ndays)
         zb_forcing_dissipation=true,
         γ₀ = 0.3,
         data_steps=data_steps)
-
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
-    snaps = Int(floor(sqrt(S.grid.nt)))
-    revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt,
+    mynt = 2
+    S.grid.nt = mynt
+    snaps = S.grid.nt
+    println("Initial model and setup")
+    println("   S.t: ", S.t) 
+    println("   dS.t:", dS.t)
+    println("   S.grid.nt: ", S.grid.nt)
+    println("   S.grid.dtint: ", S.grid.dtint)
+    revolve = Periodic{ShallowWaters.ModelSetup}(S.grid.nt,
         snaps;
         verbose=1,
-        gc=true,
-        write_checkpoints=false
+        # gc=true,
+        # write_checkpoints=false
     )
-
-    autodiff(Enzyme.ReverseWithPrimal, checkpointed_integration, Duplicated(S, dS), Const(revolve))
+    # snaps = Int(floor(sqrt(S.grid.nt)))
+    # revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt,
+    #     snaps;
+    #     verbose=1,
+    #     gc=true,
+    #     write_checkpoints=false
+    # )
+    println("   snaps: ", snaps)
+    println("   dS.j:", dS.parameters.j)
+    J = autodiff(Enzyme.ReverseWithPrimal, checkpointed_integration, Duplicated(S, dS), Const(revolve))[2]
+    println("After outer run")
+    println("   S.t: ", S.t) 
+    println("   dS.j:", dS.parameters.j)
+    println("   dS.t:", dS.t)
+    outputS(S, "S")
+    outputS(dS, "dS_chk")
 
     #### The remainder runs a finite difference check ##############################################
     n = 62
     m = 20
     enzyme_deriv = dS.Prog.u[n, m]
 
-    steps = [50, 40, 30, 20, 10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7]
+    # steps = [50, 40, 30, 20, 10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7]
+    steps = [1e-6]
 
     S_outer = ShallowWaters.model_setup(output=false,
     L_ratio=1,
@@ -295,15 +328,17 @@ function run_wrong_derivative_script(Ndays)
     zb_forcing_dissipation=true,
     γ₀ = 0.3,
     data_steps=data_steps)
+    S_outer.grid.nt = mynt
 
-    snaps = Int(floor(sqrt(S_outer.grid.nt)))
-    revolve = Revolve{ShallowWaters.ModelSetup}(S_outer.grid.nt, snaps; 
+    # snaps = Int(floor(sqrt(S_outer.grid.nt)))
+    revolve = Periodic{ShallowWaters.ModelSetup}(S_outer.grid.nt, snaps; 
         verbose=1, 
-        gc=true, 
-        write_checkpoints=false
+        # gc=true, 
+        # write_checkpoints=false
     )
 
     J_outer = checkpointed_integration(S_outer, revolve)
+    outputS(S_outer, "S_fd")
 
     diffs = []
 
@@ -324,17 +359,25 @@ function run_wrong_derivative_script(Ndays)
         zb_forcing_dissipation=true,
         γ₀ = 0.3,
         data_steps=data_steps)
+        S_inner.grid.nt = mynt
 
         S_inner.Prog.u[n, m] += s
 
         J_inner = checkpointed_integration(S_inner, revolve)
 
         push!(diffs, (J_inner - J_outer) / s)
+        println("diffS.J: ", S_inner.parameters.J)
+        println("diffS.j: ", S_inner.parameters.j)
 
     end
 
-    return S, dS, enzyme_deriv, diffs
+    return S, dS, enzyme_deriv, diffs, J, J_outer 
 
 end
 
-S, dS, enzyme_deriv, diffs = run_wrong_derivative_script(10)
+function run_debug(Ndays)
+    S, dS, enzyme_deriv, diffs, J , J_diffs = run_wrong_derivative_script(Ndays)
+    return enzyme_deriv, diffs, J, J_diffs
+end
+@time enzyme_deriv, diffs, J, J_diffs = run_debug(2)
+@show enzyme_deriv, diffs

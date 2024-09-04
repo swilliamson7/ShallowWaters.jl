@@ -1,5 +1,5 @@
 """Runge Kutta time stepping scheme diagnostic cariables collected in a struct."""
-@with_kw struct RungeKuttaVars{T<:AbstractFloat}
+@with_kw mutable struct RungeKuttaVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -38,7 +38,7 @@ end
 ###################################################
 
 """Tendencies collected in a struct."""
-@with_kw struct TendencyVars{T<:AbstractFloat}
+@with_kw mutable struct TendencyVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -84,7 +84,7 @@ end
 ###########################################################
 
 """VolumeFluxes collected in a struct."""
-@with_kw struct VolumeFluxVars{T<:AbstractFloat}
+@with_kw mutable struct VolumeFluxVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -126,7 +126,7 @@ end
 ###############################################################
 
 """Vorticity variables collected in a struct."""
-@with_kw struct VorticityVars{T<:AbstractFloat}
+@with_kw mutable struct VorticityVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -179,7 +179,7 @@ end
 ####################################################################
 
 """Bernoulli variables collected in a struct."""
-@with_kw struct BernoulliVars{T<:AbstractFloat}
+@with_kw mutable struct BernoulliVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -221,7 +221,7 @@ end
 ####################################################################
 
 """Bottomdrag variables collected in a struct."""
-@with_kw struct BottomdragVars{T<:AbstractFloat}
+@with_kw mutable struct BottomdragVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -260,7 +260,7 @@ end
 ####################################################################
 
 """ArakawaHsu variables collected in a struct."""
-@with_kw struct ArakawaHsuVars{T<:AbstractFloat}
+@with_kw mutable struct ArakawaHsuVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -298,7 +298,7 @@ end
 ####################################################################
 
 """Laplace variables collected in a struct."""
-@with_kw struct LaplaceVars{T<:AbstractFloat}
+@with_kw mutable struct LaplaceVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -339,7 +339,7 @@ end
 ####################################################################
 
 """Smagorinsky variables collected in a struct."""
-@with_kw struct SmagorinskyVars{T<:AbstractFloat}
+@with_kw mutable struct SmagorinskyVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -395,7 +395,7 @@ end
 ####################################################################
 
 """SemiLagrange variables collected in a struct."""
-@with_kw struct SemiLagrangeVars{T<:AbstractFloat}
+@with_kw mutable struct SemiLagrangeVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
@@ -451,7 +451,7 @@ end
 ###################################################################
 
 """ Variables that appear in Zanna-Bolton forcing term """ 
-@with_kw struct ZBVars{T<:AbstractFloat}
+@with_kw mutable struct ZBVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int
