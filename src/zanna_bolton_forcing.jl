@@ -114,7 +114,7 @@ function ZB_momentum(u, v, S, Diag)
     @unpack S_u, S_v = Diag.ZBVars
     @unpack Δ, scale, f₀ = S.grid
 
-    @unpack G = Diag.ZBVars
+    @unpack Ker = Diag.ZBVars
     @unpack ζD_filtered, ζDhat_filtered, trace_filtered = Diag.ZBVars
 
     @unpack halo, haloη, ep, nux, nuy, nvx, nvy = S.grid

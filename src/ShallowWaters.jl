@@ -4,6 +4,8 @@ module ShallowWaters
 
     using NetCDF, Parameters, Printf, Dates, Interpolations
 
+    using Flux
+
     include("default_parameters.jl")
     include("grid.jl")
     include("constants.jl")
@@ -28,6 +30,7 @@ module ShallowWaters
     include("run_model.jl")
 
     include("zanna_bolton_forcing.jl")
+    include("nn_forcing.jl")
     include("coarse_grain.jl")
 
 end

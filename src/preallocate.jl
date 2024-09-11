@@ -479,7 +479,7 @@ end
     γ_u::Array{T,2} = zeros(T,nux,nuy)
     γ_v::Array{T,2} = zeros(T,nvx,nvy)
 
-    G::Array{T,2} = zeros(3,3)    # convolutional kernal
+    Ker::Array{T,2} = zeros(3,3)    # convolutional kernal
 
     ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
     ζsq::Array{T,2} = zeros(T,nqx,nqy)    # relative vorticity squared, cell corners 
@@ -528,22 +528,79 @@ function ZBVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack halo,haloη = G
     @unpack halosstx,halossty = G
 
-    G = zeros(3,3)
-    G[1,1] = 1 
-    G[1,2] = 2 
-    G[1,3] = 1
-    G[2,1] = 2 
-    G[2,2] = 4 
-    G[2,3] = 2 
-    G[3,1] = 1 
-    G[3,2] = 2 
-    G[3,3] = 1 
+    Ker = zeros(3,3)
+    Ker[1,1] = 1 
+    Ker[1,2] = 2 
+    Ker[1,3] = 1
+    Ker[2,1] = 2 
+    Ker[2,2] = 4 
+    Ker[2,3] = 2 
+    Ker[3,1] = 1 
+    Ker[3,2] = 2 
+    Ker[3,3] = 1 
 
     return ZBVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
-                            halosstx=halosstx,halossty=halossty,G=G)
+                            halosstx=halosstx,halossty=halossty,Ker=Ker)
 end
 
 ###########################################################################################
+
+""" Variables that appear in NN forcing term """
+@with_kw struct NNVars{T<:AbstractFloat}
+
+    # to be specified
+    nx::Int
+    ny::Int
+    bc::String
+    halo::Int
+    haloη::Int
+    halosstx::Int
+    halossty::Int
+
+    nux::Int = if (bc == "periodic") nx else nx-1 end      # u-grid in x-direction
+    nuy::Int = ny                                          # u-grid in y-direction
+    nvx::Int = nx                                          # v-grid in x-direction
+    nvy::Int = ny-1                                        # v-grid in y-direction
+    nqx::Int = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
+    nqy::Int = ny+1                                        # q-grid in y-direction
+
+    dudx::Array{T,2} = zeros(T,nux+2*halo-1,nuy+2*halo)    # ∂u/∂x
+    dudy::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo-1)    # ∂u/∂y
+    dvdx::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
+    dvdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
+
+    ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
+
+    D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners 
+
+    D_n::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)
+    D_nT::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη) 
+    D_q::Array{T,2} = zeros(T,nqx,nqy)
+
+    Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
+    Dhatq::Array{T,2} = zeros(T,nqx,nqy)                  # tensor interpolated onto q-grid
+
+    ζT::Array{T,2} = zeros(T,nx,ny)         # ζ interpolated to cell centers
+    DT::Array{T,2} = zeros(T,nx,ny)         # D, interpolated on cell centers
+    ζDhat::Array{T,2} = zeros(T,nqx,nqy)    # ζ ⋅ Dhat, cell corners
+
+    S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction
+    S_v::Array{T,2} = zeros(T,nvx,nvy)             # total forcing in y-direction
+
+end
+
+"""Generator function for NN momentum terms."""
+function NNVars{T}(G::Grid) where {T<:AbstractFloat}
+
+    @unpack nx,ny,bc = G
+    @unpack halo,haloη = G
+    @unpack halosstx,halossty = G
+
+    return NNVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+                            halosstx=halosstx,halossty=halossty)
+end
+
+##########################################################################################
 
 """Preallocate the diagnostic variables and return them as matrices in structs."""
 function preallocate(   ::Type{T},
@@ -562,6 +619,7 @@ function preallocate(   ::Type{T},
     SL = SemiLagrangeVars{T}(G)
     PV = PrognosticVars{T}(G)
     ZB = ZBVars{T}(G)
+    NN = NNVars{T}(G)
 
-    return DiagnosticVars{T,Tprog}(RK,TD,VF,VT,BN,BD,AH,LP,SM,SL,PV,ZB)
+    return DiagnosticVars{T,Tprog}(RK,TD,VF,VT,BN,BD,AH,LP,SM,SL,PV,ZB,NN)
 end
