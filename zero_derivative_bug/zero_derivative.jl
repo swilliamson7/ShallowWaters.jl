@@ -280,7 +280,6 @@ function loop(S,scheme)
             # ShallowWaters.∂x!(dUdx,U)
             m,n = size(dUdx)
             @boundscheck (m+1,n) == size(U) || throw(BoundsError())
-        
             @inbounds for j ∈ 1:n, i ∈ 1:m
                 dUdx[i,j] = U[i+1,j] - U[i,j]
             end
@@ -288,7 +287,6 @@ function loop(S,scheme)
             # ShallowWaters.∂y!(dVdy,V)
             m,n = size(dVdy)
             @boundscheck (m,n+1) == size(V) || throw(BoundsError())
-        
             @inbounds for j ∈ 1:n, i ∈ 1:m
                 dVdy[i,j] = V[i+1,j] - V[i,j]
             end
