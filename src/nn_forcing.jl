@@ -17,18 +17,21 @@ The inputs we receive will be the vorticity, shear, and stretch deformation fiel
 and the outputs will be 
 """
 
-function NN_momentum_corners(u, v, S, Diag, weights)
+function NN_momentum(u, v, S)
+
+    Diag = S.Diag
 
     @unpack γ₀, zb_filtered, N  = S.parameters
+
     @unpack nqx, nqy = Diag.NNVars
     @unpack dudx, dudy, dvdx, dvdy = Diag.NNVars
-    @unpack ζ, D = Diag.NNVars
-
+    @unpack ζ, D, Dhat = Diag.NNVars
     @unpack ζT, DT = Diag.NNVars
+    @unpack weights_center, weights_corner = Diag.NNVars
 
     @unpack S_u, S_v = Diag.ZBVars
-    @unpack Δ, scale, f₀ = S.grid
 
+    @unpack Δ, scale, f₀ = S.grid
     @unpack halo, haloη, ep, nux, nuy, nvx, nvy = S.grid
 
     κ_BC = - γ₀ * Δ^2
@@ -52,53 +55,45 @@ function NN_momentum_corners(u, v, S, Diag, weights)
         end
     end
 
-    corner_model = Dense(weights, relu)
+    # Stretch deformation, cell centers (with halo)
+    @inbounds for j ∈ 1:nTh
+        for k ∈ 1:mTh
+            Dhat[k,j] = dudx[k,j+1] - dvdy[k+1,j]
+        end
+    end
+
+    # Here we define the models to be used for the forcing, currently both just a single layer
+    # We have one model for the diagnostic values on the cell corners, and one for the diagnostic
+    # quantity on the cell centers
+    corner_model = Dense(weights_corner, false, relu)
+    center_model = Dense(weights_center, false, relu)
 
     for j ∈ 2:nq-1
         for k ∈ 2:mq-1
 
-            temp = corner_model([reshape(ζ[j-1:j+1,k-1:k+1], 9); reshape(D[j-1:j+1,k-1:k+1], 9)])
-            
+            temp1 = corner_model([reshape(ζ[j-1:j+1,k-1:k+1], 9); reshape(D[j-1:j+1,k-1:k+1], 9)])
+
+            S_u[j,k] = temp1[1]
+            S_v[j,k] = temp1[2]
 
         end
     end
 
-    return S_u
+    for j ∈ 1:nuy
+        for k ∈ 1:nvx
 
-end
+            for j ∈ 2:nTh-1
+                for k ∈ 2:mTh-1
 
-function NN_momentum_centers(u, v, S, Diag, weights)
+                    temp2 = center_model([reshape(Dhat[j-1:j+1,k-1:k+1], 9)])
 
-    @unpack γ₀, zb_filtered, N  = S.parameters
-    @unpack ζ, ζsq, D, Dsq, Dhat, Dhatsq, Dhatq = Diag.ZBVars
-    @unpack ζD, ζDT, ζDhat, ζsqT, trace = Diag.ZBVars
-    @unpack ζpDT = Diag.ZBVars
-    @unpack dudx, dudy, dvdx, dvdy = Diag.ZBVars
+                end
+            end
 
-    @unpack dζDdx, dζDhatdy, dtracedx = Diag.ZBVars
-    @unpack dζDhatdx, dζDdy, dtracedy = Diag.ZBVars
-    @unpack S_u, S_v = Diag.ZBVars
-    @unpack Δ, scale, f₀ = S.grid
+            S_u[j,k] += temp2[1]
+            S_v[j,k] += temp2[2]
 
-    @unpack G = Diag.ZBVars
-    @unpack ζD_filtered, ζDhat_filtered, trace_filtered = Diag.ZBVars
-
-    @unpack halo, haloη, ep, nux, nuy, nvx, nvy = S.grid
-
-    κ_BC = - γ₀ * Δ^2
-
-    ∂x!(dudx, u)
-    ∂y!(dudy, u)
-
-    ∂x!(dvdx, v)
-    ∂y!(dvdy, v)
-
-
-
-end
-
-function NN_momentum(u, v, S, Diag, weights1, weights2)
-
-
+        end
+    end
 
 end
