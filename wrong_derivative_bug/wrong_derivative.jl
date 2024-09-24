@@ -70,11 +70,9 @@ end
 
 function loop(S,scheme)
 
-    eta_avg = zeros(128,128)
-    # eta_avg = 0.0
 
-    # @checkpoint_struct scheme S for S.parameters.i = 1:S.grid.nt
-    for S.parameters.i = 1:S.grid.nt
+    @checkpoint_struct scheme S for S.parameters.i = 1:S.grid.nt
+    # for S.parameters.i = 1:S.grid.nt
 
         Diag = S.Diag
         Prog = S.Prog
@@ -198,11 +196,11 @@ function loop(S,scheme)
             S.Prog.η,
             S.Prog.sst,S)...)
 
-            eta_avg = eta_avg .+ temp.η
+            S.parameters.eta_avg .= S.parameters.eta_avg .+ temp.η
 
             # This plus the else statement is the workaround for the zero 
             # derivative issue
-            temp1 = eta_avg / S.parameters.i
+            temp1 = S.parameters.eta_avg / S.parameters.i
             temp3 = zeros(128,128)
             for j = 1:128
                 for k = 1:128
@@ -224,7 +222,7 @@ function loop(S,scheme)
             S.Prog.η,
             S.Prog.sst,S)...)
 
-            eta_avg = eta_avg .+ temp.η
+            S.parameters.eta_avg .= S.parameters.eta_avg .+ temp.η
 
         end
 
@@ -261,7 +259,6 @@ function run_wrong_derivative_script(Ndays)
         zb_forcing_dissipation=true,
         γ₀ = 0.3,
         data_steps=data_steps)
-
     dS = Enzyme.Compiler.make_zero(Core.Typeof(S), IdDict(), S)
     snaps = Int(floor(sqrt(S.grid.nt)))
     revolve = Revolve{ShallowWaters.ModelSetup}(S.grid.nt,
@@ -334,7 +331,7 @@ function run_wrong_derivative_script(Ndays)
     end
 
     return S, dS, enzyme_deriv, diffs
-
 end
 
 S, dS, enzyme_deriv, diffs = run_wrong_derivative_script(10)
+@show enzyme_deriv, diffs
