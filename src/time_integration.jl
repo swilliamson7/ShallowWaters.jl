@@ -49,6 +49,7 @@ function time_integration(S::ModelSetup{T,Tprog}) where {T<:AbstractFloat,Tprog<
 
     nans_detected = false
     t = 0           # model time
+    energy=zeros(nt)
     for i = 1:nt
 
         # ghost point copy for boundary conditions
@@ -283,6 +284,13 @@ function time_integration(S::ModelSetup{T,Tprog}) where {T<:AbstractFloat,Tprog<
             break
         end
 
+        temp = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(S.Prog.u,
+        S.Prog.v,
+        S.Prog.η,
+        S.Prog.sst,S)...)
+
+        energy[i] = (sum(temp.u.^2) + sum(temp.v.^2)) / (S.grid.nx * S.grid.ny)
+
         # Copy back from substeps
         copyto!(u,u0)
         copyto!(v,v0)
@@ -296,7 +304,7 @@ function time_integration(S::ModelSetup{T,Tprog}) where {T<:AbstractFloat,Tprog<
     if S.parameters.return_time
         return feedback.tend - feedback.t0
     else
-        return PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...)
+        return PrognosticVars{Tprog}(remove_halo(u,v,η,sst,S)...), energy
     end
 end
 

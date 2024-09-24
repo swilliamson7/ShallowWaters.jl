@@ -337,4 +337,4 @@ function run_wrong_derivative_script(Ndays)
 
 end
 
-S, dS, enzyme_deriv, diffs = run_wrong_derivative_script(10)
+S, dS, enzyme_deriv, diffs = run_wrong_derivative_script(5)

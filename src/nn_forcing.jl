@@ -42,11 +42,6 @@ function NN_momentum(u, v, S)
     ∂x!(dvdx, v)
     ∂y!(dvdy, v)
 
-    T_xx = zeros(127,128)
-    T_xy = zeros(127,128)
-    T_yy = zeros(128,127)
-    T_yx = zeros(128,127)
-
     # Relative vorticity and shear deformation, cell corners
     @inbounds for j ∈ 1:nq
         for k ∈ 1:mq
