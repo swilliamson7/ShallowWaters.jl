@@ -82,6 +82,7 @@
     data::Array{Float64} = zeros(1, 1, 1)       # model data
     J::Float64 = 0.                             # Placeholder for cost function evaluation
     j::Int = 1                                  # For keeping track of the entry in data
+    average::Float64 = 0.0                      # Placeholder for computation of average values during checkpointing
 
     # CHECKPOINTING VARIABLES
     i::Int = 0                                  # Placeholder for current timestep, needed for Checkpointing.jl
