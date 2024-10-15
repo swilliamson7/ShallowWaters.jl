@@ -60,8 +60,8 @@ function NN_momentum(u, v, S)
     # Here we define the models to be used for the forcing, currently both just a single layer
     # We have one model for the diagnostic values on the cell corners, and one for the diagnostic
     # quantity on the cell centers
-    corner_model = Dense(weights_corner, false, relu)
-    center_model = Dense(weights_center, false, relu)
+    diagonal_model = Dense(weights_corner, false, relu)
+    offdiagonal_model = Dense(weights_center, false, relu)
 
     for j ∈ 2:nq-1
         for k ∈ 2:mq-1
@@ -80,7 +80,7 @@ function NN_momentum(u, v, S)
             for j ∈ 2:nTh-1
                 for k ∈ 2:mTh-1
 
-                    temp2 = center_model([reshape(Dhat[j-1:j+1,k-1:k+1], 9)])
+                    temp2 = center_model([reshape(ζ[j-1:j+1,k-1:k+1], 9); reshape(Dhat[j-1:j+1,k-1:k+1], 9)])
 
                 end
             end

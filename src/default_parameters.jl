@@ -1,3 +1,7 @@
+# Parameter{Vector{Float64}}
+# Parameter{Matrix{Float64}}
+# Parameter{Array{Float64, 3}}
+
 @with_kw mutable struct Parameter
 
     T=Float32                 # number format
