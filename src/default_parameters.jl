@@ -96,7 +96,7 @@
     dynamics::String="nonlinear"        # "linear" or "nonlinear"
 
     # BOTTOM FRICTION OPTIONS
-    bottom_drag::String="quadratic"     # "linear", "quadratic" or "none"
+    bottom_drag::String="quadratic"        # "linear", "quadratic" or "none"
     cD::Float32=1e-5                       # bottom drag coefficient [dimensionless] for quadratic
     τD::Float32=300.                       # bottom drag coefficient [days] for linear
 
