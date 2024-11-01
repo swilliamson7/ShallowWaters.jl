@@ -27,7 +27,7 @@ function bottom_drag_quadratic!(u::AbstractMatrix,
     @unpack u²,v²,KEu,KEv = Diag.Bernoulli
     @unpack Bu,Bv,sqrtKE,sqrtKE_u,sqrtKE_v = Diag.Bottomdrag
     @unpack ep = S.grid
-    @unpack cD,cDu,cDv = S.constants
+    @unpack cD,cDfield = S.constants
     @unpack H = S.forcing
 
     thickness!(h,η,H)
@@ -57,9 +57,11 @@ function bottom_drag_quadratic!(u::AbstractMatrix,
     @boundscheck (m,n) == size(h_u) || throw(BoundsError())
     @boundscheck (m+2+ep,n+2) == size(u) || throw(BoundsError())
 
+    cDfieldu = zeros(129,130)
+    Ix!(cDfieldu, cDfield)
     @inbounds for j ∈ 1:n
         for i ∈ 1:m
-            Bu[i,j] = cDu[i,j]*sqrtKE_u[i,j] * u[i+1+ep,j+1] / h_u[i,j]
+            Bu[i,j] = cDfieldu[i,j]*sqrtKE_u[i,j] * u[i+1+ep,j+1] / h_u[i,j]
         end
     end
 
@@ -68,9 +70,11 @@ function bottom_drag_quadratic!(u::AbstractMatrix,
     @boundscheck (m,n) == size(h_v) || throw(BoundsError())
     @boundscheck (m+2,n+2) == size(v) || throw(BoundsError())
 
+    cDfieldv = zeros(130,129)
+    Iy!(cDfieldv, cDfield)
     @inbounds for j ∈ 1:n
         for i ∈ 1:m
-            Bv[i,j] = cDv[i,j]*sqrtKE_v[i,j] * v[i+1,j+1] / h_v[i,j]
+            Bv[i,j] = cDfieldv[i,j]*sqrtKE_v[i,j] * v[i+1,j+1] / h_v[i,j]
         end
     end
 end

@@ -43,8 +43,7 @@ mutable struct Constants{T<:AbstractFloat,Tprog<:AbstractFloat}
     g::T                    # gravity
     cD::T                   # quadratic bottom friction - incl grid spacing
     # temp, remove after computing sensitivity field #############################
-    cDu::Array{T,2}         # temp - for computing bottom drag sensitivity
-    cDv::Array{T,2}         # same as above
+    cDfield::Array{T,2}         # temp - for computing bottom drag sensitivity
     ##############################################################################
     rD::T                   # linear bottom friction - incl grid spacing
     γ::T                    # frequency of interface relaxation
@@ -99,8 +98,7 @@ function Constants{T,Tprog}(P::Parameter,G::Grid) where {T<:AbstractFloat,Tprog<
     cD = convert(T,-G.Δ*P.cD/P.scale)     # quadratic drag [m]
 
     ####### temp, remove after computing sensitivity field
-    cDu = cD .* ones(129,130)
-    cDv = cD .* ones(130,129)
+    cDfield = cD .* ones(130,130)
     ######################################################
 
     rD = convert(T,-G.Δ/(P.τD*24*3600))   # linear drag [m/s]
@@ -134,7 +132,7 @@ function Constants{T,Tprog}(P::Parameter,G::Grid) where {T<:AbstractFloat,Tprog<
 
     return Constants{T,Tprog}(  RKaΔt,RKbΔt,Δt_Δs,Δt_Δ,Δt_Δ_half,
                                 SSPRK3c,one_minus_α,
-                                g,cD,cDu,cDv,rD,γ,cSmag,νB,τSST,jSST,
+                                g,cD,cDfield,rD,γ,cSmag,νB,τSST,jSST,
                                 ωFη,ωFx,ωFy,
                                 scale,scale_inv,scale_sst)
 end
