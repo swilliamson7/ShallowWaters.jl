@@ -43,7 +43,7 @@ mutable struct Constants{T<:AbstractFloat,Tprog<:AbstractFloat}
     g::T                    # gravity
     cD::T                   # quadratic bottom friction - incl grid spacing
     # temp, remove after computing sensitivity field #############################
-    cDfield::Array{T,2}         # temp - for computing bottom drag sensitivity
+    cDfield::Array{Float64,2}         # temp - for computing bottom drag sensitivity
     ##############################################################################
     rD::T                   # linear bottom friction - incl grid spacing
     γ::T                    # frequency of interface relaxation
