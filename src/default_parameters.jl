@@ -12,8 +12,8 @@
 
     # DOMAIN RESOLUTION AND RATIO
     nx::Int=128                         # number of grid cells in x-direction
-    Lx::Float32=3840e3                      # length of the domain in x-direction [m]
-    L_ratio::Float32=1                      # Domain aspect ratio of Lx/Ly
+    Lx::Float64=3840e3                      # length of the domain in x-direction [m]
+    L_ratio::Float64=1                      # Domain aspect ratio of Lx/Ly
 
     # PHYSICAL CONSTANTS
     g::Float64=9.81                       # gravitational acceleration [m^2/s] 
@@ -30,12 +30,12 @@
     # WIND FORCING OPTIONS
     wind_forcing_x::String="double_gyre"   # "channel", "double_gyre", "shear","constant" or "none"
     wind_forcing_y::String="constant"   # "channel", "double_gyre", "shear","constant" or "none"
-    Fx0::Float32=0.12                      # wind stress strength [Pa] in x-direction
-    Fy0::Float32=0.0                       # wind stress strength [Pa] in y-direction
+    Fx0::Float64=0.12                      # wind stress strength [Pa] in x-direction
+    Fy0::Float64=0.0                       # wind stress strength [Pa] in y-direction
     seasonal_wind_x::Bool=false         # Change the wind stress with a sine of frequency ωFx,ωFy
     seasonal_wind_y::Bool=false         # same for y-component
-    ωFx::Float32=2                         # frequency [1/year] for x component
-    ωFy::Float32=2                         # frequency [1/year] for y component
+    ωFx::Float64=2                         # frequency [1/year] for x component
+    ωFy::Float64=2                         # frequency [1/year] for y component
 
     # BOTTOM TOPOGRAPHY OPTIONS
     topography::String="flat"         # "ridge", "seamount", "flat", "ridges", "bathtub"
@@ -71,7 +71,7 @@
 
     # BOUNDARY CONDITION OPTIONS
     bc::String="nonperiodic"            # "periodic" or anything else for nonperiodic
-    α::Float32=0.                          # lateral boundary condition parameter
+    α::Float64=0.                          # lateral boundary condition parameter
                                         # 0 free-slip, 0<α<2 partial-slip, 2 no-slip
 
     # ZANNA-BOLTON FORCING OPTIONS
@@ -83,10 +83,10 @@
 
     # PARAMETERS FOR ADJOINT METHOD
     data_steps::StepRange{Int,Int} = 0:1:0      # Timesteps where data exists
-    data::Array{Float32} = zeros(1, 1, 1)       # model data
-    J::Float32 = 0.                             # Placeholder for cost function evaluation
+    data::Array{Float64} = zeros(1, 1, 1)       # model data
+    J::Float64 = 0.                             # Placeholder for cost function evaluation
     j::Int = 1                                  # For keeping track of the entry in data
-    average::Float32 = 0.0                      # Placeholder for computation of average values during checkpointing
+    average::Float64 = 0.0                      # Placeholder for computation of average values during checkpointing
 
     # CHECKPOINTING VARIABLES
     i::Int = 0                                  # Placeholder for current timestep, needed for Checkpointing.jl
@@ -110,7 +110,7 @@
     tracer_relaxation::Bool=true        # yes?
     tracer_consumption::Bool=false      # yes?
     sst_initial::String="waves"         # "west", "south", "linear", "waves","rect", "flat" or "restart"
-    sst_rect_coords::Array{Float32,1}=[0.,0.15,0.,1.0]
+    sst_rect_coords::Array{Float64,1}=[0.,0.15,0.,1.0]
                                         # (x0,x1,y0,y1) are the size of the rectangle in [0,1]
     Uadv::Float64=0.2                      # Velocity scale [m/s] for tracer advection
     SSTmax::Float64=1.                     # tracer (sea surface temperature) max for initial conditions
@@ -177,7 +177,7 @@ end
 """
 Creates a Parameter struct with following options and default values
 
-    T=Float32                 # number format
+    T=Float64                 # number format
 
     Tprog=T                   # number format for prognostic variables
     Tcomm=Tprog               # number format for ghost-point copies
@@ -265,7 +265,7 @@ Creates a Parameter struct with following options and default values
     tracer_relaxation::Bool=true        # yes?
     tracer_consumption::Bool=false      # yes?
     sst_initial::String="waves"         # "west", "south", "linear", "waves","rect", "flat" or "restart"
-    sst_rect_coords::Array{Float32,1}=[0.,0.15,0.,1.0]
+    sst_rect_coords::Array{Float64,1}=[0.,0.15,0.,1.0]
                                         # (x0,x1,y0,y1) are the size of the rectangle in [0,1]
     Uadv::Real=0.2                      # Velocity scale [m/s] for tracer advection
     SSTmax::Real=1.                     # tracer (sea surface temperature) max for initial conditions
