@@ -569,16 +569,24 @@ end
     dvdx::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
     dvdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
 
+    # weights_corner is applied to ζ and D to form the diagonal terms of S,
+    # and weights_center is applied to ζ and D̃ to form the off-diagonal terms
+    # of S. Initially this will just be a single layer to see if we can get the model
+    # with the neural net running
+    # the initial weight values might need to change, for now I'm setting them to zero
+    weights_diagonal::Array{T, 2} = zeros(T,2*nx*ny,2*nqx*nqy)
+    weights_offdiagonal::Array{T, 2} = zeros(T,nqx*nqy,nx+2*haloη+ny+2*haloη+nqx*nqy)
+
     ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
 
     D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners 
 
-    D_n::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)
-    D_nT::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη) 
-    D_q::Array{T,2} = zeros(T,nqx,nqy)
+    # D_n::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)
+    # D_nT::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη) 
+    # D_q::Array{T,2} = zeros(T,nqx,nqy)
 
     Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
-    Dhatq::Array{T,2} = zeros(T,nqx,nqy)                  # tensor interpolated onto q-grid
+    # Dhatq::Array{T,2} = zeros(T,nqx,nqy)                  # tensor interpolated onto q-grid
 
     ζT::Array{T,2} = zeros(T,nx,ny)         # ζ interpolated to cell centers
     DT::Array{T,2} = zeros(T,nx,ny)         # D, interpolated on cell centers
