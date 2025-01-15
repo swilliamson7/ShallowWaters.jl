@@ -81,6 +81,12 @@
     N::Int=1                            # how many times to apply filter to entries in forcing tensor
     γ₀::Float64=0.3                     # coefficient for forcing term parameter
 
+    # NN FORCING OPTIONS
+    nn_forcing_momentum::Bool=false
+    nn_forcing_dissipation::Bool=false
+    handwritten::Bool = true            # handwritten NN (no Lux)?
+
+
     # PARAMETERS FOR ADJOINT METHOD
     data_steps::StepRange{Int,Int} = 0:1:0      # Timesteps where data exists
     data::Array{Float64} = zeros(1, 1, 1)       # model data

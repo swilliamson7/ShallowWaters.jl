@@ -237,6 +237,12 @@ function add_drag_diff_tendencies!( u::Matrix{Tprog},
     # Check if adding Zanna Bolton forcing term 
     if S.parameters.zb_forcing_dissipation
         ZB_momentum(u,v,S,Diag)
+    elseif S.parameters.nn_forcing_dissipation
+        if S.parameters.handwritten
+            handwritten_NN_momentum(u,v,S)
+        else
+            NN_momentum(u,v,S)
+        end
     end 
 
     if compensated
@@ -252,6 +258,12 @@ function add_drag_diff_tendencies!( u::Matrix{Tprog},
         @inbounds for j ∈ 1:n
             for i ∈ 1:m
                 u[i+2,j+2] += Δt_diff*(Tprog(Bu[i+1-ep,j+1]) + Tprog(LLu1[i,j+1]) + Tprog(LLu2[i+1-ep,j]) + Tprog(Diag.ZBVars.S_u[i,j]))
+            end
+        end
+    elseif S.parameters.nn_forcing_dissipation
+        @inbounds for j ∈ 1:n
+            for i ∈ 1:m
+                u[i+2,j+2] += Δt_diff*(Tprog(Bu[i+1-ep,j+1]) + Tprog(LLu1[i,j+1]) + Tprog(LLu2[i+1-ep,j]) + Tprog(Diag.NNVars.S_u[i,j]))
             end
         end
     else
@@ -280,6 +292,12 @@ function add_drag_diff_tendencies!( u::Matrix{Tprog},
         @inbounds for j ∈ 1:n
             for i ∈ 1:m
                 v[i+2,j+2] += Δt_diff*(Tprog(Bv[i+1,j+1]) + Tprog(LLv1[i,j+1]) + Tprog(LLv2[i+1,j]) + Tprog(Diag.ZBVars.S_v[i,j]))
+            end
+        end
+    elseif S.parameters.nn_forcing_dissipation
+        @inbounds for j ∈ 1:n
+            for i ∈ 1:m
+                v[i+2,j+2] += Δt_diff*(Tprog(Bv[i+1,j+1]) + Tprog(LLv1[i,j+1]) + Tprog(LLv2[i+1,j]) + Tprog(Diag.NNVars.S_v[i,j]))
             end
         end
     else
