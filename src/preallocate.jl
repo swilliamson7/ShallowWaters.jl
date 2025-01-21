@@ -593,8 +593,8 @@ end
     ζDhat::Array{T,2} = zeros(T,nqx,nqy)    # ζ ⋅ Dhat, cell corners
 
     T11::Array{T,2} = zeros(T,nqx,nqy)
-    T12::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)
-    T21::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)
+    T12::Array{T,2} = zeros(T,nx,ny)
+    T21::Array{T,2} = zeros(T,nx,ny)
     T22::Array{T,2} = zeros(T,nqx,nqy)
 
     S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction

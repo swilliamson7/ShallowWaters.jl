@@ -134,6 +134,7 @@ function handwritten_NN_momentum(u, v, S)
     @unpack weights_offdiagonal, weights_diagonal = Diag.NNVars
     @unpack diagonal_outdim, diagonal_indim, offdiagonal_indim, offdiagonal_outdim = Diag.NNVars
 
+    @unpack T11, T12, T21, T22 = Diag.NNVars
     @unpack S_u, S_v = Diag.ZBVars
 
     @unpack Δ, scale, f₀ = S.grid
@@ -157,6 +158,11 @@ function handwritten_NN_momentum(u, v, S)
         end
     end
 
+    ζ = cat(zeros(1,nqx),ζ,zeros(1,nqx),dims=1)
+    ζ = cat(zeros(nqy+2,1),ζ,zeros(nqy+2,1),dims=2)
+    D = cat(zeros(1,nqx),D,zeros(1,nqx),dims=1)
+    D = cat(zeros(nqy+2,1),D,zeros(nqy+2,1),dims=2)
+
     # Stretch deformation, cell centers (with halo)
     @inbounds for j ∈ 1:nTh
         for k ∈ 1:mTh
@@ -169,20 +175,20 @@ function handwritten_NN_momentum(u, v, S)
     # I'm still sticking with two neurals, one to determine the off-diagonal term
     # and the other to determine the diagonal terms, T_12 and T_11, T_22, respectively
 
-    for j ∈ 2:nqx-1
-        for k ∈ 2:nqy-1
+    for j ∈ 1:nqx
+        for k ∈ 1:nqy
 
-            temp11, temp22 = hw_diagonal_model(reshape(ζ[j-1:j+1,k-1:k+1], 9),
-                reshape(D[j-1:j+1,k-1:k+1], 9),
+            temp11, temp22 = hw_diagonal_model(reshape(ζ[j:j+2,k:k+2], 9),
+                reshape(D[j:j+2,k:k+2], 9),
                 reshape(Dhat[j:j+1,k:k+1], 4),
                 weights_diagonal
             )
 
+            T11[j,k] = temp11
+            T22[j,k] = temp22
+
         end
     end
-
-    # for j ∈ 1:nuy
-    #     for k ∈ 1:nvx
 
     for j ∈ 2:nTh-1
         for k ∈ 2:mTh-1
@@ -193,11 +199,10 @@ function handwritten_NN_momentum(u, v, S)
                 weights_offdiagonal
             )
 
+            T12[j-1,k-1] = temp12[1]
+
         end
     end
-
-    #     end
-    # end
 
 end
 
