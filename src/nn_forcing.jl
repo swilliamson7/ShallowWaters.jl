@@ -30,7 +30,7 @@ function NN_momentum(u, v, S)
     @unpack ζT, DT, ζDhat = Diag.NNVars
     @unpack T11, T22, T12, T21 = Diag.NNVars
     @unpack weights_center, weights_corner = Diag.NNVars
-    @unpack corner_outdim, corner_indim, center_indim, center_outdim = Diag.NNVars
+    @unpack corner_outdim, corner_indim, center_indim, center_outdim, rng = Diag.NNVars
 
     @unpack S_u, S_v = Diag.ZBVars
 
@@ -68,7 +68,6 @@ function NN_momentum(u, v, S)
     # the second will produce the diagonal terms (T_11, T_22)
     # The weights are defined as inputs to the NN so that we can tune them with adjoint based optimization
 
-    rng = MersenneTwister(0)
     corner_layers = Lux.Dense(corner_indim => corner_outdim, relu)
     center_layers = Lux.Dense(center_indim => center_outdim, relu)
 

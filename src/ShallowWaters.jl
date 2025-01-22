@@ -4,7 +4,7 @@ module ShallowWaters
 
     using NetCDF, Parameters, Printf, Dates, Interpolations
 
-    using Flux
+    using Lux, Random
 
     include("default_parameters.jl")
     include("grid.jl")

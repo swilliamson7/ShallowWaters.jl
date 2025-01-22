@@ -85,8 +85,9 @@
     nn_forcing_momentum::Bool=false
     nn_forcing_dissipation::Bool=false
     handwritten::Bool = true            # handwritten NN (no Lux)?
-    weights_center::Array{Float32, 2} = zeros(Float32,1,17)
-    weights_corner::Array{Float32, 2} = zeros(Float32,2,22)
+    rng::MersenneTwister=MersenneTwister(0)
+    # weights_center::Array{Float32, 2} = zeros(Float32,1,17)
+    # weights_corner::Array{Float32, 2} = zeros(Float32,2,22)
 
     # PARAMETERS FOR ADJOINT METHOD
     data_steps::StepRange{Int,Int} = 0:1:0      # Timesteps where data exists

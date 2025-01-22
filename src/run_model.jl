@@ -31,7 +31,7 @@ function run_model(::Type{T},P::Parameter) where {T<:AbstractFloat}
     F = Forcing{T}(P,G)
 
     Prog = initial_conditions(Tprog,G,P,C)
-    Diag = preallocate(T,Tprog,G,P)
+    Diag = preallocate(T,Tprog,G)
 
     # one structure with everything already inside 
     S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,0)
@@ -63,7 +63,7 @@ function model_setup(::Type{T},P::Parameter) where {T<:AbstractFloat}
     F = Forcing{T}(P,G)
 
     Prog = initial_conditions(Tprog,G,P,C)
-    Diag = preallocate(T,Tprog,G,P)
+    Diag = preallocate(T,Tprog,G)
 
     S = ModelSetup{T,Tprog}(P,G,C,F,Prog,Diag,0)
 
