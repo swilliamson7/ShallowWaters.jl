@@ -574,13 +574,13 @@ end
     # of S. Initially this will just be a single layer to see if we can get the model
     # with the neural net running
     # the initial weight values might need to change, for now I'm setting them to zero
-    weights_diagonal::Array{T, 2} = zeros(T,2,22)
-    diagonal_outdim::Int = 2*nqx*nqy
-    diagonal_indim::Int = 2*nx*ny
+    weights_corner::Array{T, 2}               # to be specified
+    corner_outdim::Int = 2
+    corner_indim::Int = 22
 
-    weights_offdiagonal::Array{T, 2} = zeros(T,1,17)
-    offdiagonal_outdim::Int = nqx*nqy
-    offdiagonal_indim::Int = nx+2*haloη+ny+2*haloη+nqx*nqy
+    weights_center::Array{T, 2}            # to be specified
+    center_outdim::Int = 1
+    center_indim::Int = 17
 
     ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
 
@@ -603,14 +603,16 @@ end
 end
 
 """Generator function for NN momentum terms."""
-function NNVars{T}(G::Grid) where {T<:AbstractFloat}
+function NNVars{T}(G::Grid,P::Parameter) where {T<:AbstractFloat}
 
     @unpack nx,ny,bc = G
     @unpack halo,haloη = G
     @unpack halosstx,halossty = G
+    @unpack weights_corner, weights_center = P
 
     return NNVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
-                            halosstx=halosstx,halossty=halossty)
+                            halosstx=halosstx,halossty=halossty,
+                            weights_corner=weights_corner,weights_center=weights_center)
 end
 
 ##########################################################################################
@@ -618,7 +620,8 @@ end
 """Preallocate the diagnostic variables and return them as matrices in structs."""
 function preallocate(   ::Type{T},
                         ::Type{Tprog},
-                        G::Grid) where {T<:AbstractFloat,Tprog<:AbstractFloat}
+                        G::Grid,
+                        P::Parameter) where {T<:AbstractFloat,Tprog<:AbstractFloat}
 
     RK = RungeKuttaVars{Tprog}(G)
     TD = TendencyVars{Tprog}(G)
@@ -632,7 +635,7 @@ function preallocate(   ::Type{T},
     SL = SemiLagrangeVars{T}(G)
     PV = PrognosticVars{T}(G)
     ZB = ZBVars{T}(G)
-    NN = NNVars{T}(G)
+    NN = NNVars{T}(G,P)
 
     return DiagnosticVars{T,Tprog}(RK,TD,VF,VT,BN,BD,AH,LP,SM,SL,PV,ZB,NN)
 end

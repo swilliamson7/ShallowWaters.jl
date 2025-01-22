@@ -28,8 +28,9 @@ function NN_momentum(u, v, S)
     @unpack dudx, dudy, dvdx, dvdy = Diag.NNVars
     @unpack ζ, D, Dhat = Diag.NNVars
     @unpack ζT, DT, ζDhat = Diag.NNVars
-    @unpack weights_offdiagonal, weights_diagonal = Diag.NNVars
-    @unpack diagonal_outdim, diagonal_indim, offdiagonal_indim, offdiagonal_outdim = Diag.NNVars
+    @unpack T11, T22, T12, T21 = Diag.NNVars
+    @unpack weights_center, weights_corner = Diag.NNVars
+    @unpack corner_outdim, corner_indim, center_indim, center_outdim = Diag.NNVars
 
     @unpack S_u, S_v = Diag.ZBVars
 
@@ -63,58 +64,49 @@ function NN_momentum(u, v, S)
     end
 
     # Here we define the models to be used for the forcing, currently both just a single layer
-    # We'll have two models, one will produce the off diagonal term in T (T_xy = T_yx = ζD̃), and
-    # the second will produce the diagonal terms (T_xx = ζ^2 - ζ D, T_yy = ζ^2 + ζ D)
-    # The weights are defined as inputs here so that we can tune them
+    # We'll have two models, one will produce the off diagonal term in T (T_12 = T_21), and
+    # the second will produce the diagonal terms (T_11, T_22)
+    # The weights are defined as inputs to the NN so that we can tune them with adjoint based optimization
 
-    # the output of diagonal_model will (for first efforts) be a 2*nx*ny (cell centers)
-    # array, which will then be split and reshaped into two nx by ny arrays, the first of
-    # which is ζ^2 - ζD ("interpolated" to cell centers), and ζ^2 + ζD (also "interpolated")
-    # to cell centers). We want the output on cell centers so that when we take the gradient
-    # of the whole tensor T, everything livess where we need it to and we can easily find
-    # S_u and S_v
-    diagonal_model = Lux.Dense(diagonal_indim => diagonal_outdim, relu;init_weight=weights_diagonal)
+    rng = MersenneTwister(0)
+    corner_layers = Lux.Dense(corner_indim => corner_outdim, relu)
+    center_layers = Lux.Dense(center_indim => center_outdim, relu)
 
-    # the output of off_diagonalmodel will be a nqy*nqy array, which we can reshape into
-    # a nqx by nqy (cell corners) array, intended to be ζD̃, the offdiagonal term in T
-    offdiagonal_model = Lux.Dense(offdiagonal_indim => offdiagonal_outdim, relu;init_weight=weights_offdiagonal)
+    ps_corner, st_corner = Lux.setup(rng, corner_layers)
+    ps_center, st_center = Lux.setup(rng, center_layers)
 
-    # now we want to feed ζ, D, and D̃ to the NN
-    temp1 = diagonal_model([reshape(ζ,nqx*nqy); reshape(D,nqx*nqy)])
-    temp2 = offdiagonal_model([reshape(ζ,nqx*nqy); reshape(Dhat,mTh*nTh)])
+    corner_params = (weight=weights_corner, bias=ps_corner.bias)
+    center_params = (weight=weights_center, bias=ps_center.bias)
 
-    # reshape the outputs
-    ζT = reshape(temp1[1:nx*ny], nx, ny)
-    DT = reshape(temp1[nx*ny+1:end], nx, ny)
-    ζDhat = reshape(temp2, nqx, nqy)
+    corner_model = StatefulLuxLayer{true}(corner_layers, corner_params, st_corner)
+    center_model = StatefulLuxLayer{true}(center_layers, center_params, st_center)
 
-    # for j ∈ 2:nq-1
-    #     for k ∈ 2:mq-1
+    for j ∈ 1:nqx
+        for k ∈ 1:nqy
 
-    #         temp1 = diagonal_model([reshape(ζ[j-1:j+1,k-1:k+1], 9); reshape(D[j-1:j+1,k-1:k+1], 9)])
+            temp11, temp22 = corner_model([reshape(ζ[j:j+2,k:k+2], 9);
+                reshape(D[j:j+2,k:k+2], 9);
+                reshape(Dhat[j:j+1,k:k+1], 4)]
+            )
 
-    #         S_u[j,k] = temp1[1]
-    #         S_v[j,k] = temp1[2]
+            T11[j,k] = temp11
+            T22[j,k] = temp22
 
-    #     end
-    # end
+        end
+    end
 
-    # for j ∈ 1:nuy
-    #     for k ∈ 1:nvx
+    for j ∈ 2:nTh-1
+        for k ∈ 2:mTh-1
 
-    #         for j ∈ 2:nTh-1
-    #             for k ∈ 2:mTh-1
+            temp12 = center_model([reshape(ζ[j:j+1,k:k+1], 4);
+                reshape(D[j:j+1,k:k+1], 4);
+                reshape(Dhat[j-1:j+1,k-1:k+1], 9)]
+            )
 
-    #                 temp2 = offdiagonal_model([reshape(ζ[j-1:j+1,k-1:k+1], 9); reshape(Dhat[j-1:j+1,k-1:k+1], 9)])
+            T12[j-1,k-1] = temp12[1]
 
-    #             end
-    #         end
-
-    #         S_u[j,k] += temp2[1]
-    #         S_v[j,k] += temp2[2]
-
-    #     end
-    # end
+        end
+    end
 
 end
 
@@ -131,10 +123,10 @@ function handwritten_NN_momentum(u, v, S)
     @unpack dudx, dudy, dvdx, dvdy = Diag.NNVars
     @unpack ζ, D, Dhat = Diag.NNVars
     @unpack ζT, DT, ζDhat = Diag.NNVars
-    @unpack weights_offdiagonal, weights_diagonal = Diag.NNVars
-    @unpack diagonal_outdim, diagonal_indim, offdiagonal_indim, offdiagonal_outdim = Diag.NNVars
+    @unpack T11, T22, T12, T21 = Diag.NNVars
+    @unpack weights_center, weights_corner = Diag.NNVars
+    @unpack corner_outdim, corner_indim, center_indim, center_outdim = Diag.NNVars
 
-    @unpack T11, T12, T21, T22 = Diag.NNVars
     @unpack S_u, S_v = Diag.ZBVars
 
     @unpack Δ, scale, f₀ = S.grid
@@ -144,11 +136,11 @@ function handwritten_NN_momentum(u, v, S)
 
     κ_BT = - γ₀ * Δ^2
 
-    ShallowWaters.∂x!(dudx, S.Prog.u)
-    ShallowWaters.∂y!(dudy, S.Prog.u)
+    ShallowWaters.∂x!(dudx, u)
+    ShallowWaters.∂y!(dudy, u)
 
-    ShallowWaters.∂x!(dvdx, S.Prog.v)
-    ShallowWaters.∂y!(dvdy, S.Prog.v)
+    ShallowWaters.∂x!(dvdx, v)
+    ShallowWaters.∂y!(dvdy, v)
 
     # Relative vorticity and shear deformation, cell corners
     @inbounds for j ∈ 1:nqx
@@ -178,10 +170,10 @@ function handwritten_NN_momentum(u, v, S)
     for j ∈ 1:nqx
         for k ∈ 1:nqy
 
-            temp11, temp22 = hw_diagonal_model(reshape(ζ[j:j+2,k:k+2], 9),
+            temp11, temp22 = hw_corner_model(reshape(ζ[j:j+2,k:k+2], 9),
                 reshape(D[j:j+2,k:k+2], 9),
                 reshape(Dhat[j:j+1,k:k+1], 4),
-                weights_diagonal
+                weights_corner
             )
 
             T11[j,k] = temp11
@@ -193,10 +185,10 @@ function handwritten_NN_momentum(u, v, S)
     for j ∈ 2:nTh-1
         for k ∈ 2:mTh-1
 
-            temp12 = hw_offdiagonal_model(reshape(ζ[j:j+1,k:k+1], 4),
+            temp12 = hw_center_model(reshape(ζ[j:j+1,k:k+1], 4),
                 reshape(D[j:j+1,k:k+1], 4),
                 reshape(Dhat[j-1:j+1,k-1:k+1], 9),
-                weights_offdiagonal
+                weights_center
             )
 
             T12[j-1,k-1] = temp12[1]
@@ -204,13 +196,14 @@ function handwritten_NN_momentum(u, v, S)
         end
     end
 
+
 end
 
 # This function takes in ζ, D, and Dhat, applies the "neural net" 
 # (here just a combination of linear operators and a subsequent nonlinear
-# operator, tbd). We have two: one for the diagonal terms and one for the
-# off-diagonal terms
-function hw_diagonal_model(ζ, D, Dhat, weights)
+# operator, tbd). We have two: one for the diagonal terms that live on cell corners
+# and one for the off-diagonal terms that live in cell centers
+function hw_corner_model(ζ, D, Dhat, weights)
 
     linear = weights * [ζ; D; Dhat]
     out = relu.(linear)
@@ -219,7 +212,7 @@ function hw_diagonal_model(ζ, D, Dhat, weights)
 
 end
 
-function hw_offdiagonal_model(ζ, D, Dhat, weights)
+function hw_center_model(ζ, D, Dhat, weights)
 
     linear = weights * [ζ; D; Dhat]
     out = relu(linear)
