@@ -22,7 +22,7 @@ function NN_momentum(u, v, S)
 
     Diag = S.Diag
 
-    @unpack γ₀, zb_filtered, N  = S.parameters
+    @unpack γ₀, zb_filtered, N, rng  = S.parameters
 
     @unpack nqx, nqy = Diag.NNVars
     @unpack dudx, dudy, dvdx, dvdy = Diag.NNVars
@@ -30,7 +30,7 @@ function NN_momentum(u, v, S)
     @unpack ζT, DT, ζDhat = Diag.NNVars
     @unpack T11, T22, T12, T21 = Diag.NNVars
     @unpack weights_center, weights_corner = Diag.NNVars
-    @unpack corner_outdim, corner_indim, center_indim, center_outdim, rng = Diag.NNVars
+    @unpack corner_outdim, corner_indim, center_indim, center_outdim = Diag.NNVars
 
     @unpack S_u, S_v = Diag.ZBVars
 
@@ -55,6 +55,11 @@ function NN_momentum(u, v, S)
             D[k,j] = dudy[k+1,j+1] + dvdx[k+1,j+1]
         end
     end
+
+    ζ = cat(zeros(1,nqx),ζ,zeros(1,nqx),dims=1)
+    ζ = cat(zeros(nqy+2,1),ζ,zeros(nqy+2,1),dims=2)
+    D = cat(zeros(1,nqx),D,zeros(1,nqx),dims=1)
+    D = cat(zeros(nqy+2,1),D,zeros(nqy+2,1),dims=2)
 
     # Stretch deformation, cell centers (with halo)
     @inbounds for j ∈ 1:nTh

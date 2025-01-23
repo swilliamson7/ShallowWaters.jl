@@ -546,7 +546,7 @@ end
 ###########################################################################################
 
 """ Variables that appear in NN forcing term """
-@with_kw struct NNVars{T<:AbstractFloat}
+@with_kw mutable struct NNVars{T<:AbstractFloat}
 
     # to be specified
     nx::Int

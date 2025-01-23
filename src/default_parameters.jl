@@ -85,7 +85,7 @@
     nn_forcing_momentum::Bool=false
     nn_forcing_dissipation::Bool=false
     handwritten::Bool = true            # handwritten NN (no Lux)?
-    rng::MersenneTwister=MersenneTwister(0)
+    rng::TaskLocalRNG=Random.default_rng()
     # weights_center::Array{Float32, 2} = zeros(Float32,1,17)
     # weights_corner::Array{Float32, 2} = zeros(Float32,2,22)
 
