@@ -403,7 +403,7 @@ end
 
 """Convert function for two arrays, X1, X2, in case their eltypes differ.
 Convert every element from X1 and store it in X2."""
-function Base.convert(X2::Array{T2,N},X1::Array{T1,N}) where {T1,T2,N}
+function Base.convert(X2::AbstractArray{T2,N},X1::AbstractArray{T1,N}) where {T1,T2,N}
 
     @boundscheck size(X2) == size(X1) || throw(BoundsError())
 
@@ -417,7 +417,7 @@ end
 
 """Convert function for two arrays, X1, X2, in case their eltypes are identical.
 Just pass X1, such that X2 is pointed to the same place in memory."""
-function Base.convert(X2::Array{T,N},X1::Array{T,N}) where {T,N}
+function Base.convert(X2::AbstractArray{T,N},X1::AbstractArray{T,N}) where {T,N}
     @boundscheck size(X2) == size(X1) || throw(BoundsError())
     return X1
 end

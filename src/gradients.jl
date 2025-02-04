@@ -1,6 +1,6 @@
 """Calculates the 2nd order centred gradient in x-direction on any grid (u,v,T or q).
 The size of dudx must be m-1,n compared to m,n = size(u)"""
-function ∂x!(dudx::Matrix{T},u::Matrix{T}) where {T<:AbstractFloat}
+function ∂x!(dudx::AbstractMatrix,u::AbstractMatrix)
     m,n = size(dudx)
     @boundscheck (m+1,n) == size(u) || throw(BoundsError())
 
@@ -12,7 +12,7 @@ end
 
 """Calculates the 2nd order centred gradient in y-direction on any grid (u,v,T or q).
 The size of dudy must be m,n-1 compared to m,n = size(u)."""
-function ∂y!(dudy::Array{T,2},u::Array{T,2}) where {T<:AbstractFloat}
+function ∂y!(dudy::AbstractMatrix,u::AbstractMatrix) # where {T<:AbstractFloat}
     m,n = size(dudy)
     @boundscheck (m,n+1) == size(u) || throw(BoundsError())
 
@@ -23,7 +23,7 @@ end
 
 """ ∇² is the 2nd order centred Laplace-operator ∂/∂x^2 + ∂/∂y^2.
 The 1/Δ²-factor is omitted and moved into the viscosity coefficient."""
-function ∇²!(du::Matrix{T},u::Matrix{T}) where {T<:AbstractFloat}
+function ∇²!(du:AbstractMatrix,u::AbstractMatrix) # where {T<:AbstractFloat}
     m, n = size(du)
     @boundscheck (m+2,n+2) == size(u) || throw(BoundsError())
 
@@ -39,11 +39,11 @@ function ∇²!(du::Matrix{T},u::Matrix{T}) where {T<:AbstractFloat}
 end
 
 """∂x is the 2nd order centred Gradient-operator ∂/∂x with grid spacing Δ (default 1)."""
-function ∂x(u::Array{T,2},Δx::Real) where {T<:AbstractFloat}
+function ∂x(u::AbstractMatrix,Δx::Real) # where {T<:AbstractFloat}
 
     m,n = size(u)
 
-    dudx = Array{T,2}(undef,m-1,n)
+    dudx = typeof(u)(undef,m-1,n)
     one_over_dx = T(1.0/Δx)
 
 
@@ -57,11 +57,11 @@ function ∂x(u::Array{T,2},Δx::Real) where {T<:AbstractFloat}
 end
 
 """∂y is the 2nd order centred Gradient-operator ∂/∂y with grid spacing Δ (default 1)."""
-function ∂y(u::Array{T,2},Δy::Real=1) where {T<:AbstractFloat}
+function ∂y(u::AbstractMatrix,Δy::Real=1) # where {T<:AbstractFloat}
 
     m,n = size(u)
 
-    dudy = Array{T,2}(undef,m,n-1)
+    dudy = typeof(u)(undef,m,n-1)
     one_over_dy = T(1.0/Δy)
 
     @inbounds for j ∈ 1:n-1
@@ -74,10 +74,10 @@ function ∂y(u::Array{T,2},Δy::Real=1) where {T<:AbstractFloat}
 end
 
 """ ∇² is the 2nd order centred Laplace-operator ∂/∂x^2 + ∂/∂y^2 with grid spacing Δ (default 1)."""
-function ∇²(u::Array{T,2},Δ::Real=1) where {T<:AbstractFloat}
+function ∇²(u::AbstractMatrix,Δ::Real=1) # where {T<:AbstractFloat}
 
     m, n = size(u)
-    du = Array{T,2}(undef,m-2,n-2)
+    du = typeof(u)(undef,m-2,n-2)
 
     minus_4 = T(-4.0)
     one_over_dx² = T(1/Δ^2)

@@ -1,7 +1,7 @@
 """Transit function to call the specified bottom drag function."""
-function bottom_drag!(  u::AbstractMatrix,
-                        v::AbstractMatrix,
-                        η::AbstractMatrix,
+function bottom_drag!(  u,
+                        v,
+                        η,
                         Diag::DiagnosticVars,
                         S::ModelSetup)
 
@@ -17,8 +17,8 @@ function bottom_drag!(  u::AbstractMatrix,
 end
 
 """Quadratic bottom drag Bu,Bv = cD/h * | uv | * uv"""
-function bottom_drag_quadratic!(u::AbstractMatrix,
-                                v::AbstractMatrix,
+function bottom_drag_quadratic!(u,
+                                v,
                                 η::AbstractMatrix,
                                 Diag::DiagnosticVars,
                                 S::ModelSetup)
@@ -81,9 +81,9 @@ end
 
 """Linear bottom drag computed as r_B*(u,v). r_B is negative and contains the
 grid spacing Δ as gradient operators are dimensionless."""
-function bottom_drag_linear!(   u::AbstractMatrix,
-                                v::AbstractMatrix,
-                                η::AbstractMatrix,
+function bottom_drag_linear!(   u,
+                                v,
+                                η,
                                 Diag::DiagnosticVars,
                                 S::ModelSetup)
 
@@ -111,9 +111,9 @@ function bottom_drag_linear!(   u::AbstractMatrix,
 end
 
 """No bottom drag."""
-function no_bottom_drag!(   u::AbstractMatrix,
-                            v::AbstractMatrix,
-                            η::AbstractMatrix,
+function no_bottom_drag!(   u,
+                            v,
+                            η,
                             Diag::DiagnosticVars,
                             S::ModelSetup)
 

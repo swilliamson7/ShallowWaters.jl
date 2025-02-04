@@ -1,9 +1,9 @@
 using Reactant
 
 """Transit function to call either the rhs_linear or the rhs_nonlinear."""
-function rhs!(  u::Array{T,2},
-                v::Array{T,2},
-                η::Array{T,2},
+function rhs!(  u,
+                v,
+                η,
                 Diag::DiagnosticVars{T,Tprog},
                 S::ModelSetup{T,Tprog},
                 t::Int) where {T,Tprog}
@@ -101,9 +101,9 @@ function rhs_linear!(   u::AbstractMatrix,
 end
 
 """ Update advective and Coriolis tendencies."""
-function advection_coriolis!(   u::Array{T,2},
-                                v::Array{T,2},
-                                η::Array{T,2},
+function advection_coriolis!(   u,
+                                v,
+                                η,
                                 Diag::DiagnosticVars{T,Tprog},
                                 S::ModelSetup{T,Tprog}) where {T,Tprog}
 
@@ -149,7 +149,7 @@ function thickness!(h::AbstractMatrix,η::AbstractMatrix,H::AbstractMatrix)
     @boundscheck (m,n) == size(η) || throw(BoundsError())
     @boundscheck (m,n) == size(H) || throw(BoundsError())
 
-    if Reactant.within_compile()
+    if within_compile()
         h .= η .+ H
     else
         @inbounds for i in eachindex(η)
@@ -179,10 +179,10 @@ function speed!(u²::AbstractMatrix,
 end
 
 """Bernoulli potential p = 1/2*(u² + v²) + gη."""
-function bernoulli!(p::Array{T,2},
-                    KEu::Array{T,2},
-                    KEv::Array{T,2},
-                    η::Array{T,2},
+function bernoulli!(p::AbstractMatrix,
+                    KEu::AbstractMatrix,
+                    KEv::AbstractMatrix,
+                    η::AbstractMatrix,
                     g::T,
                     ep::Int,
                     scale_inv::T) where {T<:AbstractFloat}
