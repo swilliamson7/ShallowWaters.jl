@@ -1,3 +1,5 @@
+using Reactant
+
 """Transit function to call either the rhs_linear or the rhs_nonlinear."""
 function rhs!(  u::Array{T,2},
                 v::Array{T,2},
