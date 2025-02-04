@@ -1,5 +1,5 @@
 """Runge Kutta time stepping scheme diagnostic cariables collected in a struct."""
-@with_kw struct RungeKuttaVars{T<:AbstractFloat}
+@with_kw struct RungeKuttaVars{T<:AbstractFloat,  ArrayTy}
 
     # to be specified
     nx::Int
@@ -18,12 +18,12 @@
     # EDGE POINT (1 = yes, 0 = no)
     ep::Int = if bc == "periodic" 1 else 0 end  # is there a u-point on the left edge?
 
-    u0::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)     # u-velocities for RK updates
-    u1::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)
-    v0::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)     # v-velocities for RK updates
-    v1::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)
-    η0::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # sea surface height for RK updates
-    η1::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)
+    u0::ArrayTy = zeros(T,nux+2*halo,nuy+2*halo)     # u-velocities for RK updates
+    u1::ArrayTy = zeros(T,nux+2*halo,nuy+2*halo)
+    v0::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo)     # v-velocities for RK updates
+    v1::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo)
+    η0::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)     # sea surface height for RK updates
+    η1::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)
 end
 
 """Generator function for RungeKutta VarCollection."""
@@ -32,13 +32,13 @@ function RungeKuttaVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack nx,ny,bc = G
     @unpack halo,haloη = G
 
-    return RungeKuttaVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
+    return RungeKuttaVars{T, Array{T, 2}}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
 end
 
 ###################################################
 
 """Tendencies collected in a struct."""
-@with_kw struct TendencyVars{T<:AbstractFloat}
+@with_kw struct TendencyVars{T<:AbstractFloat, ArrayTy}
 
     # to be specified
     nx::Int
@@ -57,19 +57,19 @@ end
     # EDGE POINT (1 = yes, 0 = no)
     ep::Int = if bc == "periodic" 1 else 0 end  # is there a u-point on the left edge?
 
-    du::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)     # tendency of u without time step
-    dv::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)     # tendency of v without time step
-    dη::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # tendency of η without time step
+    du::ArrayTy = zeros(T,nux+2*halo,nuy+2*halo)     # tendency of u without time step
+    dv::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo)     # tendency of v without time step
+    dη::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)     # tendency of η without time step
 
     # sum of tendencies (incl time step) over all sub-steps
-    du_sum::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo) 
-    dv_sum::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)
-    dη_sum::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)
+    du_sum::ArrayTy = zeros(T,nux+2*halo,nuy+2*halo) 
+    dv_sum::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo)
+    dη_sum::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)
 
     # compensation for tendencies (variant of Kahan summation)
-    du_comp::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo) 
-    dv_comp::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)
-    dη_comp::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)
+    du_comp::ArrayTy = zeros(T,nux+2*halo,nuy+2*halo) 
+    dv_comp::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo)
+    dη_comp::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)
 end
 
 """Generator function for Tendencies VarCollection."""
@@ -78,13 +78,13 @@ function TendencyVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack nx,ny,bc = G
     @unpack halo,haloη = G
 
-    return TendencyVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
+    return TendencyVars{T, Array{T, 2}}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
 end
 
 ###########################################################
 
 """VolumeFluxes collected in a struct."""
-@with_kw struct VolumeFluxVars{T<:AbstractFloat}
+@with_kw struct VolumeFluxVars{T<:AbstractFloat, ArrayTy}
 
     # to be specified
     nx::Int
@@ -103,15 +103,15 @@ end
     # EDGE POINT (1 = yes, 0 = no)
     ep::Int = if bc == "periodic" 1 else 0 end      # is there a u-point on the left edge?
 
-    h::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)         # layer thickness
-    h_u::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη)     # layer thickness on u-grid
-    U::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη)       # U=uh volume flux
+    h::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)         # layer thickness
+    h_u::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη)     # layer thickness on u-grid
+    U::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη)       # U=uh volume flux
 
-    h_v::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη-1)     # layer thickness on v-grid
-    V::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη-1)       # V=vh volume flux
+    h_v::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη-1)     # layer thickness on v-grid
+    V::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη-1)       # V=vh volume flux
 
-    dUdx::Array{T,2} = zeros(T,nx+2*haloη-2,ny+2*haloη)    # gradients thereof
-    dVdy::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη-2)
+    dUdx::ArrayTy = zeros(T,nx+2*haloη-2,ny+2*haloη)    # gradients thereof
+    dVdy::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη-2)
 end
 
 """Generator function for VolumeFluxes VarCollection."""
@@ -120,13 +120,13 @@ function VolumeFluxVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack nx,ny,bc = G
     @unpack halo,haloη = G
 
-    return VolumeFluxVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
+    return VolumeFluxVars{T, Array{T, 2}}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
 end
 
 ###############################################################
 
 """Vorticity variables collected in a struct."""
-@with_kw struct VorticityVars{T<:AbstractFloat}
+@with_kw struct VorticityVars{T<:AbstractFloat, ArrayTy}
 
     # to be specified
     nx::Int
@@ -145,26 +145,26 @@ end
     # EDGE POINT (1 = yes, 0 = no)
     ep::Int = if bc == "periodic" 1 else 0 end      # is there a u-point on the left edge?
 
-    h_q::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη-1)  # layer thickness h interpolated on q-grid
-    q::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη-1)    # potential vorticity
+    h_q::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη-1)  # layer thickness h interpolated on q-grid
+    q::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη-1)    # potential vorticity
 
-    q_v::Array{T,2} = zeros(T,nx+2*haloη-2,ny+2*haloη-1)  # q interpolated on v-grid
-    U_v::Array{T,2} = zeros(T,nx+2*haloη-2,ny+2*haloη-1)  # mass flux U=uh on v-grid
+    q_v::ArrayTy = zeros(T,nx+2*haloη-2,ny+2*haloη-1)  # q interpolated on v-grid
+    U_v::ArrayTy = zeros(T,nx+2*haloη-2,ny+2*haloη-1)  # mass flux U=uh on v-grid
 
-    q_u::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη-2)  # q interpolated on u-grid
-    V_u::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη-2)  # mass flux V=vh on v-grid
+    q_u::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη-2)  # q interpolated on u-grid
+    V_u::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη-2)  # mass flux V=vh on v-grid
 
-    qhu::Array{T,2} = zeros(T,nvx,nvy)            # potential vorticity advection term u-component
-    qhv::Array{T,2} = zeros(T,nux,nuy)            # potential vorticity advection term v-component
+    qhu::ArrayTy = zeros(T,nvx,nvy)            # potential vorticity advection term u-component
+    qhv::ArrayTy = zeros(T,nux,nuy)            # potential vorticity advection term v-component
 
-    u_v::Array{T,2} = zeros(T,nux+2*halo-1,nuy+2*halo-1)  # u-velocity on v-grid
-    v_u::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo-1)  # v-velocity on u-grid
+    u_v::ArrayTy = zeros(T,nux+2*halo-1,nuy+2*halo-1)  # u-velocity on v-grid
+    v_u::ArrayTy = zeros(T,nvx+2*halo-1,nvy+2*halo-1)  # v-velocity on u-grid
 
-    dudx::Array{T,2} = zeros(T,nux+2*halo-1,nuy+2*halo)   # ∂u/∂x
-    dudy::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo-1)   # ∂u/∂y
+    dudx::ArrayTy = zeros(T,nux+2*halo-1,nuy+2*halo)   # ∂u/∂x
+    dudy::ArrayTy = zeros(T,nux+2*halo,nuy+2*halo-1)   # ∂u/∂y
 
-    dvdx::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)   # ∂v/∂x
-    dvdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)   # ∂v/∂y
+    dvdx::ArrayTy = zeros(T,nvx+2*halo-1,nvy+2*halo)   # ∂v/∂x
+    dvdy::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo-1)   # ∂v/∂y
 end
 
 """Generator function for Vorticity VarCollection."""
@@ -173,13 +173,13 @@ function VorticityVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack nx,ny,bc = G
     @unpack halo,haloη = G
 
-    return VorticityVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
+    return VorticityVars{T, Array{T, 2}}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
 end
 
 ####################################################################
 
 """Bernoulli variables collected in a struct."""
-@with_kw struct BernoulliVars{T<:AbstractFloat}
+@with_kw struct BernoulliVars{T<:AbstractFloat, ArrayTy}
 
     # to be specified
     nx::Int
@@ -198,15 +198,15 @@ end
     # EDGE POINT (1 = yes, 0 = no)
     ep::Int = if bc == "periodic" 1 else 0 end      # is there a u-point on the left edge?
 
-    u²::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)         # u-velocity squared
-    v²::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)         # v-velocity squared
+    u²::ArrayTy = zeros(T,nux+2*halo,nuy+2*halo)         # u-velocity squared
+    v²::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo)         # v-velocity squared
 
-    KEu::Array{T,2} = zeros(T,nux+2*halo-1,nuy+2*halo)      # u-velocity squared on T-grid
-    KEv::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)      # v-velocity squared on T-grid
+    KEu::ArrayTy = zeros(T,nux+2*halo-1,nuy+2*halo)      # u-velocity squared on T-grid
+    KEv::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo-1)      # v-velocity squared on T-grid
 
-    p::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)          # Bernoulli potential
-    dpdx::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη)     # ∂p/∂x
-    dpdy::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη-1)     # ∂p/∂y
+    p::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)          # Bernoulli potential
+    dpdx::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη)     # ∂p/∂x
+    dpdy::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη-1)     # ∂p/∂y
 end
 
 """Generator function for Bernoulli VarCollection."""
@@ -215,13 +215,13 @@ function BernoulliVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack nx,ny,bc = G
     @unpack halo,haloη = G
 
-    return BernoulliVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
+    return BernoulliVars{T, Array{T, 2}}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
 end
 
 ####################################################################
 
 """Bottomdrag variables collected in a struct."""
-@with_kw struct BottomdragVars{T<:AbstractFloat}
+@with_kw struct BottomdragVars{T<:AbstractFloat, ArrayTy}
 
     # to be specified
     nx::Int
@@ -240,12 +240,12 @@ end
     # EDGE POINT (1 = yes, 0 = no)
     ep::Int = if bc == "periodic" 1 else 0 end      # is there a u-point on the left edge?
 
-    sqrtKE::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)       # sqrt of kinetic energy
-    sqrtKE_u::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη)   # interpolated on u-grid
-    sqrtKE_v::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη-1)   # interpolated on v-grid
+    sqrtKE::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)       # sqrt of kinetic energy
+    sqrtKE_u::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη)   # interpolated on u-grid
+    sqrtKE_v::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη-1)   # interpolated on v-grid
 
-    Bu::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη)         # bottom friction term u-component
-    Bv::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη-1)         # bottom friction term v-component
+    Bu::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη)         # bottom friction term u-component
+    Bv::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη-1)         # bottom friction term v-component
 end
 
 """Generator function for Bottomdrag VarCollection."""
@@ -254,13 +254,13 @@ function BottomdragVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack nx,ny,bc = G
     @unpack halo,haloη = G
 
-    return BottomdragVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
+    return BottomdragVars{T, Array{T, 2}}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
 end
 
 ####################################################################
 
 """ArakawaHsu variables collected in a struct."""
-@with_kw struct ArakawaHsuVars{T<:AbstractFloat}
+@with_kw struct ArakawaHsuVars{T<:AbstractFloat, ArrayTy}
 
     # to be specified
     nx::Int
@@ -280,10 +280,10 @@ end
     ep::Int = if bc == "periodic" 1 else 0 end      # is there a u-point on the left edge?
 
     # Linear combination of potential vorticity
-    qα::Array{T,2} = zeros(T,nx+2*haloη-2,ny+2*haloη-2)
-    qβ::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη-2)
-    qγ::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη-2)
-    qδ::Array{T,2} = zeros(T,nx+2*haloη-2,ny+2*haloη-2)
+    qα::ArrayTy = zeros(T,nx+2*haloη-2,ny+2*haloη-2)
+    qβ::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη-2)
+    qγ::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη-2)
+    qδ::ArrayTy = zeros(T,nx+2*haloη-2,ny+2*haloη-2)
 end
 
 """Generator function for ArakawaHsu VarCollection."""
@@ -292,13 +292,13 @@ function ArakawaHsuVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack nx,ny,bc = G
     @unpack halo,haloη = G
 
-    return ArakawaHsuVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
+    return ArakawaHsuVars{T, Array{T, 2}}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
 end
 
 ####################################################################
 
 """Laplace variables collected in a struct."""
-@with_kw struct LaplaceVars{T<:AbstractFloat}
+@with_kw struct LaplaceVars{T<:AbstractFloat, ArrayTy}
 
     # to be specified
     nx::Int
@@ -317,14 +317,14 @@ end
     # EDGE POINT (1 = yes, 0 = no)
     ep::Int = if bc == "periodic" 1 else 0 end      # is there a u-point on the left edge?
 
-    Lu::Array{T,2} = zeros(T,nux+2*halo-2,nuy+2*halo-2)         # ∇²u
-    Lv::Array{T,2} = zeros(T,nvx+2*halo-2,nvy+2*halo-2)         # ∇²v
+    Lu::ArrayTy = zeros(T,nux+2*halo-2,nuy+2*halo-2)         # ∇²u
+    Lv::ArrayTy = zeros(T,nvx+2*halo-2,nvy+2*halo-2)         # ∇²v
 
     # Derivatives of Lu,Lv
-    dLudx::Array{T,2} = zeros(T,nux+2*halo-3,nuy+2*halo-2)
-    dLudy::Array{T,2} = zeros(T,nux+2*halo-2,nuy+2*halo-3)
-    dLvdx::Array{T,2} = zeros(T,nvx+2*halo-3,nvy+2*halo-2)
-    dLvdy::Array{T,2} = zeros(T,nvx+2*halo-2,nvy+2*halo-3)
+    dLudx::ArrayTy = zeros(T,nux+2*halo-3,nuy+2*halo-2)
+    dLudy::ArrayTy = zeros(T,nux+2*halo-2,nuy+2*halo-3)
+    dLvdx::ArrayTy = zeros(T,nvx+2*halo-3,nvy+2*halo-2)
+    dLvdy::ArrayTy = zeros(T,nvx+2*halo-2,nvy+2*halo-3)
 end
 
 """Generator function for Laplace VarCollection."""
@@ -333,13 +333,13 @@ function LaplaceVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack nx,ny,bc = G
     @unpack halo,haloη = G
 
-    return LaplaceVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
+    return LaplaceVars{T, Array{T, 2}}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
 end
 
 ####################################################################
 
 """Smagorinsky variables collected in a struct."""
-@with_kw struct SmagorinskyVars{T<:AbstractFloat}
+@with_kw struct SmagorinskyVars{T<:AbstractFloat, ArrayTy}
 
     # to be specified
     nx::Int
@@ -358,29 +358,29 @@ end
     # EDGE POINT (1 = yes, 0 = no)
     ep::Int = if bc == "periodic" 1 else 0 end      # is there a u-point on the left edge?
 
-    DT::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)       # Tension squared (on the T-grid)
-    DS::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)       # Shearing strain squared (on the T-grid)
-    νSmag::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)    # Viscosity coefficient
+    DT::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)       # Tension squared (on the T-grid)
+    DS::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)       # Shearing strain squared (on the T-grid)
+    νSmag::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)    # Viscosity coefficient
 
     # Tension squared on the q-grid
-    DS_q::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)
+    DS_q::ArrayTy = zeros(T,nvx+2*halo-1,nvy+2*halo)
 
     # Smagorinsky viscosity coefficient on the q-grid
-    νSmag_q::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη-1)
+    νSmag_q::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη-1)
 
     # Entries of the Smagorinsky viscous tensor
-    S12::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη-1)
-    S21::Array{T,2} = zeros(T,nx+2*haloη-1,ny+2*haloη-1)
+    S12::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη-1)
+    S21::ArrayTy = zeros(T,nx+2*haloη-1,ny+2*haloη-1)
 
-    S11::Array{T,2} = zeros(T,nux+2*halo-3,nuy+2*halo-2)
-    S22::Array{T,2} = zeros(T,nvx+2*halo-2,nvy+2*halo-3)
+    S11::ArrayTy = zeros(T,nux+2*halo-3,nuy+2*halo-2)
+    S22::ArrayTy = zeros(T,nvx+2*halo-2,nvy+2*halo-3)
 
     # u- and v-components 1 and 2 of the biharmonic diffusion tendencies
-    LLu1::Array{T,2} = zeros(T,nux+2*halo-4,nuy+2*halo-2)
-    LLu2::Array{T,2} = zeros(T,nx+1,ny)
+    LLu1::ArrayTy = zeros(T,nux+2*halo-4,nuy+2*halo-2)
+    LLu2::ArrayTy = zeros(T,nx+1,ny)
 
-    LLv1::Array{T,2} = zeros(T,nx,ny+1)
-    LLv2::Array{T,2} = zeros(T,nvx+2*halo-2,nvy+2*halo-4)
+    LLv1::ArrayTy = zeros(T,nx,ny+1)
+    LLv2::ArrayTy = zeros(T,nvx+2*halo-2,nvy+2*halo-4)
 end
 
 """Generator function for Smagorinsky VarCollection."""
@@ -389,13 +389,13 @@ function SmagorinskyVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack nx,ny,bc = G
     @unpack halo,haloη = G
 
-    return SmagorinskyVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
+    return SmagorinskyVars{T, Array{T, 2}}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη)
 end
 
 ####################################################################
 
 """SemiLagrange variables collected in a struct."""
-@with_kw struct SemiLagrangeVars{T<:AbstractFloat}
+@with_kw struct SemiLagrangeVars{T<:AbstractFloat, ArrayTy}
 
     # to be specified
     nx::Int
@@ -416,25 +416,25 @@ end
     # EDGE POINT (1 = yes, 0 = no)
     ep::Int = if bc == "periodic" 1 else 0 end      # is there a u-point on the left edge?
 
-    xd::Array{T,2} = zeros(T,nx,ny)                         # departure points x-coord
-    yd::Array{T,2} = zeros(T,nx,ny)                         # departure points y-coord
+    xd::ArrayTy = zeros(T,nx,ny)                         # departure points x-coord
+    yd::ArrayTy = zeros(T,nx,ny)                         # departure points y-coord
 
-    um::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo)         # u-velocity temporal mid-point
-    vm::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo)         # v-velocity temporal mid-point
+    um::ArrayTy = zeros(T,nux+2*halo,nuy+2*halo)         # u-velocity temporal mid-point
+    vm::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo)         # v-velocity temporal mid-point
 
-    u_T::Array{T,2} = zeros(T,nux+2*halo-1,nuy+2*halo)      # u-velocity interpolated on T-grid
-    um_T::Array{T,2} = zeros(T,nux+2*halo-1,nuy+2*halo)     # um interpolated on T-grid
-    v_T::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)      # v-velocity interpolated on T-grid
-    vm_T::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)     # vm interpolated on T-grid
+    u_T::ArrayTy = zeros(T,nux+2*halo-1,nuy+2*halo)      # u-velocity interpolated on T-grid
+    um_T::ArrayTy = zeros(T,nux+2*halo-1,nuy+2*halo)     # um interpolated on T-grid
+    v_T::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo-1)      # v-velocity interpolated on T-grid
+    vm_T::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo-1)     # vm interpolated on T-grid
 
-    uinterp::Array{T,2} = zeros(T,nx,ny)                    # u interpolated on mid-point xd,yd
-    vinterp::Array{T,2} = zeros(T,nx,ny)                    # v interpolated on mid-point xd,yd
+    uinterp::ArrayTy = zeros(T,nx,ny)                    # u interpolated on mid-point xd,yd
+    vinterp::ArrayTy = zeros(T,nx,ny)                    # v interpolated on mid-point xd,yd
 
-    ssti::Array{T,2} = zeros(T,nx+2*halosstx,ny+2*halossty) # sst interpolated on departure points
-    sst_ref::Array{T,2} = zeros(T,nx+2*halosstx,ny+2*halossty) # sst initial conditions for relaxation
+    ssti::ArrayTy = zeros(T,nx+2*halosstx,ny+2*halossty) # sst interpolated on departure points
+    sst_ref::ArrayTy = zeros(T,nx+2*halosstx,ny+2*halossty) # sst initial conditions for relaxation
 
     # compensated summation
-    dsst_comp::Array{T,2} = zeros(T,nx+2*halosstx,ny+2*halossty)
+    dsst_comp::ArrayTy = zeros(T,nx+2*halosstx,ny+2*halossty)
 end
 
 """Generator function for SemiLagrange VarCollection."""
@@ -444,14 +444,14 @@ function SemiLagrangeVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack halo,haloη = G
     @unpack halosstx,halossty = G
 
-    return SemiLagrangeVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+    return SemiLagrangeVars{T, Array{T, 2}}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
                             halosstx=halosstx,halossty=halossty)
 end
 
 ###################################################################
 
 """ Variables that appear in Zanna-Bolton forcing term """ 
-@with_kw struct ZBVars{T<:AbstractFloat}
+@with_kw struct ZBVars{T<:AbstractFloat, ArrayTy}
 
     # to be specified
     nx::Int
@@ -469,55 +469,55 @@ end
     nqx::Int = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
     nqy::Int = ny+1                                        # q-grid in y-direction
 
-    dudx::Array{T,2} = zeros(T,nux+2*halo-1,nuy+2*halo)    # ∂u/∂x
-    dudy::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo-1)    # ∂u/∂y
-    dvdx::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
-    dvdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
+    dudx::ArrayTy = zeros(T,nux+2*halo-1,nuy+2*halo)    # ∂u/∂x
+    dudy::ArrayTy = zeros(T,nux+2*halo,nuy+2*halo-1)    # ∂u/∂y
+    dvdx::ArrayTy = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
+    dvdy::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
 
     # these are only utilized in a scheme where γ varies spacially
-    γ::Array{T,2} = zeros(T,nx,ny)
-    γ_u::Array{T,2} = zeros(T,nux,nuy)
-    γ_v::Array{T,2} = zeros(T,nvx,nvy)
+    γ::ArrayTy = zeros(T,nx,ny)
+    γ_u::ArrayTy = zeros(T,nux,nuy)
+    γ_v::ArrayTy = zeros(T,nvx,nvy)
 
-    Ker::Array{T,2} = zeros(3,3)    # convolutional kernal
+    Ker::ArrayTy = zeros(3,3)    # convolutional kernal
 
-    ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
-    ζsq::Array{T,2} = zeros(T,nqx,nqy)    # relative vorticity squared, cell corners 
+    ζ::ArrayTy = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
+    ζsq::ArrayTy = zeros(T,nqx,nqy)    # relative vorticity squared, cell corners 
 
-    D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners 
-    Dsq::Array{T,2} = zeros(T,nqx,nqy)    # square of the tensor 
+    D::ArrayTy = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners 
+    Dsq::ArrayTy = zeros(T,nqx,nqy)    # square of the tensor 
 
-    D_n::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)
-    D_nT::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη) 
-    D_q::Array{T,2} = zeros(T,nqx,nqy)
+    D_n::ArrayTy = zeros(T,nvx+2*halo-1,nvy+2*halo)
+    D_nT::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη) 
+    D_q::ArrayTy = zeros(T,nqx,nqy)
 
-    Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
-    Dhatsq::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)   # square of the tensor
-    Dhatq::Array{T,2} = zeros(T,nqx,nqy)                  # tensor interpolated onto q-grid
+    Dhat::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
+    Dhatsq::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)   # square of the tensor
+    Dhatq::ArrayTy = zeros(T,nqx,nqy)                  # tensor interpolated onto q-grid
 
-    ζpDT::Array{T,2} = zeros(T,nx,ny)     # ζ^2 + D^2 interpolated to cell centers, not currently used
-    ζsqT::Array{T,2} = zeros(T,nx,ny)     # ζ^2 interpolated to cell centers
-    ζD::Array{T,2} = zeros(T,nqx,nqy)     # ζ ⋅ D, cell corners
-    ζDT::Array{T,2} = zeros(T,nx,ny)      # ζ ⋅ D, placed on cell centers
-    ζDhat::Array{T,2} = zeros(T,nqx,nqy)  # ζ ⋅ Dhat, cell corners
+    ζpDT::ArrayTy = zeros(T,nx,ny)     # ζ^2 + D^2 interpolated to cell centers, not currently used
+    ζsqT::ArrayTy = zeros(T,nx,ny)     # ζ^2 interpolated to cell centers
+    ζD::ArrayTy = zeros(T,nqx,nqy)     # ζ ⋅ D, cell corners
+    ζDT::ArrayTy = zeros(T,nx,ny)      # ζ ⋅ D, placed on cell centers
+    ζDhat::ArrayTy = zeros(T,nqx,nqy)  # ζ ⋅ Dhat, cell corners
     
-    trace::Array{T,2} = zeros(T,nx,ny)     # ξ^2 + D^2 + Dhat^2, cell centers
+    trace::ArrayTy = zeros(T,nx,ny)     # ξ^2 + D^2 + Dhat^2, cell centers
 
-    ζD_filtered::Array{T,2} = zeros(T,nx,ny)      # ξD with filter applied
-    ζDhat_filtered::Array{T,2} = zeros(T,nqx,nqy)   # ξDhat with filter applied
-    trace_filtered::Array{T,2} = zeros(T,nx,ny)     # trace with filter applied
+    ζD_filtered::ArrayTy = zeros(T,nx,ny)      # ξD with filter applied
+    ζDhat_filtered::ArrayTy = zeros(T,nqx,nqy)   # ξDhat with filter applied
+    trace_filtered::ArrayTy = zeros(T,nx,ny)     # trace with filter applied
 
-    dζDdx::Array{T,2} = zeros(T,nux,nuy)             # u-grid
-    dζDhatdy::Array{T,2} = zeros(T,nux+halo,nuy)     # u-grid, initially with extra halo points
-    dtracedx::Array{T,2} = zeros(T,nux,nuy)          # u-grid 
+    dζDdx::ArrayTy = zeros(T,nux,nuy)             # u-grid
+    dζDhatdy::ArrayTy = zeros(T,nux+halo,nuy)     # u-grid, initially with extra halo points
+    dtracedx::ArrayTy = zeros(T,nux,nuy)          # u-grid 
 
-    S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction
+    S_u::ArrayTy = zeros(T,nux,nuy)             # total forcing in x-direction
 
-    dζDhatdx::Array{T,2} = zeros(T,nvx,nvy+halo)   # v-grid, initially with extra halo points
-    dζDdy::Array{T,2} = zeros(T,nvx,nvy)           # v-grid
-    dtracedy::Array{T,2} = zeros(T,nvx,nvy)        # v-grid
+    dζDhatdx::ArrayTy = zeros(T,nvx,nvy+halo)   # v-grid, initially with extra halo points
+    dζDdy::ArrayTy = zeros(T,nvx,nvy)           # v-grid
+    dtracedy::ArrayTy = zeros(T,nvx,nvy)        # v-grid
 
-    S_v::Array{T,2} = zeros(T,nvx,nvy)             # total forcing in y-direction
+    S_v::ArrayTy = zeros(T,nvx,nvy)             # total forcing in y-direction
 
 end
 
@@ -539,14 +539,14 @@ function ZBVars{T}(G::Grid) where {T<:AbstractFloat}
     Ker[3,2] = 2 
     Ker[3,3] = 1 
 
-    return ZBVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+    return ZBVars{T, Array{T, 2}}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
                             halosstx=halosstx,halossty=halossty,Ker=Ker)
 end
 
 ###########################################################################################
 
 """ Variables that appear in NN forcing term """
-@with_kw mutable struct NNVars{T<:AbstractFloat}
+@with_kw mutable struct NNVars{T<:AbstractFloat, ArrayTy}
 
     # to be specified
     nx::Int
@@ -564,41 +564,41 @@ end
     nqx::Int = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
     nqy::Int = ny+1                                        # q-grid in y-direction
 
-    dudx::Array{T,2} = zeros(T,nux+2*halo-1,nuy+2*halo)    # ∂u/∂x
-    dudy::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo-1)    # ∂u/∂y
-    dvdx::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
-    dvdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
+    dudx::ArrayTy = zeros(T,nux+2*halo-1,nuy+2*halo)    # ∂u/∂x
+    dudy::ArrayTy = zeros(T,nux+2*halo,nuy+2*halo-1)    # ∂u/∂y
+    dvdx::ArrayTy = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
+    dvdy::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
 
     # weights_corner is applied to ζ and D to form the diagonal terms of S,
     # and weights_center is applied to ζ and D̃ to form the off-diagonal terms
     # of S. Initially this will just be a single layer to see if we can get the model
     # with the neural net running
     # the initial weight values might need to change, for now I'm setting them to zero
-    weights_corner::Array{T, 2} = zeros(T,2,22)
+    weights_corner::ArrayTy = zeros(T,2,22)
     corner_outdim::Int = 2
     corner_indim::Int = 22
 
-    weights_center::Array{T, 2} = zeros(T,1,17)
+    weights_center::ArrayTy = zeros(T,1,17)
     center_outdim::Int = 1
     center_indim::Int = 17
 
-    ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
+    ζ::ArrayTy = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
 
-    D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners 
+    D::ArrayTy = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners 
 
-    Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
+    Dhat::ArrayTy = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
 
-    ζT::Array{T,2} = zeros(T,nx,ny)         # ζ interpolated to cell centers
-    DT::Array{T,2} = zeros(T,nx,ny)         # D, interpolated on cell centers
-    ζDhat::Array{T,2} = zeros(T,nqx,nqy)    # ζ ⋅ Dhat, cell corners
+    ζT::ArrayTy = zeros(T,nx,ny)         # ζ interpolated to cell centers
+    DT::ArrayTy = zeros(T,nx,ny)         # D, interpolated on cell centers
+    ζDhat::ArrayTy = zeros(T,nqx,nqy)    # ζ ⋅ Dhat, cell corners
 
-    T11::Array{T,2} = zeros(T,nqx,nqy)
-    T12::Array{T,2} = zeros(T,nx,ny)
-    T21::Array{T,2} = zeros(T,nx,ny)
-    T22::Array{T,2} = zeros(T,nqx,nqy)
+    T11::ArrayTy = zeros(T,nqx,nqy)
+    T12::ArrayTy = zeros(T,nx,ny)
+    T21::ArrayTy = zeros(T,nx,ny)
+    T22::ArrayTy = zeros(T,nqx,nqy)
 
-    S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction
-    S_v::Array{T,2} = zeros(T,nvx,nvy)             # total forcing in y-direction
+    S_u::ArrayTy = zeros(T,nux,nuy)             # total forcing in x-direction
+    S_v::ArrayTy = zeros(T,nvx,nvy)             # total forcing in y-direction
 
 end
 
@@ -609,7 +609,7 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
     @unpack halo,haloη = G
     @unpack halosstx,halossty = G
 
-    return NNVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+    return NNVars{T, Array{T, 2}}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
                             halosstx=halosstx,halossty=halossty
     )
 end

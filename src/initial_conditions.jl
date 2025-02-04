@@ -8,7 +8,7 @@ function PrognosticVars{T}(G::Grid) where {T<:AbstractFloat}
     η = zeros(T,nx+2haloη,ny+2haloη)
     sst = zeros(T,nx+2halosstx,ny+2halossty)
 
-    return PrognosticVars{T}(u,v,η,sst)
+    return PrognosticVars{T, Array{T,2}}(u,v,η,sst)
 end
 
 function initial_conditions(::Type{T},G::Grid,P::Parameter,C::Constants) where {T<:AbstractFloat}
@@ -149,7 +149,7 @@ function initial_conditions(::Type{T},G::Grid,P::Parameter,C::Constants) where {
     #TODO SST INTERPOLATION
     u,v,η,sst = add_halo(u,v,η,sst,G,P,C)
 
-    return PrognosticVars{T}(u,v,η,sst)
+    return PrognosticVars{T, Array{T, 2}}(u,v,η,sst)
 end
 
 function initial_conditions(::Type{T},S::ModelSetup) where {T<:AbstractFloat}
@@ -290,7 +290,7 @@ function initial_conditions(::Type{T},S::ModelSetup) where {T<:AbstractFloat}
     #TODO SST INTERPOLATION
     u,v,η,sst = add_halo(u,v,η,sst,S)
 
-    return PrognosticVars{T}(u,v,η,sst)
+    return PrognosticVars{T, Array{T, 2}}(u,v,η,sst)
 end
 
 """Create a wave-checkerboard pattern over xx,yy like a nx x ny checkerboard.

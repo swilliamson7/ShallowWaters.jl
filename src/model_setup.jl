@@ -26,11 +26,11 @@
 #     P = ProgVars{T}(u,v,η,sst)
 # Struct containing the prognostic variables u,v,η and sst.
 # """
-mutable struct PrognosticVars{T<:AbstractFloat}
-    u::Array{T,2}           # u-velocity
-    v::Array{T,2}           # v-velocity
-    η::Array{T,2}           # sea surface height / interface displacement
-    sst::Array{T,2}         # tracer / sea surface temperature
+mutable struct PrognosticVars{T<:AbstractFloat, ArrayTy}
+    u::ArrayTy           # u-velocity
+    v::ArrayTy           # v-velocity
+    η::ArrayTy           # sea surface height / interface displacement
+    sst::ArrayTy         # tracer / sea surface temperature
 end
 
 struct DiagnosticVars{T,Tprog}

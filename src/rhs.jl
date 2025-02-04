@@ -147,8 +147,12 @@ function thickness!(h::AbstractMatrix,η::AbstractMatrix,H::AbstractMatrix)
     @boundscheck (m,n) == size(η) || throw(BoundsError())
     @boundscheck (m,n) == size(H) || throw(BoundsError())
 
-    @inbounds for i in eachindex(η)
-        h[i] = η[i] + H[i]
+    if Reactant.within_compile()
+        h .= η .+ H
+    else
+        @inbounds for i in eachindex(η)
+            h[i] = η[i] + H[i]
+        end
     end
 end
 

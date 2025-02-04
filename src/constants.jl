@@ -26,11 +26,11 @@ function SSPRK3coeff{T}(P::Parameter,Δt_Δ::T) where T
     return SSPRK3coeff{T}(n,s,kn,mn,Δt_Δn,kna,knb,Δt_Δnc)
 end
 
-mutable struct Constants{T<:AbstractFloat,Tprog<:AbstractFloat}
+mutable struct Constants{T<:AbstractFloat,Tprog<:AbstractFloat, ProgArray, ArrayTy}
 
     # RUNGE-KUTTA COEFFICIENTS 2nd/3rd/4th order including timestep Δt
-    RKaΔt::Array{Tprog,1}
-    RKbΔt::Array{Tprog,1}
+    RKaΔt::ProgArray
+    RKbΔt::ProgArray
     Δt_Δs::Tprog            # Δt/(s-1) wher s the number of stages
     Δt_Δ::Tprog             # Δt/Δ - timestep divided by grid spacing
     Δt_Δ_half::Tprog        # 1/2 * Δt/Δ
@@ -43,7 +43,7 @@ mutable struct Constants{T<:AbstractFloat,Tprog<:AbstractFloat}
     g::T                    # gravity
     cD::T                   # quadratic bottom friction - incl grid spacing
     # temp, remove after computing sensitivity field #############################
-    cDfield::Array{Float64,2}         # temp - for computing bottom drag sensitivity
+    cDfield::ArrayTy        # temp - for computing bottom drag sensitivity
     ##############################################################################
     rD::T                   # linear bottom friction - incl grid spacing
     γ::T                    # frequency of interface relaxation
@@ -130,7 +130,7 @@ function Constants{T,Tprog}(P::Parameter,G::Grid) where {T<:AbstractFloat,Tprog<
     scale_inv = convert(T,1/P.scale)
     scale_sst = convert(T,P.scale_sst)
 
-    return Constants{T,Tprog}(  RKaΔt,RKbΔt,Δt_Δs,Δt_Δ,Δt_Δ_half,
+    return Constants{T,Tprog,Array{Tprog,1},Array{T,2}}(  RKaΔt,RKbΔt,Δt_Δs,Δt_Δ,Δt_Δ_half,
                                 SSPRK3c,one_minus_α,
                                 g,cD,cDfield,rD,γ,cSmag,νB,τSST,jSST,
                                 ωFη,ωFx,ωFy,

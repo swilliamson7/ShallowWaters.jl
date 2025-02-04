@@ -1,4 +1,4 @@
-@with_kw struct Grid{T<:AbstractFloat,Tprog<:AbstractFloat}
+@with_kw struct Grid{T<:AbstractFloat,Tprog<:AbstractFloat, ArrayTy, VectorTy}
 
     # Parameters taken from Parameter struct
     nx::Int                            # number of grid cells in x-direction
@@ -38,14 +38,14 @@
     nq::Int = nqx*nqy                   # q-grid
 
     # GRID VECTORS
-    x_T::AbstractVector = Δ*Array(1:nx) .- Δ/2
-    y_T::AbstractVector = Δ*Array(1:ny) .- Δ/2
-    x_u::AbstractVector = if (bc == "periodic") Δ*Array(0:nx-1) else Δ*Array(1:nx-1) end
-    y_u::AbstractVector = y_T
-    x_v::AbstractVector = x_T
-    y_v::AbstractVector = Δ*Array(1:ny-1)
-    x_q::AbstractVector = if bc == "periodic" x_u else Δ*Array(1:nx+1) .- Δ end
-    y_q::AbstractVector = Δ*Array(1:ny+1) .- Δ
+    x_T::VectorTy = Δ*Array(1:nx) .- Δ/2
+    y_T::VectorTy = Δ*Array(1:ny) .- Δ/2
+    x_u::VectorTy = if (bc == "periodic") Δ*Array(0:nx-1) else Δ*Array(1:nx-1) end
+    y_u::VectorTy = y_T
+    x_v::VectorTy = x_T
+    y_v::VectorTy = Δ*Array(1:ny-1)
+    x_q::VectorTy = if bc == "periodic" x_u else Δ*Array(1:nx+1) .- Δ end
+    y_q::VectorTy = Δ*Array(1:ny+1) .- Δ
 
     # HALO SIZES
     halo::Int=2                         # halo size for u,v (Biharmonic stencil requires 2)
@@ -57,14 +57,14 @@
     ep::Int = if bc == "periodic" 1 else 0 end  # is there a u-point on the left edge?
 
     # GRID VECTORS WITH HALO
-    x_T_halo::AbstractVector = Δ*Array(0:nx+1) .- Δ/2
-    y_T_halo::AbstractVector = Δ*Array(0:ny+1) .- Δ/2
-    x_u_halo::AbstractVector = if (bc == "periodic") Δ*Array(-2:nx+1) else Δ*Array(-1:nx+1) end
-    y_u_halo::AbstractVector = Δ*Array(-1:ny+2) .- Δ/2
-    x_v_halo::AbstractVector = Δ*Array(-1:nx+2) .- Δ/2
-    y_v_halo::AbstractVector = Δ*Array(-1:ny+1)
-    x_q_halo::AbstractVector = if bc == "periodic" x_u_halo else Δ*Array(-1:nx+3) .- Δ end
-    y_q_halo::AbstractVector = Δ*Array(-1:ny+3) .- Δ
+    x_T_halo::VectorTy = Δ*Array(0:nx+1) .- Δ/2
+    y_T_halo::VectorTy = Δ*Array(0:ny+1) .- Δ/2
+    x_u_halo::VectorTy = if (bc == "periodic") Δ*Array(-2:nx+1) else Δ*Array(-1:nx+1) end
+    y_u_halo::VectorTy = Δ*Array(-1:ny+2) .- Δ/2
+    x_v_halo::VectorTy = Δ*Array(-1:nx+2) .- Δ/2
+    y_v_halo::VectorTy = Δ*Array(-1:ny+1)
+    x_q_halo::VectorTy = if bc == "periodic" x_u_halo else Δ*Array(-1:nx+3) .- Δ end
+    y_q_halo::VectorTy = Δ*Array(-1:ny+3) .- Δ
 
     # TIME STEPS
     c::Real = √(g*H)                            # shallow water gravity wave speed
@@ -87,16 +87,16 @@
     # N TIME STEPS FOR OUTPUT
     nout::Int = max(1,Int(floor(output_dt*3600/dtint)))     # output every n time steps
     nout_total::Int = (nt ÷ nout)+1                         # total number of output time steps
-    t_vec::AbstractVector = Array(0:nout_total-1)*dtint     # time vector
+    t_vec::VectorTy = Array(0:nout_total-1)*dtint     # time vector
 
     # CORIOLIS
     f₀::Float64 = coriolis_at_lat(ω,ϕ)                      # Coriolis parameter
     β::Float64 = β_at_lat(ω,R,ϕ)                            # Derivate of Coriolis parameter wrt latitude
     # scale only f_q as it's used for non-linear advection
-    f_q::Array{T,2} = T.(scale*Δ*(f₀ .+ β*(yy_q(bc,x_q_halo,y_q_halo) .- Ly/2)))  # same on the q-grid
+    f_q::ArrayTy = T.(scale*Δ*(f₀ .+ β*(yy_q(bc,x_q_halo,y_q_halo) .- Ly/2)))  # same on the q-grid
     # f_u, f_v are only used for linear dynamics (scaling implicit)
-    f_u::Array{T,2} = T.(Δ*(f₀ .+ β*(meshgrid(x_u,y_u)[2] .- Ly/2)))        # f = f₀ + βy on the u-grid
-    f_v::Array{T,2} = T.(Δ*(f₀ .+ β*(meshgrid(x_v,y_v)[2] .- Ly/2)))        # same on the v-grid
+    f_u::ArrayTy = T.(Δ*(f₀ .+ β*(meshgrid(x_u,y_u)[2] .- Ly/2)))        # f = f₀ + βy on the u-grid
+    f_v::ArrayTy = T.(Δ*(f₀ .+ β*(meshgrid(x_v,y_v)[2] .- Ly/2)))        # same on the v-grid
 end
 
 """Helper function to create yy_q based on the boundary condition bc."""
@@ -120,7 +120,7 @@ function Grid{T,Tprog}(P::Parameter) where {T<:AbstractFloat,Tprog<:AbstractFloa
     @unpack Uadv,output_dt = P
     @unpack ϕ,ω,R,scale = P
 
-    return Grid{T,Tprog}(nx=nx,Lx=Lx,L_ratio=L_ratio,bc=bc,g=g,H=H,cfl=cfl,Ndays=Ndays,
+    return Grid{T,Tprog, Array{T, 2}, Array{T, 1}}(nx=nx,Lx=Lx,L_ratio=L_ratio,bc=bc,g=g,H=H,cfl=cfl,Ndays=Ndays,
                 nstep_diff=nstep_diff,nstep_advcor=nstep_advcor,Uadv=Uadv,output_dt=output_dt,
                 ϕ=ϕ,ω=ω,R=R,scale=scale)
 end

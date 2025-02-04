@@ -1,9 +1,9 @@
-struct Forcing{T<:AbstractFloat}
-    Fx::Array{T,2}
-    Fy::Array{T,2}
-    H::Array{T,2}
-    η_ref::Array{T,2}
-    Fη::Array{T,2}
+struct Forcing{T<:AbstractFloat, ArrayTy}
+    Fx::ArrayTy
+    Fy::ArrayTy
+    H::ArrayTy
+    η_ref::ArrayTy
+    Fη::ArrayTy
     #sst_ref::Array{T,2}
     #sst_γ::Array{T,2}
 end
@@ -49,7 +49,7 @@ function Forcing{T}(P::Parameter,G::Grid) where {T<:AbstractFloat}
     η_ref = InterfaceRelaxation(T,P,G)
     Fη = KelvinPump(T,P,G)
 
-    return Forcing{T}(Fx,Fy,H,η_ref,Fη)
+    return Forcing{T, Array{T, 2}}(Fx,Fy,H,η_ref,Fη)
 end
 
 """Returns the constant forcing matrices Fx,Fy that vary only meriodionally/zonally
