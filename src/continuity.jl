@@ -1,9 +1,9 @@
 """Continuity equation's right-hand side with surface relaxation
 -∂x(uh) - ∂y(vh) + γ*(η_ref - η)."""
-function continuity_surf_relax!(η::Array{T,2},
-                                Diag::DiagnosticVars{T,Tprog},
-                                S::ModelSetup{T,Tprog},
-                                t::Int) where {T,Tprog}
+function continuity_surf_relax!(η::AbstractMatrix,
+                                Diag::DiagnosticVars{T},
+                                S::ModelSetup{T},
+                                t::Int) where T
 
     @unpack dη = Diag.Tendencies
     @unpack dUdx,dVdy = Diag.VolumeFluxes
@@ -24,13 +24,15 @@ function continuity_surf_relax!(η::Array{T,2},
 end
 
 """Continuity equation's right-hand side with time&space dependent forcing."""
-function continuity_forcing!(   Diag::DiagnosticVars{T,Tprog},
-                                S::ModelSetup{T,Tprog},
-                                t::Int) where {T,Tprog}
+function continuity_forcing!(   Diag::DiagnosticVars{T},
+                                S::ModelSetup{T},
+                                t::Int) where T
 
     @unpack dη = Diag.Tendencies
     @unpack dUdx,dVdy = Diag.VolumeFluxes
     @unpack Fη = S.forcing
+
+    Tprog = eltype(dη)
 
     m,n = size(dη) .- (2,2)         # cut off halo
     @boundscheck (m,n+2) == size(dUdx) || throw(BoundsError())
@@ -49,12 +51,14 @@ function continuity_forcing!(   Diag::DiagnosticVars{T,Tprog},
 end
 
 """Continuity equation's right-hand side -∂x(uh) - ∂y(vh) without forcing."""
-function continuity_itself!(Diag::DiagnosticVars{T,Tprog},
-                            S::ModelSetup{T,Tprog},
-                            t::Int) where {T,Tprog}
+function continuity_itself!(Diag::DiagnosticVars,
+                            S::ModelSetup,
+                            t::Int)
 
     @unpack dη = Diag.Tendencies
     @unpack dUdx,dVdy = Diag.VolumeFluxes
+
+    Tprog = eltype(dη)
 
     m,n = size(dη) .- (2,2)     # cut off halo
     @boundscheck (m,n+2) == size(dUdx) || throw(BoundsError())

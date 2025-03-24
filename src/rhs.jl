@@ -104,14 +104,15 @@ end
 function advection_coriolis!(   u,
                                 v,
                                 η,
-                                Diag::DiagnosticVars{T,Tprog},
-                                S::ModelSetup{T,Tprog}) where {T,Tprog}
+                                Diag::DiagnosticVars,
+                                S::ModelSetup)
 
-    @unpack h = Diag.VolumeFluxes
+    h = Diag.VolumeFluxes.h
     @unpack h_q,dvdx,dudy = Diag.Vorticity
     @unpack u²,v²,KEu,KEv = Diag.Bernoulli
     @unpack ep,f_q = S.grid
 
+    @unpack T = S.parameters
     Ixy!(h_q,h)
 
     # off-diagonals of stress tensor ∇(u,v)
@@ -166,15 +167,20 @@ function speed!(u²::AbstractMatrix,
     m,n = size(u²)
     @boundscheck (m,n) == size(u) || throw(BoundsError())
 
-    @inbounds for i in eachindex(u)
-        u²[i] = u[i]^2
+    @inbounds for j ∈ 1:n
+        for i ∈ 1:m
+        u²[i,j] = u[i,j]^2
+        end
     end
 
     m,n = size(v²)
     @boundscheck (m,n) == size(v) || throw(BoundsError())
 
-    @inbounds for i in eachindex(v)
-        v²[i] = v[i]^2
+    # @inbounds for i in eachindex(v)
+    @inbounds for j ∈ 1:n
+        for i ∈ 1:m
+        v²[i,j] = v[i,j]^2
+        end
     end
 end
 
@@ -237,15 +243,18 @@ function fu!(   qhu::AbstractMatrix,
 end
 
 """Sum up the tendencies of the non-diffusive right-hand side for the u-component."""
-function momentum_u!(   Diag::DiagnosticVars{T,Tprog},
+function momentum_u!(   Diag::DiagnosticVars,
                         S::ModelSetup,
-                        t::Int) where {T,Tprog}
+                        t::Int)
 
     @unpack du = Diag.Tendencies
     @unpack qhv = Diag.Vorticity
     @unpack dpdx = Diag.Bernoulli
     @unpack Fx = S.forcing
     @unpack ep,halo = S.grid
+    @unpack T = S.parameters
+
+    Tprog = eltype(du)
 
     m,n = size(du) .- (2halo,2halo)     # cut off the halo
     @boundscheck (m,n) == size(qhv) || throw(BoundsError())
@@ -283,9 +292,9 @@ end
 
 
 """Sum up the tendencies of the non-diffusive right-hand side for the v-component."""
-function momentum_v!(   Diag::DiagnosticVars{T,Tprog},
+function momentum_v!(   Diag::DiagnosticVars{T},
                         S::ModelSetup,
-                        t::Int) where {T,Tprog}
+                        t::Int) where T
 
     @unpack dv = Diag.Tendencies
     @unpack qhu = Diag.Vorticity
@@ -293,10 +302,13 @@ function momentum_v!(   Diag::DiagnosticVars{T,Tprog},
     @unpack Fy = S.forcing
     @unpack halo = S.grid
 
+    Tprog = eltype(dv)
+
     m,n = size(dv) .- (2halo,2halo)     # cut off the halo
     @boundscheck (m,n) == size(qhu) || throw(BoundsError())
     @boundscheck (m+2,n+2) == size(dpdy) || throw(BoundsError())
 
+    
     if S.parameters.seasonal_wind_y
         @unpack ωFy = S.constants
         Fyt = Ftime(T,t,ωFy)
@@ -327,11 +339,11 @@ function momentum_v!(   Diag::DiagnosticVars{T,Tprog},
 end
 
 """Zonal mass flux U = uh."""
-function Uflux!(U::AbstractMatrix{T},
-                u::AbstractMatrix{T},
-                h_u::AbstractMatrix{T},
+function Uflux!(U::AbstractMatrix,
+                u::AbstractMatrix,
+                h_u::AbstractMatrix,
                 ep::Int,
-                scale_inv::T) where {T<:AbstractFloat}
+                scale_inv)
 
     m,n = size(U)
     @boundscheck (m,n) == size(h_u) || throw(BoundsError())
@@ -345,10 +357,10 @@ function Uflux!(U::AbstractMatrix{T},
 end
 
 """Meridional mass flux V = vh."""
-function Vflux!(V::AbstractMatrix{T},
-                v::AbstractMatrix{T},
-                h_v::AbstractMatrix{T},
-                scale_inv::T) where {T<:AbstractFloat}
+function Vflux!(V::AbstractMatrix,
+                v::AbstractMatrix,
+                h_v::AbstractMatrix,
+                scale_inv)
 
     m,n = size(V)
     @boundscheck (m,n) == size(h_v) || throw(BoundsError())

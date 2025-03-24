@@ -309,7 +309,7 @@ function time_integration(S::ModelSetup{T,Tprog}) where {T<:AbstractFloat,Tprog<
 end
 
 """Add to a x multiplied with b. a += x*b """
-function axb!(a::Matrix{T},x::Real,b::Matrix{T}) where {T<:AbstractFloat}
+function axb!(a::AbstractMatrix{T},x,b::AbstractMatrix{T}) where T
     m,n = size(a)
     @boundscheck (m,n) == size(b) || throw(BoundsError())
 
@@ -323,7 +323,7 @@ function axb!(a::Matrix{T},x::Real,b::Matrix{T}) where {T<:AbstractFloat}
 end
 
 """c equals add a to x multiplied with b. c = a + x*b """
-function caxb!(c::Array{T,2},a::Array{T,2},x::T,b::Array{T,2}) where {T<:AbstractFloat}
+function caxb!(c::AbstractMatrix,a::AbstractMatrix,x::T,b::AbstractMatrix) where {T}
     m,n = size(a)
     @boundscheck (m,n) == size(b) || throw(BoundsError())
     @boundscheck (m,n) == size(c) || throw(BoundsError())
@@ -336,7 +336,7 @@ function caxb!(c::Array{T,2},a::Array{T,2},x::T,b::Array{T,2}) where {T<:Abstrac
 end
 
 """d equals add a minus b minus c. c = (a - b) - c."""
-function dambmc!(d::Matrix{T},a::Matrix{T},b::Matrix{T},c::Matrix{T}) where {T<:AbstractFloat}
+function dambmc!(d::AbstractArray{T},a::AbstractArray{T},b::AbstractArray{T},c::AbstractArray{T}) where {T}
     m,n = size(a)
     @boundscheck (m,n) == size(b) || throw(BoundsError())
     @boundscheck (m,n) == size(c) || throw(BoundsError())
@@ -350,7 +350,7 @@ function dambmc!(d::Matrix{T},a::Matrix{T},b::Matrix{T},c::Matrix{T}) where {T<:
 end
 
 """c equals add x multiplied to a plus b. c = x*(a+b) """
-function cxab!(c::Array{T,2},x::Real,a::Array{T,2},b::Array{T,2}) where {T<:AbstractFloat}
+function cxab!(c::AbstractMatrix{T},x,a::AbstractMatrix{T},b::AbstractMatrix{T}) where {T}
     m,n = size(a)
     @boundscheck (m,n) == size(b) || throw(BoundsError())
     @boundscheck (m,n) == size(c) || throw(BoundsError())
@@ -365,7 +365,7 @@ function cxab!(c::Array{T,2},x::Real,a::Array{T,2},b::Array{T,2}) where {T<:Abst
 end
 
 """c = x*a + y*b"""
-function cxayb!(c::Array{T,2},x::Real,a::Array{T,2},y::Real,b::Array{T,2}) where {T<:AbstractFloat}
+function cxayb!(c::AbstractMatrix{T},x,a::AbstractMatrix,y,b::AbstractMatrix) where {T}
     m,n = size(a)
     @boundscheck (m,n) == size(b) || throw(BoundsError())
     @boundscheck (m,n) == size(c) || throw(BoundsError())
@@ -381,10 +381,10 @@ function cxayb!(c::Array{T,2},x::Real,a::Array{T,2},y::Real,b::Array{T,2}) where
 end
 
 """d = x*a + y*b + z*c"""
-function dxaybzc!(  d::Array{T,2},
-                    x::Real,a::Array{T,2},
-                    y::Real,b::Array{T,2},
-                    z::Real,c::Array{T,2}) where {T<:AbstractFloat}
+function dxaybzc!(  d::AbstractMatrix{T},
+                    x,a::AbstractMatrix{T},
+                    y,b::AbstractMatrix{T},
+                    z,c::AbstractMatrix{T}) where {T<:AbstractFloat}
     m,n = size(a)
     @boundscheck (m,n) == size(b) || throw(BoundsError())
     @boundscheck (m,n) == size(c) || throw(BoundsError())
@@ -402,7 +402,7 @@ function dxaybzc!(  d::Array{T,2},
 end
 
 """Convert function for two arrays, X1, X2, in case their eltypes differ.
-Convert every element from X1 and store it in X2."""
+# Convert every element from X1 and store it in X2."""
 function Base.convert(X2::AbstractArray{T2,N},X1::AbstractArray{T1,N}) where {T1,T2,N}
 
     @boundscheck size(X2) == size(X1) || throw(BoundsError())
@@ -421,3 +421,21 @@ function Base.convert(X2::AbstractArray{T,N},X1::AbstractArray{T,N}) where {T,N}
     @boundscheck size(X2) == size(X1) || throw(BoundsError())
     return X1
 end
+
+# """Convert function for two arrays, X1, X2, in case their eltypes differ.
+# Convert every element from X1 and store it in X2."""
+# function convert_and_store(X2::AbstractArray{T2,N},X1::AbstractArray{T1,N}) where {T1,T2,N}
+#     @boundscheck size(X2) == size(X1) || throw(BoundsError())
+
+#     @inbounds for i in eachindex(X1)
+#             X2[i] = convert(T2,X1[i])
+#     end
+#     return X2
+# end
+
+# """Convert function for two arrays, X1, X2, in case their eltypes are identical.
+# Just pass X1, such that X2 is pointed to the same place in memory."""
+# function convert_and_store(X2::AbstractArray{T,N},X1::AbstractArray{T,N}) where {T,N}
+#     @boundscheck size(X2) == size(X1) || throw(BoundsError())
+#     return X1
+# end

@@ -1,11 +1,11 @@
 """ Extends the matrices u,v,η,sst with a halo of ghost points for boundary conditions."""
-function add_halo(  u::Array{T,2},
-                    v::Array{T,2},
-                    η::Array{T,2},
-                    sst::Array{T,2},
+function add_halo(  u::AbstractMatrix{T},
+                    v::AbstractMatrix{T},
+                    η::AbstractMatrix{T},
+                    sst::AbstractMatrix{T},
                     G::Grid,
                     P::Parameter,
-                    C::Constants) where {T<:AbstractFloat}
+                    C::Constants) where {T}
 
     @unpack nx,ny,nux,nuy,nvx,nvy = G
     @unpack halo,haloη,halosstx,halossty = G
@@ -35,13 +35,13 @@ function add_halo(  u::Array{T,2},
 end
 
 """Cut off the halo from the prognostic variables."""
-function remove_halo(   u::Array{T,2},
-                        v::Array{T,2},
-                        η::Array{T,2},
-                        sst::Array{T,2},
+function remove_halo(   u::AbstractMatrix{T},
+                        v::AbstractMatrix{T},
+                        η::AbstractMatrix{T},
+                        sst::AbstractMatrix{T},
                         G::Grid,
                         C::Constants
-                        ) where {T<:AbstractFloat}
+                        ) where {T}
 
     @unpack halo,haloη,halosstx,halossty = G
     @unpack scale_inv,scale_sst = C
@@ -60,7 +60,7 @@ end
 function ghost_points!( u::AbstractMatrix,
                         v::AbstractMatrix,
                         η::AbstractMatrix,
-                        P::Parameter, 
+                        P::Parameter,
                         C::Constants)
 
     @unpack bc,Tcomm = P
@@ -80,7 +80,7 @@ end
 """Decide on boundary condition P.bc which ghost point function to execute."""
 function ghost_points_uv!(  u::AbstractMatrix,
                             v::AbstractMatrix,
-                            P::Parameter, 
+                            P::Parameter,
                             C::Constants)
 
     @unpack bc,Tcomm = P
@@ -127,11 +127,11 @@ end
 ##### Original versions ######################################################################################################################
 
 """ Extends the matrices u,v,η,sst with a halo of ghost points for boundary conditions."""
-function add_halo(  u::Array{T,2},
-                    v::Array{T,2},
-                    η::Array{T,2},
-                    sst::Array{T,2},
-                    S::ModelSetup) where {T<:AbstractFloat}
+function add_halo(  u::AbstractMatrix{T},
+                    v::AbstractMatrix{T},
+                    η::AbstractMatrix{T},
+                    sst::AbstractMatrix{T},
+                    S::ModelSetup) where {T}
 
     @unpack nx,ny,nux,nuy,nvx,nvy = S.grid
     @unpack halo,haloη,halosstx,halossty = S.grid
@@ -161,11 +161,11 @@ function add_halo(  u::Array{T,2},
 end
 
 """Cut off the halo from the prognostic variables."""
-function remove_halo(   u::Array{T,2},
-                        v::Array{T,2},
-                        η::Array{T,2},
-                        sst::Array{T,2},
-                        S::ModelSetup) where {T<:AbstractFloat}
+function remove_halo(   u::AbstractMatrix{T},
+                        v::AbstractMatrix{T},
+                        η::AbstractMatrix{T},
+                        sst::AbstractMatrix{T},
+                        S::ModelSetup) where T
 
     @unpack halo,haloη,halosstx,halossty = S.grid
     @unpack scale_inv,scale_sst = S.constants
@@ -180,7 +180,7 @@ function remove_halo(   u::Array{T,2},
 end
 
 """ Copy ghost points for u from inside to the halo in the nonperiodic case. """
-function ghost_points_u_nonperiodic!(u::AbstractMatrix{T},one_minus_α::T) where T
+function ghost_points_u_nonperiodic!(u::AbstractMatrix{T},one_minus_α) where T
     n,m = size(u)
 
     # tangential boundary condition
@@ -209,7 +209,7 @@ function ghost_points_u_periodic!(::Type{Tcomm},u::AbstractMatrix{T},one_minus_�
 end
 
 """ Copy ghost points for v from inside to the halo in the nonperiodic case. """
-function ghost_points_v_nonperiodic!(v::AbstractMatrix{T},one_minus_α::T) where T
+function ghost_points_v_nonperiodic!(v::AbstractMatrix{T},one_minus_α) where T
     n,m = size(v)
 
     # tangential boundary condition
@@ -293,7 +293,7 @@ end
 
 """ Copy ghost points for η from inside to the halo in the periodic case. """
 function ghost_points_sst_periodic!(::Type{Tcomm},
-                                    sst::Array{T,2},
+                                    sst::AbstractArray{T,2},
                                     halosstx::Int,
                                     halossty::Int) where {Tcomm,T}
     n,m = size(sst)

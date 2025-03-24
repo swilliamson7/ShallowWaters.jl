@@ -57,7 +57,8 @@ function bottom_drag_quadratic!(u,
     @boundscheck (m,n) == size(h_u) || throw(BoundsError())
     @boundscheck (m+2+ep,n+2) == size(u) || throw(BoundsError())
 
-    cDfieldu = zeros(129,130)
+    cDfieldu = similar(cDfield, 129,130)
+    fill!(cDfieldu, 0)
     Ix!(cDfieldu, cDfield)
     @inbounds for j ∈ 1:n
         for i ∈ 1:m
@@ -70,7 +71,8 @@ function bottom_drag_quadratic!(u,
     @boundscheck (m,n) == size(h_v) || throw(BoundsError())
     @boundscheck (m+2,n+2) == size(v) || throw(BoundsError())
 
-    cDfieldv = zeros(130,129)
+    cDfieldv = similar(cDfield,130,129)
+    fill!(cDfieldv, 0)
     Iy!(cDfieldv, cDfield)
     @inbounds for j ∈ 1:n
         for i ∈ 1:m

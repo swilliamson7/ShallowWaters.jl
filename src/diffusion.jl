@@ -218,16 +218,17 @@ function viscous_tensor_constant!(  Diag::DiagnosticVars,
 end
 
 """Update u with bottom friction tendency (Bu,Bv) and biharmonic viscosity."""
-function add_drag_diff_tendencies!( u::Matrix{Tprog},
-                                    v::Matrix{Tprog},
-                                    Diag::DiagnosticVars{T,Tprog},
-                                    S::ModelSetup{T,Tprog}) where {T,Tprog}
-
+function add_drag_diff_tendencies!( u::AbstractMatrix,
+                                    v::AbstractMatrix,
+                                    Diag::DiagnosticVars{T},
+                                    S::ModelSetup{T}) where T
     @unpack Bu,Bv = Diag.Bottomdrag
     @unpack LLu1,LLu2,LLv1,LLv2 = Diag.Smagorinsky
     @unpack halo,ep,Δt_diff = S.grid
     @unpack compensated = S.parameters
     @unpack du_comp,dv_comp = Diag.Tendencies
+
+    Tprog = eltype(u)
 
     m,n = size(u) .- (2*halo,2*halo)
     @boundscheck (m+2-ep,n+2) == size(Bu) || throw(BoundsError())

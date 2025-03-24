@@ -1,5 +1,5 @@
 """Zero generator function for Grid G as argument."""
-function PrognosticVars{T}(G::Grid) where {T<:AbstractFloat}
+function PrognosticVars{T}(G::Grid) where T
     @unpack nux,nuy,nvx,nvy,nx,ny = G
     @unpack halo,haloη,halosstx,halossty = G
 
@@ -8,10 +8,10 @@ function PrognosticVars{T}(G::Grid) where {T<:AbstractFloat}
     η = zeros(T,nx+2haloη,ny+2haloη)
     sst = zeros(T,nx+2halosstx,ny+2halossty)
 
-    return PrognosticVars{T, Array{T,2}}(u,v,η,sst)
+    return PrognosticVars{T, AbstractMatrix{T}}(u,v,η,sst)
 end
 
-function initial_conditions(::Type{T},G::Grid,P::Parameter,C::Constants) where {T<:AbstractFloat}
+function initial_conditions(::Type{T},G::Grid,P::Parameter,C::Constants) where T
 
     ## PROGNOSTIC VARIABLES U,V,η
     @unpack nux,nuy,nvx,nvy,nx,ny = G
@@ -152,7 +152,7 @@ function initial_conditions(::Type{T},G::Grid,P::Parameter,C::Constants) where {
     return PrognosticVars{T, Array{T, 2}}(u,v,η,sst)
 end
 
-function initial_conditions(::Type{T},S::ModelSetup) where {T<:AbstractFloat}
+function initial_conditions(::Type{T},S::ModelSetup) where {T}
 
     ## PROGNOSTIC VARIABLES U,V,η
     @unpack nux,nuy,nvx,nvy,nx,ny = S.grid
