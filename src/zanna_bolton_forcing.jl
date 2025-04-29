@@ -103,8 +103,8 @@ end
 
 function ZB_momentum(u, v, S, Diag)
 
-    @unpack γ₀, zb_filtered, N  = S.parameters
-    @unpack ζ, ζsq, D, Dsq, Dhat, Dhatsq, Dhatq = Diag.ZBVars
+    @unpack zb_filtered, N  = S.parameters
+    @unpack γ₀, ζ, ζsq, D, Dsq, Dhat, Dhatsq, Dhatq = Diag.ZBVars
     @unpack ζD, ζDT, ζDhat, ζsqT, trace = Diag.ZBVars
     @unpack ζpDT = Diag.ZBVars
     @unpack dudx, dudy, dvdx, dvdy = Diag.ZBVars

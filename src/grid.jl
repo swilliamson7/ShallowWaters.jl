@@ -1,27 +1,27 @@
-@with_kw struct Grid{T<:AbstractFloat,Tprog<:AbstractFloat, ArrayTy, VectorTy}
+@with_kw struct Grid{T<:AbstractFloat,Tprog<:AbstractFloat}
 
     # Parameters taken from Parameter struct
-    nx::Int                            # number of grid cells in x-direction
-    Lx::Int                            # length of the domain in x-direction [m]
-    L_ratio::Real                       # Domain aspect ratio of Lx/Ly
+    nx::Int                             # number of grid cells in x-direction
+    Lx::Int                             # length of the domain in x-direction [m]
+    L_ratio::Float64                    # Domain aspect ratio of Lx/Ly
     bc::String                          # boundary condition, "periodic" or "nonperiodic"
-    g::Real                             # gravitational acceleration [m/s]
-    H::Real                             # layer thickness at rest [m]
-    cfl::Real                           # CFL number (1.0 recommended for RK4, 0.6 for RK3)
-    Ndays::Real                         # number of days to integrate for
+    g::Float64                          # gravitational acceleration [m/s]
+    H::Float64                          # layer thickness at rest [m]
+    cfl::Float64                        # CFL number (1.0 recommended for RK4, 0.6 for RK3)
+    Ndays::Float64                      # number of days to integrate for
     nstep_diff::Int                     # diffusive terms every nstep_diff time steps.
     nstep_advcor::Int                   # nonlinear terms every nstep_advcor time steps.
-    Uadv::Real                          # Velocity scale [m/s] for tracer advection
-    output_dt::Real                     # output time step [hours]
-    ω::Real                             # Earth's angular frequency [s^-1]
-    ϕ::Real                             # central latitue of the domain (for coriolis) [°]
-    R::Real                             # Earth's radius [m]
-    scale::Int                         # multiplicative scale for momentum equations [1]
+    Uadv::Float64                       # Velocity scale [m/s] for tracer advection
+    output_dt::Float64                  # output time step [hours]
+    ω::Float64                          # Earth's angular frequency [s^-1]
+    ϕ::Float64                          # central latitue of the domain (for coriolis) [°]
+    R::Float64                          # Earth's radius [m]
+    scale::Float64                      # multiplicative scale for momentum equations [1]
 
     # DOMAIN SIZES
-    Δ::T=Lx / nx                            # grid spacing
+    Δ::Int=Lx / nx                          # grid spacing
     ny::Int=Int(round(Lx / L_ratio / Δ))    # number of grid cells in y-direction
-    Ly::Real=ny * Δ                         # length of domain in y-direction
+    Ly::Float64=ny * Δ                      # length of domain in y-direction
 
     # NUMBER OF GRID POINTS
     nux::Int = if (bc == "periodic") nx else nx-1 end   # u-grid in x-direction
@@ -38,14 +38,14 @@
     nq::Int = nqx*nqy                   # q-grid
 
     # GRID VECTORS
-    x_T::VectorTy = Δ*Array(1:nx) .- Δ/2
-    y_T::VectorTy = Δ*Array(1:ny) .- Δ/2
-    x_u::VectorTy = if (bc == "periodic") Δ*Array(0:nx-1) else Δ*Array(1:nx-1) end
-    y_u::VectorTy = y_T
-    x_v::VectorTy = x_T
-    y_v::VectorTy = Δ*Array(1:ny-1)
-    x_q::VectorTy = if bc == "periodic" x_u else Δ*Array(1:nx+1) .- Δ end
-    y_q::VectorTy = Δ*Array(1:ny+1) .- Δ
+    x_T::Vector{Float64} = Δ*Array(1:nx) .- Δ/2
+    y_T::Vector{Float64} = Δ*Array(1:ny) .- Δ/2
+    x_u::Vector{Float64} = if (bc == "periodic") Δ*Array(0:nx-1) else Δ*Array(1:nx-1) end
+    y_u::Vector{Float64} = y_T
+    x_v::Vector{Float64} = x_T
+    y_v::Vector{Float64} = Δ*Array(1:ny-1)
+    x_q::Vector{Float64} = if bc == "periodic" x_u else Δ*Array(1:nx+1) .- Δ end
+    y_q::Vector{Float64} = Δ*Array(1:ny+1) .- Δ
 
     # HALO SIZES
     halo::Int=2                         # halo size for u,v (Biharmonic stencil requires 2)
@@ -57,17 +57,17 @@
     ep::Int = if bc == "periodic" 1 else 0 end  # is there a u-point on the left edge?
 
     # GRID VECTORS WITH HALO
-    x_T_halo::VectorTy = Δ*Array(0:nx+1) .- Δ/2
-    y_T_halo::VectorTy = Δ*Array(0:ny+1) .- Δ/2
-    x_u_halo::VectorTy = if (bc == "periodic") Δ*Array(-2:nx+1) else Δ*Array(-1:nx+1) end
-    y_u_halo::VectorTy = Δ*Array(-1:ny+2) .- Δ/2
-    x_v_halo::VectorTy = Δ*Array(-1:nx+2) .- Δ/2
-    y_v_halo::VectorTy = Δ*Array(-1:ny+1)
-    x_q_halo::VectorTy = if bc == "periodic" x_u_halo else Δ*Array(-1:nx+3) .- Δ end
-    y_q_halo::VectorTy = Δ*Array(-1:ny+3) .- Δ
+    x_T_halo::Vector{Float64} = Δ*Array(0:nx+1) .- Δ/2
+    y_T_halo::Vector{Float64} = Δ*Array(0:ny+1) .- Δ/2
+    x_u_halo::Vector{Float64} = if (bc == "periodic") Δ*Array(-2:nx+1) else Δ*Array(-1:nx+1) end
+    y_u_halo::Vector{Float64} = Δ*Array(-1:ny+2) .- Δ/2
+    x_v_halo::Vector{Float64} = Δ*Array(-1:nx+2) .- Δ/2
+    y_v_halo::Vector{Float64} = Δ*Array(-1:ny+1)
+    x_q_halo::Vector{Float64} = if bc == "periodic" x_u_halo else Δ*Array(-1:nx+3) .- Δ end
+    y_q_halo::Vector{Float64} = Δ*Array(-1:ny+3) .- Δ
 
     # TIME STEPS
-    c::Real = √(g*H)                            # shallow water gravity wave speed
+    c::Float64 = √(g*H)                         # shallow water gravity wave speed
     dtint::Int = Int(floor(cfl*Δ/c))            # dt converted to Int
     nt::Int = Int(ceil(Ndays*3600*24/dtint))    # number of time steps to integrate
     dt::T = T(dtint)                            # time step [s]
@@ -87,16 +87,16 @@
     # N TIME STEPS FOR OUTPUT
     nout::Int = max(1,Int(floor(output_dt*3600/dtint)))     # output every n time steps
     nout_total::Int = (nt ÷ nout)+1                         # total number of output time steps
-    t_vec::VectorTy = Array(0:nout_total-1)*dtint     # time vector
+    t_vec::AbstractVector = Array(0:nout_total-1)*dtint     # time vector
 
     # CORIOLIS
     f₀::Float64 = coriolis_at_lat(ω,ϕ)                      # Coriolis parameter
     β::Float64 = β_at_lat(ω,R,ϕ)                            # Derivate of Coriolis parameter wrt latitude
     # scale only f_q as it's used for non-linear advection
-    f_q::ArrayTy = T.(scale*Δ*(f₀ .+ β*(yy_q(bc,x_q_halo,y_q_halo) .- Ly/2)))  # same on the q-grid
+    f_q::Array{T,2} = T.(scale*Δ*(f₀ .+ β*(yy_q(bc,x_q_halo,y_q_halo) .- Ly/2)))  # same on the q-grid
     # f_u, f_v are only used for linear dynamics (scaling implicit)
-    f_u::ArrayTy = T.(Δ*(f₀ .+ β*(meshgrid(x_u,y_u)[2] .- Ly/2)))        # f = f₀ + βy on the u-grid
-    f_v::ArrayTy = T.(Δ*(f₀ .+ β*(meshgrid(x_v,y_v)[2] .- Ly/2)))        # same on the v-grid
+    f_u::Array{T,2} = T.(Δ*(f₀ .+ β*(meshgrid(x_u,y_u)[2] .- Ly/2)))        # f = f₀ + βy on the u-grid
+    f_v::Array{T,2} = T.(Δ*(f₀ .+ β*(meshgrid(x_v,y_v)[2] .- Ly/2)))        # same on the v-grid
 end
 
 """Helper function to create yy_q based on the boundary condition bc."""
@@ -120,7 +120,7 @@ function Grid{T,Tprog}(P::Parameter) where {T<:AbstractFloat,Tprog<:AbstractFloa
     @unpack Uadv,output_dt = P
     @unpack ϕ,ω,R,scale = P
 
-    return Grid{T,Tprog, Array{T, 2}, Array{T, 1}}(nx=nx,Lx=Lx,L_ratio=L_ratio,bc=bc,g=g,H=H,cfl=cfl,Ndays=Ndays,
+    return Grid{T,Tprog}(nx=nx,Lx=Lx,L_ratio=L_ratio,bc=bc,g=g,H=H,cfl=cfl,Ndays=Ndays,
                 nstep_diff=nstep_diff,nstep_advcor=nstep_advcor,Uadv=Uadv,output_dt=output_dt,
                 ϕ=ϕ,ω=ω,R=R,scale=scale)
 end

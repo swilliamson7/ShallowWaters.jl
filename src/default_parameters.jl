@@ -123,7 +123,7 @@ Creates a Parameter struct with following options and default values
     init_interpolation::Bool=true       # Interpolate the initial conditions in case grids don't match?
 """
 
-@with_kw mutable struct Parameter{ArrayTy, RectCoordsTy, RidgeVectorTy}
+@with_kw mutable struct Parameter
 
     T=Float32                 # number format
 
@@ -132,7 +132,7 @@ Creates a Parameter struct with following options and default values
     Tini=Tprog                # number format to reduce precision for initial conditions
 
     # DOMAIN RESOLUTION AND RATIO
-    nx::Int=128                         # number of grid cells in x-direction
+    nx::Int=128                             # number of grid cells in x-direction
     Lx::Float64=3840e3                      # length of the domain in x-direction [m]
     L_ratio::Float64=1                      # Domain aspect ratio of Lx/Ly
 
@@ -160,12 +160,12 @@ Creates a Parameter struct with following options and default values
 
     # BOTTOM TOPOGRAPHY OPTIONS
     topography::String="flat"         # "ridge", "seamount", "flat", "ridges", "bathtub"
-    topo_ridges_positions::RidgeVectorTy = [0.05,0.25,0.45,0.9]
+    topo_ridges_positions::Vector{Float64} = [0.05,0.25,0.45,0.9]
     topo_height::Float64=100.               # height of seamount [m]
     topo_width::Float64=300e3              # horizontal scale [m] of the seamount
 
     # SURFACE RELAXATION
-    surface_relax::Bool=false           # yes?
+    surface_relax::Bool=false              # yes?
     t_relax::Float64=100.                  # time scale of the relaxation [days]
     η_refh::Float64=5.                     # height difference [m] of the interface relaxation profile
     η_refw::Float64=50e3                   # width [m] of the tangent used for the interface relaxation
@@ -200,25 +200,12 @@ Creates a Parameter struct with following options and default values
     zb_forcing_dissipation::Bool=false  # add ZB forcing term to dissipation calculation? (i.e. once per timestep)
     zb_filtered::Bool=true              # apply a filter to entries in the forcing tensor?
     N::Int=1                            # how many times to apply filter to entries in forcing tensor
-    γ₀::Float64=0.3                     # coefficient for forcing term parameter
 
     # NN FORCING OPTIONS
     nn_forcing_momentum::Bool=false
     nn_forcing_dissipation::Bool=false
     handwritten::Bool = true            # handwritten NN (no Lux)?
     rng::TaskLocalRNG=Random.default_rng()
-    # weights_center::ArrayTy{Float32, 2} = zeros(Float32,1,17)
-    # weights_corner::ArrayTy{Float32, 2} = zeros(Float32,2,22)
-
-    # PARAMETERS FOR ADJOINT METHOD
-    data_steps::StepRange{Int,Int} = 0:1:0      # Timesteps where data exists
-    data::ArrayTy = zeros(1, 1, 1)       # model data
-    J::Float64 = 0.                             # Placeholder for cost function evaluation
-    j::Int = 1                                  # For keeping track of the entry in data
-    average::Float64 = 0.0                      # Placeholder for computation of average values during checkpointing
-
-    # CHECKPOINTING VARIABLES
-    i::Int = 0                                  # Placeholder for current timestep, needed for Checkpointing.jl
 
     # MOMENTUM ADVECTION OPTIONS
     adv_scheme::String="Sadourny"       # "Sadourny" or "ArakawaHsu"
@@ -239,7 +226,7 @@ Creates a Parameter struct with following options and default values
     tracer_relaxation::Bool=true        # yes?
     tracer_consumption::Bool=false      # yes?
     sst_initial::String="waves"         # "west", "south", "linear", "waves","rect", "flat" or "restart"
-    sst_rect_coords::RectCoordsTy=[0.,0.15,0.,1.0]
+    sst_rect_coords::Array{Float64,1}=[0.,0.15,0.,1.0]
                                         # (x0,x1,y0,y1) are the size of the rectangle in [0,1]
     Uadv::Float64=0.2                      # Velocity scale [m/s] for tracer advection
     SSTmax::Float64=1.                     # tracer (sea surface temperature) max for initial conditions

@@ -22,11 +22,11 @@ function NN_momentum(u, v, S)
 
     Diag = S.Diag
 
-    @unpack γ₀, zb_filtered, N, rng  = S.parameters
+    @unpack zb_filtered, N, rng  = S.parameters
 
     @unpack nqx, nqy = Diag.NNVars
     @unpack dudx, dudy, dvdx, dvdy = Diag.NNVars
-    @unpack ζ, D, Dhat = Diag.NNVars
+    @unpack γ₀, ζ, D, Dhat = Diag.NNVars
     @unpack ζT, DT, ζDhat = Diag.NNVars
     @unpack T11, T22, T12, T21 = Diag.NNVars
     @unpack weights_center, weights_corner = Diag.NNVars
@@ -121,11 +121,11 @@ function handwritten_NN_momentum(u, v, S)
 
     Diag = S.Diag
 
-    @unpack γ₀, zb_filtered, N  = S.parameters
+    @unpack zb_filtered, N  = S.parameters
 
     @unpack nqx, nqy = Diag.NNVars
     @unpack dudx, dudy, dvdx, dvdy = Diag.NNVars
-    @unpack ζ, D, Dhat = Diag.NNVars
+    @unpack γ₀, ζ, D, Dhat = Diag.NNVars
     @unpack ζT, DT, ζDhat = Diag.NNVars
     @unpack T11, T22, T12, T21 = Diag.NNVars
     @unpack weights_center, weights_corner = Diag.NNVars

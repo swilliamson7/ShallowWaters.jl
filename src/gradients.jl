@@ -23,7 +23,7 @@ end
 
 """ ∇² is the 2nd order centred Laplace-operator ∂/∂x^2 + ∂/∂y^2.
 The 1/Δ²-factor is omitted and moved into the viscosity coefficient."""
-function ∇²!(du:AbstractMatrix,u::AbstractMatrix) # where {T<:AbstractFloat}
+function ∇²!(du::AbstractMatrix,u::AbstractMatrix) # where {T<:AbstractFloat}
     m, n = size(du)
     @boundscheck (m+2,n+2) == size(u) || throw(BoundsError())
 

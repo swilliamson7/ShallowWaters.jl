@@ -474,6 +474,8 @@ end
     dvdx::ArrayTy = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
     dvdy::ArrayTy = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
 
+    γ₀::Float64=0.3                       # coefficient in parameterization term
+
     # these are only utilized in a scheme where γ varies spacially
     γ::ArrayTy = zeros(T,nx,ny)
     γ_u::ArrayTy = zeros(T,nux,nuy)
