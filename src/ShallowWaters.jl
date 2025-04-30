@@ -4,7 +4,11 @@ module ShallowWaters
 
     using NetCDF, Parameters, Printf, Dates, Interpolations
 
-    using Random, Lux
+    using Lux, Random
+
+    @inline function within_compile()
+        return true
+    end
 
     include("default_parameters.jl")
     include("grid.jl")
