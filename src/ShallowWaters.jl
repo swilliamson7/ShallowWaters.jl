@@ -4,13 +4,7 @@ module ShallowWaters
 
     using NetCDF, Parameters, Printf, Dates, Interpolations
 
-    using Lux, Random
-
-    using Reactant
-
-    @inline function within_compile()
-        return true
-    end
+    using Random, Lux
 
     include("default_parameters.jl")
     include("grid.jl")

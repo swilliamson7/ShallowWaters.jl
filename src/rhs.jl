@@ -1,5 +1,3 @@
-using Reactant
-
 """Transit function to call either the rhs_linear or the rhs_nonlinear."""
 function rhs!(  u,
                 v,
@@ -149,13 +147,11 @@ function thickness!(h::AbstractMatrix,η::AbstractMatrix,H::AbstractMatrix)
     @boundscheck (m,n) == size(η) || throw(BoundsError())
     @boundscheck (m,n) == size(H) || throw(BoundsError())
 
-    if within_compile()
-        h .= η .+ H
-    else
-        @inbounds for i in eachindex(η)
-            h[i] = η[i] + H[i]
-        end
+
+    @inbounds for i in eachindex(η)
+        h[i] = η[i] + H[i]
     end
+
 end
 
 """Squared velocities u²,v²."""
