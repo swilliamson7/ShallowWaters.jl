@@ -6,10 +6,6 @@ module ShallowWaters
 
     using Lux, Random
 
-    @inline function within_compile()
-        return true
-    end
-
     include("default_parameters.jl")
     include("grid.jl")
     include("constants.jl")

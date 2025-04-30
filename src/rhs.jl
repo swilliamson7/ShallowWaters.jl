@@ -147,7 +147,6 @@ function thickness!(h::AbstractMatrix,η::AbstractMatrix,H::AbstractMatrix)
     @boundscheck (m,n) == size(η) || throw(BoundsError())
     @boundscheck (m,n) == size(H) || throw(BoundsError())
 
-
     @inbounds for i in eachindex(η)
         h[i] = η[i] + H[i]
     end
@@ -257,19 +256,19 @@ function momentum_u!(   Diag::DiagnosticVars{T,Tprog},
 
     if  S.parameters.zb_forcing_momentum
         @inbounds for j ∈ 1:n
-            for i ∈ 1:m
+            for i ∈ 1:m 
                 du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j]) + Tprog(S.Diag.ZBVars.S_u[i,j])
             end
         end
     elseif S.parameters.nn_forcing_momentum
         @inbounds for j ∈ 1:n
-            for i ∈ 1:m
+            for i ∈ 1:m 
                 du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j]) + Tprog(S.Diag.NNVars.S_u[i,j])
             end
         end
     else
         @inbounds for j ∈ 1:n
-            for i ∈ 1:m
+            for i ∈ 1:m 
                 du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j])
             end
         end
@@ -363,7 +362,7 @@ function UVfluxes!( u::AbstractMatrix,
                     η::AbstractMatrix,
                     Diag::DiagnosticVars,
                     S::ModelSetup)
-
+    
     @unpack h,h_u,h_v,U,V = Diag.VolumeFluxes
     @unpack H = S.forcing
     @unpack ep = S.grid
