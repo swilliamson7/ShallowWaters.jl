@@ -1,5 +1,3 @@
-using Reactant
-
 """Transit function to call either the rhs_linear or the rhs_nonlinear."""
 function rhs!(  u,
                 v,
@@ -39,7 +37,7 @@ function rhs_nonlinear!(u::AbstractMatrix,
         advection_coriolis!(u,v,η,Diag,S)    # PV and non-linear Bernoulli terms
     end
     PVadvection!(Diag,S)                 # advect the PV with U,V
-    
+
     # Bernoulli potential - recalculate for new η, KEu,KEv are only updated in advection_coriolis
     @unpack p,KEu,KEv,dpdx,dpdy = Diag.Bernoulli
     @unpack g,scale,scale_inv = S.constants
@@ -48,7 +46,7 @@ function rhs_nonlinear!(u::AbstractMatrix,
     ∂x!(dpdx,p)
     ∂y!(dpdy,p)
 
-    # Check if adding Zanna Bolton forcing term 
+    # Check if adding Zanna Bolton forcing term
     if S.parameters.zb_forcing_momentum
         ZB_momentum(u,v,S,Diag)
     elseif S.parameters.nn_forcing_momentum
@@ -140,7 +138,7 @@ function advection_coriolis!(   u,
         AHγ!(qγ,q)
         AHδ!(qδ,q)
     end
-    
+
 end
 
 """Layer thickness h obtained by adding sea surface height η to bottom height H."""
@@ -261,19 +259,19 @@ function momentum_u!(   Diag::DiagnosticVars{T,Tprog},
 
     if  S.parameters.zb_forcing_momentum
         @inbounds for j ∈ 1:n
-            for i ∈ 1:m 
+            for i ∈ 1:m
                 du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j]) + Tprog(S.Diag.ZBVars.S_u[i,j])
             end
         end
     elseif S.parameters.nn_forcing_momentum
         @inbounds for j ∈ 1:n
-            for i ∈ 1:m 
+            for i ∈ 1:m
                 du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j]) + Tprog(S.Diag.NNVars.S_u[i,j])
             end
         end
     else
         @inbounds for j ∈ 1:n
-            for i ∈ 1:m 
+            for i ∈ 1:m
                 du[i+2,j+2] = (Tprog(qhv[i,j]) - Tprog(dpdx[i+1-ep,j+1])) + Tprog(Fxt*Fx[i,j])
             end
         end
@@ -367,7 +365,7 @@ function UVfluxes!( u::AbstractMatrix,
                     η::AbstractMatrix,
                     Diag::DiagnosticVars,
                     S::ModelSetup)
-    
+
     @unpack h,h_u,h_v,U,V = Diag.VolumeFluxes
     @unpack H = S.forcing
     @unpack ep = S.grid

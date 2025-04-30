@@ -6,8 +6,6 @@ module ShallowWaters
 
     using Lux, Random
 
-    using Reactant
-
     @inline function within_compile()
         return true
     end
