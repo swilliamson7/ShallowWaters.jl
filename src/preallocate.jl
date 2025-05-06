@@ -562,6 +562,8 @@ end
     nqx::Int = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
     nqy::Int = ny+1                                        # q-grid in y-direction
 
+    γ₀::Float64=0.3                       # coefficient in parameterization term
+
     dudx::Array{T,2} = zeros(T,nux+2*halo-1,nuy+2*halo)    # ∂u/∂x
     dudy::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo-1)    # ∂u/∂y
     dvdx::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x

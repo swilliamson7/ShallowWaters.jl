@@ -18,13 +18,13 @@ as is done in the Zanna & Bolton parameterization. We note that, as in the
 Zanna and Bolton parameterization, for initial test runs we assume T_12 \equiv T_21
 """
 
-using Lux
+using Lux, Random
 
 function NN_momentum(u, v, S)
 
     Diag = S.Diag
 
-    @unpack zb_filtered, N, rng  = S.parameters
+    @unpack zb_filtered, N = S.parameters
 
     @unpack nqx, nqy = Diag.NNVars
     @unpack dudx, dudy, dvdx, dvdy = Diag.NNVars
@@ -78,8 +78,8 @@ function NN_momentum(u, v, S)
     corner_layers = Lux.Dense(corner_indim => corner_outdim, relu)
     center_layers = Lux.Dense(center_indim => center_outdim, relu)
 
-    ps_corner, st_corner = Lux.setup(rng, corner_layers)
-    ps_center, st_center = Lux.setup(rng, center_layers)
+    ps_corner, st_corner = Lux.setup(Random.default_rng(), corner_layers)
+    ps_center, st_center = Lux.setup(Random.default_rng(), center_layers)
 
     corner_params = (weight=weights_corner, bias=ps_corner.bias)
     center_params = (weight=weights_center, bias=ps_center.bias)
