@@ -76,14 +76,10 @@
     zb_filtered::Bool=true              # apply a filter to entries in the forcing tensor?
     N::Int=1                            # how many times to apply filter to entries in forcing tensor
 
-    # PARAMETERS FOR ADJOINT METHOD
-    data_steps::StepRange{Int,Int} = 0:1:0      # Timesteps where data exists
-    data::Array{Float32, 1} = [0.]              # model data
-    J::Float64 = 0.                             # Placeholder for cost function evaluation
-    j::Int = 1                                  # For keeping track of the entry in data
-
-    # CHECKPOINTING VARIABLES
-    i::Int = 0                                  # Placeholder for current timestep, needed for Checkpointing.jl
+    # NN FORCING OPTIONS
+    nn_forcing_momentum::Bool=false
+    nn_forcing_dissipation::Bool=false
+    handwritten::Bool = true            # handwritten NN (no Lux)?
 
     # MOMENTUM ADVECTION OPTIONS
     adv_scheme::String="ArakawaHsu"     # "Sadourny" or "ArakawaHsu"

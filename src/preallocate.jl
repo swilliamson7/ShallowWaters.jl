@@ -543,6 +543,76 @@ function ZBVars{T}(G::Grid) where {T<:AbstractFloat}
                             halosstx=halosstx,halossty=halossty,Ker=Ker)
 end
 
+""" Variables that appear in NN forcing term """
+@with_kw mutable struct NNVars{T<:AbstractFloat}
+
+    # to be specified
+    nx::Int
+    ny::Int
+    bc::String
+    halo::Int
+    haloη::Int
+    halosstx::Int
+    halossty::Int
+
+    nux::Int = if (bc == "periodic") nx else nx-1 end      # u-grid in x-direction
+    nuy::Int = ny                                          # u-grid in y-direction
+    nvx::Int = nx                                          # v-grid in x-direction
+    nvy::Int = ny-1                                        # v-grid in y-direction
+    nqx::Int = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
+    nqy::Int = ny+1                                        # q-grid in y-direction
+
+    dudx::Array{T,2} = zeros(T,nux+2*halo-1,nuy+2*halo)    # ∂u/∂x
+    dudy::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo-1)    # ∂u/∂y
+    dvdx::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
+    dvdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
+
+    # weights_corner is applied to ζ and D to form the diagonal terms of S,
+    # and weights_center is applied to ζ and D̃ to form the off-diagonal terms
+    # of S. Initially this will just be a single layer to see if we can get the model
+    # with the neural net running
+    # the initial weight values might need to change, for now I'm setting them to zero
+    weights_corner::Array{T,2} = zeros(T,2,22)
+    corner_outdim::Int = 2
+    corner_indim::Int = 22
+
+    weights_center::Array{T,2} = zeros(T,1,17)
+    center_outdim::Int = 1
+    center_indim::Int = 17
+
+    ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
+
+    D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners 
+
+    Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
+
+    ζT::Array{T,2} = zeros(T,nx,ny)         # ζ interpolated to cell centers
+    DT::Array{T,2} = zeros(T,nx,ny)         # D, interpolated on cell centers
+    ζDhat::Array{T,2} = zeros(T,nqx,nqy)    # ζ ⋅ Dhat, cell corners
+
+    T11::Array{T,2} = zeros(T,nqx,nqy)
+    T12::Array{T,2} = zeros(T,nx,ny)
+    T21::Array{T,2} = zeros(T,nx,ny)
+    T22::Array{T,2} = zeros(T,nqx,nqy)
+
+    S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction
+    S_v::Array{T,2} = zeros(T,nvx,nvy)             # total forcing in y-direction
+
+end
+
+"""Generator function for NN momentum terms."""
+function NNVars{T}(G::Grid) where {T<:AbstractFloat}
+
+    @unpack nx,ny,bc = G
+    @unpack halo,haloη = G
+    @unpack halosstx,halossty = G
+
+    return NNVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+                            halosstx=halosstx,halossty=halossty
+    )
+end
+
+
 """Preallocate the diagnostic variables and return them as matrices in structs."""
 function preallocate(   ::Type{T},
                         ::Type{Tprog},
@@ -560,6 +630,7 @@ function preallocate(   ::Type{T},
     SL = SemiLagrangeVars{T}(G)
     PV = PrognosticVars{T}(G)
     ZB = ZBVars{T}(G)
+    NN = NNVars{T}(G)
 
-    return DiagnosticVars{T,Tprog}(RK,TD,VF,VT,BN,BD,AH,LP,SM,SL,PV,ZB)
+    return DiagnosticVars{T,Tprog}(RK,TD,VF,VT,BN,BD,AH,LP,SM,SL,PV,ZB,NN)
 end

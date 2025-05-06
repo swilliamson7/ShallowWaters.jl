@@ -51,6 +51,14 @@ function rhs_nonlinear!(u::AbstractMatrix,
         ZB_momentum(u,v,S,Diag)
     end
 
+    if S.parameters.nn_forcing_momentum 
+        NN_momentum(u, v, S)
+    end
+
+    if S.parameters.nn_forcing_momentum && S.parameters.handwritten
+        handwritten_NN_momentum(u, v, S)
+    end
+
     # adding the terms
     momentum_u!(Diag,S,t)
     momentum_v!(Diag,S,t)
