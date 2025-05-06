@@ -70,6 +70,12 @@
     α::Float64 = 2                      # lateral boundary condition parameter
                                         # 0 free-slip, 0<α<2 partial-slip, 2 no-slip
 
+    # ZANNA-BOLTON FORCING OPTIONS
+    zb_forcing_momentum::Bool=false     # add ZB forcing term to momentum calculation?
+    zb_forcing_dissipation::Bool=false  # add ZB forcing term to dissipation calculation? (i.e. once per timestep)
+    zb_filtered::Bool=true              # apply a filter to entries in the forcing tensor?
+    N::Int=1                            # how many times to apply filter to entries in forcing tensor
+
     # PARAMETERS FOR ADJOINT METHOD
     data_steps::StepRange{Int,Int} = 0:1:0      # Timesteps where data exists
     data::Array{Float32, 1} = [0.]              # model data
