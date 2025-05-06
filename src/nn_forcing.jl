@@ -18,6 +18,8 @@ as is done in the Zanna & Bolton parameterization. We note that, as in the
 Zanna and Bolton parameterization, for initial test runs we assume T_12 \equiv T_21
 """
 
+# as of 05/06/25 there are dimension issues here when L_ratio \neq 1
+
 using Lux, Random
 
 function NN_momentum(u, v, S)
@@ -58,10 +60,10 @@ function NN_momentum(u, v, S)
         end
     end
 
-    ζ = cat(zeros(1,nqx),ζ,zeros(1,nqx),dims=1)
-    ζ = cat(zeros(nqy+2,1),ζ,zeros(nqy+2,1),dims=2)
-    D = cat(zeros(1,nqx),D,zeros(1,nqx),dims=1)
-    D = cat(zeros(nqy+2,1),D,zeros(nqy+2,1),dims=2)
+    ζ = cat(zeros(1,nqy),ζ,zeros(1,nqy),dims=1)
+    ζ = cat(zeros(nqx+2,1),ζ,zeros(nqx+2,1),dims=2)
+    D = cat(zeros(1,nqy),D,zeros(1,nqy),dims=1)
+    D = cat(zeros(nqx+2,1),D,zeros(nqx+2,1),dims=2)
 
     # Stretch deformation, cell centers (with halo)
     @inbounds for j ∈ 1:nTh
@@ -156,10 +158,10 @@ function handwritten_NN_momentum(u, v, S)
         end
     end
 
-    ζ = cat(zeros(1,nqx),ζ,zeros(1,nqx),dims=1)
-    ζ = cat(zeros(nqy+2,1),ζ,zeros(nqy+2,1),dims=2)
-    D = cat(zeros(1,nqx),D,zeros(1,nqx),dims=1)
-    D = cat(zeros(nqy+2,1),D,zeros(nqy+2,1),dims=2)
+    ζ = cat(zeros(1,nqy),ζ,zeros(1,nqy),dims=1)
+    ζ = cat(zeros(nqx+2,1),ζ,zeros(nqx+2,1),dims=2)
+    D = cat(zeros(1,nqy),D,zeros(1,nqy),dims=1)
+    D = cat(zeros(nqx+2,1),D,zeros(nqx+2,1),dims=2)
 
     # Stretch deformation, cell centers (with halo)
     @inbounds for j ∈ 1:nTh
