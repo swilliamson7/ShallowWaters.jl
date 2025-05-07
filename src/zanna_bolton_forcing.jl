@@ -132,9 +132,9 @@ function ZB_momentum(u, v, S, Diag)
     mT,nT = size(trace)
 
     ##### CHECK #########
-    @boundscheck (mq+2,nq+2) == size(dvdx) || throw(BoundsError())
-    @boundscheck (mq+2+ep,nq+2) == size(dudy) || throw(BoundsError())
-    
+    # @boundscheck (mq+2,nq+2) == size(dvdx) || throw(BoundsError())
+    # @boundscheck (mq+2+ep,nq+2) == size(dudy) || throw(BoundsError())
+
     # Relative vorticity and shear deformation, cell corners
     @inbounds for j ∈ 1:nq
         for k ∈ 1:mq

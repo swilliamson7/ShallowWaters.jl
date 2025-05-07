@@ -481,24 +481,24 @@ end
 
     Ker::Array{T,2} = zeros(3,3)    # convolutional kernal
 
-    ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
-    ζsq::Array{T,2} = zeros(T,nqx,nqy)    # relative vorticity squared, cell corners 
+    ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners
+    ζsq::Array{T,2} = zeros(T,nqx,nqy)    # relative vorticity squared, cell corners
 
-    D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners 
-    Dsq::Array{T,2} = zeros(T,nqx,nqy)    # square of the tensor 
+    D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners
+    Dsq::Array{T,2} = zeros(T,nqx,nqy)    # square of the tensor
 
     D_n::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)
     D_nT::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη) 
     D_q::Array{T,2} = zeros(T,nqx,nqy)
 
-    Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
-    Dhatsq::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)   # square of the tensor
+    Dhat::Array{T,2} = zeros(T,nqx-1+2*haloη,nqy-1+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
+    Dhatsq::Array{T,2} = zeros(T,nqx-1+2*haloη,nqy-1+2*haloη)   # square of the tensor
     Dhatq::Array{T,2} = zeros(T,nqx,nqy)                  # tensor interpolated onto q-grid
 
-    ζpDT::Array{T,2} = zeros(T,nx,ny)     # ζ^2 + D^2 interpolated to cell centers, not currently used
-    ζsqT::Array{T,2} = zeros(T,nx,ny)     # ζ^2 interpolated to cell centers
-    ζD::Array{T,2} = zeros(T,nqx,nqy)     # ζ ⋅ D, cell corners
-    ζDT::Array{T,2} = zeros(T,nx,ny)      # ζ ⋅ D, placed on cell centers
+    ζpDT::Array{T,2} = zeros(T,nx,ny)           # ζ^2 + D^2 interpolated to cell centers, not currently used
+    ζsqT::Array{T,2} = zeros(T,nqx-1,nqy-1)     # ζ^2 interpolated to cell centers
+    ζD::Array{T,2} = zeros(T,nqx,nqy)           # ζ ⋅ D, cell corners
+    ζDT::Array{T,2} = zeros(T,nqx-1,nqy-1)      # ζ ⋅ D, placed on cell centers
     ζDhat::Array{T,2} = zeros(T,nqx,nqy)  # ζ ⋅ Dhat, cell corners
     
     trace::Array{T,2} = zeros(T,nx,ny)     # ξ^2 + D^2 + Dhat^2, cell centers

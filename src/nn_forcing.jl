@@ -103,8 +103,8 @@ function NN_momentum(u, v, S)
         end
     end
 
-    for j ∈ 2:nTh-1
-        for k ∈ 2:mTh-1
+    for j ∈ 2:mTh-1
+        for k ∈ 2:nTh-1
 
             temp12 = center_model([reshape(ζ[j:j+1,k:k+1], 4);
                 reshape(D[j:j+1,k:k+1], 4);
@@ -190,8 +190,8 @@ function handwritten_NN_momentum(u, v, S)
         end
     end
 
-    for j ∈ 2:nTh-1
-        for k ∈ 2:mTh-1
+    for j ∈ 2:mTh-1
+        for k ∈ 2:nTh-1
 
             temp12 = hw_center_model(reshape(ζ[j:j+1,k:k+1], 4),
                 reshape(D[j:j+1,k:k+1], 4),
