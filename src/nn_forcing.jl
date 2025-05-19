@@ -18,7 +18,7 @@ as is done in the Zanna & Bolton parameterization. We note that, as in the
 Zanna and Bolton parameterization, for initial test runs we assume T_12 \equiv T_21
 """
 
-# as of 05/06/25 there are dimension issues here when L_ratio \neq 1
+# !!!!!! as of 05/06/25 there are dimension issues here when L_ratio \neq 1, so don't use on non-square domains
 
 using Lux, Random
 
@@ -89,7 +89,7 @@ function NN_momentum(u, v, S)
     corner_model = StatefulLuxLayer{true}(corner_layers, corner_params, st_corner)
     center_model = StatefulLuxLayer{true}(center_layers, center_params, st_center)
 
-    for j ∈ 1:nqx
+    @inbounds for j ∈ 1:nqx
         for k ∈ 1:nqy
 
             temp11, temp22 = corner_model([reshape(ζ[j:j+2,k:k+2], 9);
@@ -103,7 +103,7 @@ function NN_momentum(u, v, S)
         end
     end
 
-    for j ∈ 2:mTh-1
+    @inbounds for j ∈ 2:mTh-1
         for k ∈ 2:nTh-1
 
             temp12 = center_model([reshape(ζ[j:j+1,k:k+1], 4);
@@ -171,11 +171,11 @@ function handwritten_NN_momentum(u, v, S)
     end
 
     # we have two functions defined below, intended to mimic the inner operations of the 
-    # NN, for now this will just be a single layer
+    # NN, for now this will just be a single hidden layer
     # I'm still sticking with two neurals, one to determine the off-diagonal term
     # and the other to determine the diagonal terms, T_12 and T_11, T_22, respectively
 
-    for j ∈ 1:nqx
+    @inbounds for j ∈ 1:nqx
         for k ∈ 1:nqy
 
             temp11, temp22 = hw_corner_model(reshape(ζ[j:j+2,k:k+2], 9),
@@ -190,7 +190,7 @@ function handwritten_NN_momentum(u, v, S)
         end
     end
 
-    for j ∈ 2:mTh-1
+    @inbounds for j ∈ 2:mTh-1
         for k ∈ 2:nTh-1
 
             temp12 = hw_center_model(reshape(ζ[j:j+1,k:k+1], 4),
@@ -223,7 +223,7 @@ end
 function hw_center_model(ζ, D, Dhat, weights)
 
     linear = weights * [ζ; D; Dhat]
-    out = relu(linear)
+    out = relu.(linear)
 
     return out
 
