@@ -1,4 +1,4 @@
-@with_kw mutable struct Parameter{PT <: Base.IEEEFloat}
+@with_kw mutable struct Parameter
 
     T=Float32                 # number format
 
