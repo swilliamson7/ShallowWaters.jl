@@ -100,14 +100,6 @@ function NN_momentum(u, v, S)
 
             temp11, temp22 = corner_model(input)
 
-            # input = T[reshape(ζ[j:j+2,k:k+2], 9);
-            #     reshape(D[j:j+2,k:k+2], 9);
-            #     reshape(Dhat[j:j+1,k:k+1], 4)]
-
-            # temp11, temp22 = corner_model(
-            #     input
-            # )
-
             T11[j,k] = temp11
             T22[j,k] = temp22
 
@@ -123,11 +115,6 @@ function NN_momentum(u, v, S)
             Base.copyto!(@view(input[9:8+9]), Dhat[j-1:j+1,k-1:k+1])
 
             temp12 = center_model(input)
-
-            # temp12 = center_model(T[reshape(ζ[j:j+1,k:k+1], 4);
-            #     reshape(D[j:j+1,k:k+1], 4);
-            #     reshape(Dhat[j-1:j+1,k-1:k+1], 9)]
-            # )
 
             T12[j-1,k-1] = temp12[1]
 
