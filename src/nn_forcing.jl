@@ -26,6 +26,7 @@ function NN_momentum(u, v, S)
 
     Diag = S.Diag
 
+    T = Float32 
     @unpack zb_filtered, N = S.parameters
 
     @unpack nqx, nqy = Diag.NNVars
@@ -60,10 +61,10 @@ function NN_momentum(u, v, S)
         end
     end
 
-    ζ = cat(zeros(1,nqy),ζ,zeros(1,nqy),dims=1)
-    ζ = cat(zeros(nqx+2,1),ζ,zeros(nqx+2,1),dims=2)
-    D = cat(zeros(1,nqy),D,zeros(1,nqy),dims=1)
-    D = cat(zeros(nqx+2,1),D,zeros(nqx+2,1),dims=2)
+    ζ = cat(zeros(T, 1,nqy),ζ,zeros(T, 1,nqy),dims=1)
+    ζ = cat(zeros(T, nqx+2,1),ζ,zeros(T, nqx+2,1),dims=2)
+    D = cat(zeros(T, 1,nqy),D,zeros(T, 1,nqy),dims=1)
+    D = cat(zeros(T, nqx+2,1),D,zeros(T, nqx+2,1),dims=2)
 
     # Stretch deformation, cell centers (with halo)
     @inbounds for j ∈ 1:nTh
@@ -89,13 +90,23 @@ function NN_momentum(u, v, S)
     corner_model = StatefulLuxLayer{true}(corner_layers, corner_params, st_corner)
     center_model = StatefulLuxLayer{true}(center_layers, center_params, st_center)
 
+    input = Vector{T}(undef, 9+9+4)
     @inbounds for j ∈ 1:nqx
         for k ∈ 1:nqy
 
-            temp11, temp22 = corner_model([reshape(ζ[j:j+2,k:k+2], 9);
-                reshape(D[j:j+2,k:k+2], 9);
-                reshape(Dhat[j:j+1,k:k+1], 4)]
-            )
+            Base.copyto!(@view(input[1:9]), ζ[j:j+2,k:k+2])
+            Base.copyto!(@view(input[10:18]), D[j:j+2,k:k+2])
+            Base.copyto!(@view(input[19:9+9+4]), Dhat[j:j+1,k:k+1])
+
+            temp11, temp22 = corner_model(input)
+
+            # input = T[reshape(ζ[j:j+2,k:k+2], 9);
+            #     reshape(D[j:j+2,k:k+2], 9);
+            #     reshape(Dhat[j:j+1,k:k+1], 4)]
+
+            # temp11, temp22 = corner_model(
+            #     input
+            # )
 
             T11[j,k] = temp11
             T22[j,k] = temp22
@@ -103,13 +114,20 @@ function NN_momentum(u, v, S)
         end
     end
 
+    input = Vector{T}(undef, 4+4+9)
     @inbounds for j ∈ 2:mTh-1
         for k ∈ 2:nTh-1
 
-            temp12 = center_model([reshape(ζ[j:j+1,k:k+1], 4);
-                reshape(D[j:j+1,k:k+1], 4);
-                reshape(Dhat[j-1:j+1,k-1:k+1], 9)]
-            )
+            Base.copyto!(@view(input[1:4]), ζ[j:j+1,k:k+1])
+            Base.copyto!(@view(input[5:8]), D[j:j+1,k:k+1])
+            Base.copyto!(@view(input[9:8+9]), Dhat[j-1:j+1,k-1:k+1])
+
+            temp12 = center_model(input)
+
+            # temp12 = center_model(T[reshape(ζ[j:j+1,k:k+1], 4);
+            #     reshape(D[j:j+1,k:k+1], 4);
+            #     reshape(Dhat[j-1:j+1,k-1:k+1], 9)]
+            # )
 
             T12[j-1,k-1] = temp12[1]
 
@@ -124,6 +142,8 @@ end
 function handwritten_NN_momentum(u, v, S)
 
     Diag = S.Diag
+
+    T = Float32
 
     @unpack zb_filtered, N  = S.parameters
 
@@ -158,10 +178,10 @@ function handwritten_NN_momentum(u, v, S)
         end
     end
 
-    ζ = cat(zeros(1,nqy),ζ,zeros(1,nqy),dims=1)
-    ζ = cat(zeros(nqx+2,1),ζ,zeros(nqx+2,1),dims=2)
-    D = cat(zeros(1,nqy),D,zeros(1,nqy),dims=1)
-    D = cat(zeros(nqx+2,1),D,zeros(nqx+2,1),dims=2)
+    ζ = cat(zeros(T,1,nqy),ζ,zeros(T,1,nqy),dims=1)
+    ζ = cat(zeros(T,nqx+2,1),ζ,zeros(T,nqx+2,1),dims=2)
+    D = cat(zeros(T,1,nqy),D,zeros(T,1,nqy),dims=1)
+    D = cat(zeros(T,nqx+2,1),D,zeros(T,nqx+2,1),dims=2)
 
     # Stretch deformation, cell centers (with halo)
     @inbounds for j ∈ 1:nTh
