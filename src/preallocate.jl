@@ -608,13 +608,6 @@ end
     compiled_center::CenterCompiledType
 end
 
-# function batched_call(arg1, arg2, arg3, arg4)
-
-#     Lux.apply.(arg1, eachslice(arg2; dims=3), (ps,), (st,))
-
-#     # Lux.apply(arg1, arg2, arg3, arg4)
-# end
-
 """Generator function for NN momentum terms."""
 function NNVars{T}(G::Grid) where {T<:AbstractFloat}
 
