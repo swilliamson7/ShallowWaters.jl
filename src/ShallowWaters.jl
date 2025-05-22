@@ -4,6 +4,8 @@ module ShallowWaters
 
     using NetCDF, Parameters, Printf, Dates, Interpolations
 
+    using Reactant
+
     include("default_parameters.jl")
     include("grid.jl")
     include("constants.jl")

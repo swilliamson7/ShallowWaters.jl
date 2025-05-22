@@ -544,7 +544,7 @@ function ZBVars{T}(G::Grid) where {T<:AbstractFloat}
 end
 
 """ Variables that appear in NN forcing term """
-@with_kw mutable struct NNVars{T<:AbstractFloat}
+@with_kw mutable struct NNVars{T<:AbstractFloat, CornerLayerType, CenterLayerType, CornerModelType, CenterModelType, CornerCompiledType, CenterCompiledType}
 
     # to be specified
     nx::Int
@@ -574,13 +574,11 @@ end
     # of S. Initially this will just be a single layer to see if we can get the model
     # with the neural net running
     # the initial weight values might need to change, for now I'm setting them to zero
-    weights_corner::Array{T,2} = zeros(T,2,22)
-    corner_outdim::Int = 2
-    corner_indim::Int = 22
+    corner_outdim::Int
+    corner_indim::Int
 
-    weights_center::Array{T,2} = zeros(T,1,17)
-    center_outdim::Int = 1
-    center_indim::Int = 17
+    center_outdim::Int
+    center_indim::Int
 
     ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
 
@@ -600,17 +598,60 @@ end
     S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction
     S_v::Array{T,2} = zeros(T,nvx,nvy)             # total forcing in y-direction
 
+    corner_layers::CornerLayerType
+    center_layers::CenterLayerType
+
+    model_corner::CornerModelType
+    model_center::CenterModelType
+
+    compiled_corner::CornerCompiledType
+    compiled_center::CenterCompiledType
 end
+
+# function batched_call(arg1, arg2, arg3, arg4)
+
+#     Lux.apply.(arg1, eachslice(arg2; dims=3), (ps,), (st,))
+
+#     # Lux.apply(arg1, arg2, arg3, arg4)
+# end
 
 """Generator function for NN momentum terms."""
 function NNVars{T}(G::Grid) where {T<:AbstractFloat}
 
-    @unpack nx,ny,bc = G
+    @unpack nx,ny,bc= G
     @unpack halo,haloη = G
     @unpack halosstx,halossty = G
 
-    return NNVars{T}(nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
-                            halosstx=halosstx,halossty=halossty
+    nqx = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
+    nqy = ny+1                                        # q-grid in y-direction
+
+    corner_outdim = 2
+    corner_indim = 22
+
+    center_outdim = 1
+    center_indim = 17
+
+    corner_layers = Lux.Dense(corner_indim => corner_outdim, relu)
+    center_layers = Lux.Dense(center_indim => center_outdim, relu)
+
+    model_corner = Lux.setup(Random.default_rng(), corner_layers)
+    model_center = Lux.setup(Random.default_rng(), center_layers)
+
+    model_corner = Reactant.to_rarray(model_corner)
+    model_center = Reactant.to_rarray(model_center)
+    
+    corner_input = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
+    center_input = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
+    @show  "compiled", 9+4+4, nx-2, ny-2
+
+    compiled_corner = Reactant.@compile Lux.apply(corner_layers, corner_input, model_corner[1], model_corner[2])
+    compiled_center = Reactant.@compile Lux.apply(center_layers, center_input, model_center[1], model_center[2])
+
+    # compiled_corner = nothing
+    # compiled_center = nothing
+
+    return NNVars{T, typeof(corner_layers), typeof(center_layers), typeof(model_corner), typeof(model_center), typeof(compiled_corner), typeof(compiled_center)}(; nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+                    halosstx=halosstx,halossty=halossty, corner_outdim, corner_indim, center_outdim, center_indim, corner_layers, center_layers, model_corner, model_center, compiled_corner, compiled_center
     )
 end
 

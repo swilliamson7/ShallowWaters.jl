@@ -34,7 +34,9 @@ function NN_momentum(u, v, S)
     @unpack γ₀, ζ, D, Dhat = Diag.NNVars
     @unpack ζT, DT, ζDhat = Diag.NNVars
     @unpack T11, T22, T12, T21 = Diag.NNVars
-    @unpack weights_center, weights_corner = Diag.NNVars
+    @unpack model_corner, model_center = Diag.NNVars
+    @unpack center_layers, corner_layers = Diag.NNVars
+    @unpack compiled_corner, compiled_center = Diag.NNVars
     @unpack corner_outdim, corner_indim, center_indim, center_outdim = Diag.NNVars
 
     @unpack S_u, S_v = Diag.ZBVars
@@ -78,47 +80,86 @@ function NN_momentum(u, v, S)
     # the second will produce the diagonal terms (T_11, T_22)
     # The weights are defined as inputs to the NN so that we can tune them with adjoint based optimization
 
-    corner_layers = Lux.Dense(corner_indim => corner_outdim, relu)
-    center_layers = Lux.Dense(center_indim => center_outdim, relu)
+    corner_input = Array{T}(undef, 9+9+4, nqx, nqy)
 
-    ps_corner, st_corner = Lux.setup(Random.default_rng(), corner_layers)
-    ps_center, st_center = Lux.setup(Random.default_rng(), center_layers)
-
-    corner_params = (weight=weights_corner, bias=ps_corner.bias)
-    center_params = (weight=weights_center, bias=ps_center.bias)
-
-    corner_model = StatefulLuxLayer{true}(corner_layers, corner_params, st_corner)
-    center_model = StatefulLuxLayer{true}(center_layers, center_params, st_center)
-
-    input = Vector{T}(undef, 9+9+4)
     @inbounds for j ∈ 1:nqx
         for k ∈ 1:nqy
-
-            Base.copyto!(@view(input[1:9]), ζ[j:j+2,k:k+2])
-            Base.copyto!(@view(input[10:18]), D[j:j+2,k:k+2])
-            Base.copyto!(@view(input[19:9+9+4]), Dhat[j:j+1,k:k+1])
-
-            temp11, temp22 = corner_model(input)
-
-            T11[j,k] = temp11
-            T22[j,k] = temp22
-
+            Base.copyto!(@view(corner_input[1:9, j, k]), ζ[j:j+2,k:k+2])
+            Base.copyto!(@view(corner_input[10:18, j, k]), D[j:j+2,k:k+2])
+            Base.copyto!(@view(corner_input[19:22, j, k]), Dhat[j:j+1,k:k+1])
         end
     end
 
-    input = Vector{T}(undef, 4+4+9)
+    @static if false
+        @inbounds for j ∈ 1:nqx
+            for k ∈ 1:nqy
+
+                Base.copyto!(@view(corner_input[1:9]), ζ[j:j+2,k:k+2])
+                Base.copyto!(@view(corner_input[10:18]), D[j:j+2,k:k+2])
+                Base.copyto!(@view(corner_input[19:22]), Dhat[j:j+1,k:k+1])
+
+                temp11, temp22 = if compiled_corner isa Nothing
+                    Lux.apply(corner_layers, corner_input, model_corner[1], model_corner[2])[1]
+                else
+                    compiled_corner(corner_layers, Reactant.to_rarray(corner_input), model_corner[1], model_corner[2])[1]
+                end
+
+                T11[j,k] = temp11
+                T22[j,k] = temp22
+
+            end
+        end
+    else
+
+        result = if compiled_corner isa Nothing
+            Lux.apply(corner_layers, corner_input, model_corner[1], model_corner[2])[1]
+        else
+            compiled_corner(corner_layers, Reactant.to_rarray(corner_input), model_corner[1], model_corner[2])[1]
+        end
+
+        T11 .= result[1, :, :]
+        T22 .= result[2, :, :]
+
+    end
+
+    center_input = Array{T}(undef, 4+4+9, mTh-2,nTh-2)
+    @show  "run", size(center_input)
     @inbounds for j ∈ 2:mTh-1
         for k ∈ 2:nTh-1
-
-            Base.copyto!(@view(input[1:4]), ζ[j:j+1,k:k+1])
-            Base.copyto!(@view(input[5:8]), D[j:j+1,k:k+1])
-            Base.copyto!(@view(input[9:8+9]), Dhat[j-1:j+1,k-1:k+1])
-
-            temp12 = center_model(input)
-
-            T12[j-1,k-1] = temp12[1]
-
+            Base.copyto!(@view(center_input[1:4, j, k]), ζ[j:j+1,k:k+1])
+            Base.copyto!(@view(center_input[5:8, j, k]), D[j:j+1,k:k+1])
+            Base.copyto!(@view(center_input[9:17, j, k]), Dhat[j-1:j+1,k-1:k+1])
         end
+    end
+
+    @static if false
+        @inbounds for j ∈ 2:mTh-1
+            for k ∈ 2:nTh-1
+
+                Base.copyto!(@view(center_input[1:4, j, k]), ζ[j:j+1,k:k+1])
+                Base.copyto!(@view(center_input[5:8, j, k]), D[j:j+1,k:k+1])
+                Base.copyto!(@view(center_input[9:17, j, k]), Dhat[j-1:j+1,k-1:k+1])
+
+                temp12 = if compiled_center isa Nothing
+                    Lux.apply(center_layers, center_input, model_center[1], model_center[2])[1]
+                else
+                    compiled_center(center_layers, Reactant.to_rarray(center_input), model_center[1], model_center[2])[1]
+                end
+
+                T12[j-1,k-1] = temp12
+
+            end
+        end
+    else
+
+        result = if compiled_center isa Nothing
+            Lux.apply(center_layers, center_input, model_center[1], model_center[2])[1]
+        else
+            compiled_center(center_layers, Reactant.to_rarray(center_input), model_center[1], model_center[2])[1]
+        end
+
+        T12 .= result[1, :, :]
+
     end
 
 end
