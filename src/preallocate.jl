@@ -544,7 +544,7 @@ function ZBVars{T}(G::Grid) where {T<:AbstractFloat}
 end
 
 """ Variables that appear in NN forcing term """
-@with_kw mutable struct NNVars{T<:AbstractFloat, CornerLayerType, CenterLayerType, CornerModelType, CenterModelType, CornerCompiledType, CenterCompiledType}
+@with_kw mutable struct NNVars{T<:AbstractFloat, CornerLayerType, CenterLayerType, CornerModelType, CenterModelType, CornerCompiledType, CenterCompiledType, DCornerCompiledType, DCenterCompiledType}
 
     # to be specified
     nx::Int
@@ -606,6 +606,24 @@ end
 
     compiled_corner::CornerCompiledType
     compiled_center::CenterCompiledType
+
+    compiled_dcorner::DCornerCompiledType
+    compiled_dcenter::DCenterCompiledType
+end
+
+function nn_apply(result, layers, input, ps, st)
+    res2 = Lux.apply(layers, input, ps, st)[1]
+    copyto!(result, Base.reshape(res2, size(result)))
+    nothing
+end
+
+using Enzyme
+
+function grad_apply(dres, dps, layers, input, ps, st)
+    res = similar(dres)
+    dinput = Enzyme.make_zero(input)
+    Enzyme.autodiff(Reverse, Const(nn_apply), Duplicated(res, dres), Const(layers), Duplicated(input, dinput), Duplicated(ps, dps), Const(st))
+    return dinput
 end
 
 """Generator function for NN momentum terms."""
@@ -635,16 +653,24 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
     
     corner_input = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
     center_input = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
-    @show  "compiled", 9+4+4, nx-2, ny-2
+
+    d_corner_res = Reactant.to_rarray(Array{T}(undef, 2, nqx, nqy))
+    d_center_res = Reactant.to_rarray(Array{T}(undef, 1, nx, ny))
 
     compiled_corner = Reactant.@compile Lux.apply(corner_layers, corner_input, model_corner[1], model_corner[2])
     compiled_center = Reactant.@compile Lux.apply(center_layers, center_input, model_center[1], model_center[2])
 
+    compiled_dcorner = Reactant.@compile grad_apply(d_corner_res, deepcopy(model_corner[1]), corner_layers, corner_input, model_corner[1], model_corner[2])
+    compiled_dcenter = Reactant.@compile grad_apply(d_center_res, deepcopy(model_center[1]), center_layers, center_input, model_center[1], model_center[2])
+
     # compiled_corner = nothing
     # compiled_center = nothing
+    # compiled_dcorner = nothing
+    # compiled_dcenter = nothing
 
-    return NNVars{T, typeof(corner_layers), typeof(center_layers), typeof(model_corner), typeof(model_center), typeof(compiled_corner), typeof(compiled_center)}(; nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
-                    halosstx=halosstx,halossty=halossty, corner_outdim, corner_indim, center_outdim, center_indim, corner_layers, center_layers, model_corner, model_center, compiled_corner, compiled_center
+
+    return NNVars{T, typeof(corner_layers), typeof(center_layers), typeof(model_corner), typeof(model_center), typeof(compiled_corner), typeof(compiled_center), typeof(compiled_dcorner), typeof(compiled_dcenter)}(; nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+                    halosstx=halosstx,halossty=halossty, corner_outdim, corner_indim, center_outdim, center_indim, corner_layers, center_layers, model_corner, model_center, compiled_corner, compiled_center, compiled_dcorner, compiled_dcenter
     )
 end
 

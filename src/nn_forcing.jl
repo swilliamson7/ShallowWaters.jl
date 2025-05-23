@@ -22,6 +22,63 @@ Zanna and Bolton parameterization, for initial test runs we assume T_12 \equiv T
 
 using Lux, Random
 
+function run_fwd_nn(output::Tuple, compiled_fwd, compiled_rev, layers, input, model, st)
+    result = compiled_fwd(layers, Reactant.to_rarray(input), model, st)[1]
+    ntuple(Val(length(output))) do i
+        Base.@_inline_meta
+        Base.copyto!(output[i], @view(result[i, :, :]))
+        nothing
+    end
+    nothing
+end
+
+function Enzyme.EnzymeRules.augmented_primal(
+    config,
+    func::Enzyme.Const{typeof(run_fwd_nn)},
+    ret,
+    output::Enzyme.Duplicated,
+    compiled_fwd::Enzyme.Const,
+    compiled_rev::Enzyme.Const,
+    layers::Enzyme.Const,
+    input::Enzyme.Duplicated,
+    model::Enzyme.Duplicated,
+    st::Enzyme.Const,
+)
+    func.val(output.val, compiled_fwd.val, compiled_rev.val, layers.val, input.val, model.val, st.val)
+    tape = (deepcopy(model.val), deepcopy(input.val))
+    return Enzyme.EnzymeRules.AugmentedReturn(nothing, nothing, tape)
+end
+
+using InteractiveUtils
+
+function Enzyme.EnzymeRules.reverse(
+    config,
+    func::Enzyme.Const{typeof(run_fwd_nn)},
+    ret,
+    tape,
+    output::Enzyme.Duplicated,
+    compiled_fwd::Enzyme.Const,
+    compiled_rev::Enzyme.Const,
+    layers::Enzyme.Const,
+    input::Enzyme.Duplicated,
+    model::Enzyme.Duplicated,
+    st::Enzyme.Const,
+)
+    (modelp, inputp) = tape
+
+    dres = Reactant.to_rarray(vcat(output.dval...))
+    for x in output.dval
+        fill!(x, 0)
+    end
+    @show @code_typed compiled_rev.val(dres, model.dval, layers.val, inputp, modelp, st.val)
+    flush(stdout)
+    dinput = compiled_rev.val(dres, model.dval, layers.val, inputp, modelp, st.val)
+    input.dval .+= convert(Array, dinput)
+
+    return (nothing, nothing, nothing, nothing, nothing, nothing, nothing)
+end
+
+
 function NN_momentum(u, v, S)
 
     Diag = S.Diag
@@ -37,6 +94,7 @@ function NN_momentum(u, v, S)
     @unpack model_corner, model_center = Diag.NNVars
     @unpack center_layers, corner_layers = Diag.NNVars
     @unpack compiled_corner, compiled_center = Diag.NNVars
+    @unpack compiled_dcorner, compiled_dcenter = Diag.NNVars
     @unpack corner_outdim, corner_indim, center_indim, center_outdim = Diag.NNVars
 
     @unpack S_u, S_v = Diag.ZBVars
@@ -101,7 +159,7 @@ function NN_momentum(u, v, S)
                 temp11, temp22 = if compiled_corner isa Nothing
                     Lux.apply(corner_layers, corner_input, model_corner[1], model_corner[2])[1]
                 else
-                    compiled_corner(corner_layers, Reactant.to_rarray(corner_input), model_corner[1], model_corner[2])[1]
+                    run_fwd_nn(compiled_corner, compiled_dcorner, corner_layers, corner_input, model_corner[1], model_corner[2])
                 end
 
                 T11[j,k] = temp11
@@ -111,14 +169,14 @@ function NN_momentum(u, v, S)
         end
     else
 
-        result = if compiled_corner isa Nothing
-            Lux.apply(corner_layers, corner_input, model_corner[1], model_corner[2])[1]
+        if compiled_corner isa Nothing
+            result = Lux.apply(corner_layers, corner_input, model_corner[1], model_corner[2])[1]
+            T11 .= result[1, :, :]
+            T22 .= result[2, :, :]
         else
-            compiled_corner(corner_layers, Reactant.to_rarray(corner_input), model_corner[1], model_corner[2])[1]
+            run_fwd_nn((T11, T22), compiled_corner, compiled_dcorner, corner_layers, corner_input, model_corner[1], model_corner[2])
         end
 
-        T11 .= result[1, :, :]
-        T22 .= result[2, :, :]
 
     end
 
@@ -143,7 +201,7 @@ function NN_momentum(u, v, S)
                 temp12 = if compiled_center isa Nothing
                     Lux.apply(center_layers, center_input, model_center[1], model_center[2])[1]
                 else
-                    compiled_center(center_layers, Reactant.to_rarray(center_input), model_center[1], model_center[2])[1]
+                    run_fwd_nn(compiled_center, compiled_dcenter, center_layers, center_input, model_center[1], model_center[2])
                 end
 
                 T12[j-1,k-1] = temp12
@@ -152,13 +210,13 @@ function NN_momentum(u, v, S)
         end
     else
 
-        result = if compiled_center isa Nothing
-            Lux.apply(center_layers, center_input, model_center[1], model_center[2])[1]
+        if compiled_center isa Nothing
+            result = Lux.apply(center_layers, center_input, model_center[1], model_center[2])[1]
+            T12 .= result[1, :, :]
         else
-            compiled_center(center_layers, Reactant.to_rarray(center_input), model_center[1], model_center[2])[1]
+            run_fwd_nn((T12,), compiled_center, compiled_dcenter, center_layers, center_input, model_center[1], model_center[2])
         end
 
-        T12 .= result[1, :, :]
 
     end
 
