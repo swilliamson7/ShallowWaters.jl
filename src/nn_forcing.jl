@@ -66,13 +66,12 @@ function Enzyme.EnzymeRules.reverse(
 )
     (modelp, inputp) = tape
 
-    dres = Reactant.to_rarray(vcat(output.dval...))
+    t = output.dval
+    dres = Reactant.to_rarray(vcat((Base.Fix2(reshape, (1, size(t[1])...))).(t)...))
     for x in output.dval
         fill!(x, 0)
     end
-    @show @code_typed compiled_rev.val(dres, model.dval, layers.val, inputp, modelp, st.val)
-    flush(stdout)
-    dinput = compiled_rev.val(dres, model.dval, layers.val, inputp, modelp, st.val)
+    dinput = compiled_rev.val(dres, model.dval, layers.val, Reactant.to_rarray(inputp), Reactant.to_rarray(modelp), st.val)
     input.dval .+= convert(Array, dinput)
 
     return (nothing, nothing, nothing, nothing, nothing, nothing, nothing)
@@ -142,9 +141,9 @@ function NN_momentum(u, v, S)
 
     @inbounds for j ∈ 1:nqx
         for k ∈ 1:nqy
-            Base.copyto!(@view(corner_input[1:9, j, k]), ζ[j:j+2,k:k+2])
-            Base.copyto!(@view(corner_input[10:18, j, k]), D[j:j+2,k:k+2])
-            Base.copyto!(@view(corner_input[19:22, j, k]), Dhat[j:j+1,k:k+1])
+            Base.copyto!(@view(corner_input[1:9, j, k]), @view(ζ[j:j+2,k:k+2]))
+            Base.copyto!(@view(corner_input[10:18, j, k]), @view(D[j:j+2,k:k+2]))
+            Base.copyto!(@view(corner_input[19:22, j, k]), @view(Dhat[j:j+1,k:k+1]))
         end
     end
 
@@ -181,12 +180,11 @@ function NN_momentum(u, v, S)
     end
 
     center_input = Array{T}(undef, 4+4+9, mTh-2,nTh-2)
-    @show  "run", size(center_input)
     @inbounds for j ∈ 2:mTh-1
         for k ∈ 2:nTh-1
-            Base.copyto!(@view(center_input[1:4, j, k]), ζ[j:j+1,k:k+1])
-            Base.copyto!(@view(center_input[5:8, j, k]), D[j:j+1,k:k+1])
-            Base.copyto!(@view(center_input[9:17, j, k]), Dhat[j-1:j+1,k-1:k+1])
+            Base.copyto!(@view(center_input[1:4, j-1, k-1]), @view(ζ[j:j+1,k:k+1]))
+            Base.copyto!(@view(center_input[5:8, j-1, k-1]), @view(D[j:j+1,k:k+1]))
+            Base.copyto!(@view(center_input[9:17, j-1, k-1]), @view(Dhat[j-1:j+1,k-1:k+1]))
         end
     end
 
