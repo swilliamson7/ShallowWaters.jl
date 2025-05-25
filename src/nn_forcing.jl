@@ -45,11 +45,11 @@ function Enzyme.EnzymeRules.augmented_primal(
     st::Enzyme.Const,
 )
     func.val(output.val, compiled_fwd.val, compiled_rev.val, layers.val, input.val, model.val, st.val)
-    tape = (deepcopy(model.val), deepcopy(input.val))
+    # TODO speedup copy without compile
+    tape = (deepcopy(model.val), copy(input.val))
+    # tape = (model.val, input.val)
     return Enzyme.EnzymeRules.AugmentedReturn(nothing, nothing, tape)
 end
-
-using InteractiveUtils
 
 function Enzyme.EnzymeRules.reverse(
     config,
@@ -67,12 +67,15 @@ function Enzyme.EnzymeRules.reverse(
     (modelp, inputp) = tape
 
     t = output.dval
-    dres = Reactant.to_rarray(vcat((Base.Fix2(reshape, (1, size(t[1])...))).(t)...))
-    for x in output.dval
-        fill!(x, 0)
+    dres0 = Array{eltype(t[1]), 3}(undef, length(t), size(t[1])...)
+    for (i, v) in enumerate(t)
+        @inbounds Base.copyto!(@view(dres0[i, :, :]), v)
+        fill!(v, 0)
     end
-    dinput = compiled_rev.val(dres, model.dval, layers.val, Reactant.to_rarray(inputp), Reactant.to_rarray(modelp), st.val)
-    input.dval .+= convert(Array, dinput)
+    dres = Reactant.to_rarray(dres0)
+    dinput = Reactant.to_rarray(input.dval)
+    compiled_rev.val(dres, model.dval, layers.val, Reactant.to_rarray(inputp), dinput, Reactant.to_rarray(modelp), st.val)
+    Base.copyto!(input.dval, convert(Array, dinput))
 
     return (nothing, nothing, nothing, nothing, nothing, nothing, nothing)
 end
@@ -141,9 +144,20 @@ function NN_momentum(u, v, S)
 
     @inbounds for j ∈ 1:nqx
         for k ∈ 1:nqy
-            Base.copyto!(@view(corner_input[1:9, j, k]), @view(ζ[j:j+2,k:k+2]))
-            Base.copyto!(@view(corner_input[10:18, j, k]), @view(D[j:j+2,k:k+2]))
-            Base.copyto!(@view(corner_input[19:22, j, k]), @view(Dhat[j:j+1,k:k+1]))
+            for i in 1:9
+                corner_input[i, j, k] = @view(ζ[j:j+2,k:k+2])[i]
+            end
+            for i in 1:9
+                corner_input[9+i, j, k] = @view(D[j:j+2,k:k+2])[i]
+            end
+            for i in 1:4
+                corner_input[18+i, j, k] = @view(Dhat[j:j+2,k:k+2])[i]
+            end
+            if false
+                Base.copyto!(@view(corner_input[1:9, j, k]), @view(ζ[j:j+2,k:k+2]))
+                Base.copyto!(@view(corner_input[10:18, j, k]), @view(D[j:j+2,k:k+2]))
+                Base.copyto!(@view(corner_input[19:22, j, k]), @view(Dhat[j:j+1,k:k+1]))
+            end
         end
     end
 
@@ -182,9 +196,21 @@ function NN_momentum(u, v, S)
     center_input = Array{T}(undef, 4+4+9, mTh-2,nTh-2)
     @inbounds for j ∈ 2:mTh-1
         for k ∈ 2:nTh-1
-            Base.copyto!(@view(center_input[1:4, j-1, k-1]), @view(ζ[j:j+1,k:k+1]))
-            Base.copyto!(@view(center_input[5:8, j-1, k-1]), @view(D[j:j+1,k:k+1]))
-            Base.copyto!(@view(center_input[9:17, j-1, k-1]), @view(Dhat[j-1:j+1,k-1:k+1]))
+            for i in 1:4
+                corner_input[i, j-1, k-1] = @view(ζ[j:j+1,k:k+1])[i]
+            end
+            for i in 1:4
+                corner_input[4+i, j-1, k-1] = @view(D[j:j+1,k:k+1])[i]
+            end
+            for i in 1:9
+                corner_input[8+i, j-1, k-1] = @view(Dhat[j-1:j+1,k-1:k+1])[i]
+            end
+
+            if false
+                Base.copyto_unaliased!(@view(center_input[1:4, j-1, k-1]), @view(ζ[j:j+1,k:k+1]))
+                Base.copyto_unaliased!(@view(center_input[5:8, j-1, k-1]), @view(D[j:j+1,k:k+1]))
+                Base.copyto_unaliased!(@view(center_input[9:17, j-1, k-1]), @view(Dhat[j-1:j+1,k-1:k+1]))
+            end
         end
     end
 
