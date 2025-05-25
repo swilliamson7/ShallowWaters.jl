@@ -656,7 +656,7 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
     d_corner_res = Reactant.to_rarray(Array{T}(undef, 2, nqx, nqy))
     d_center_res = Reactant.to_rarray(Array{T}(undef, 1, nx, ny))
 
-    use_reactant = true
+    use_reactant = false
 
     if use_reactant
         model_corner = Reactant.to_rarray(model_corner)
