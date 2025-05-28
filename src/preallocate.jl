@@ -665,13 +665,13 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
         model_center = Reactant.to_rarray(model_center)
     end
 
-    compiled_corner = Reactant.@compile Lux.apply(corner_layers, corner_input, model_corner[1], model_corner[2])
-    compiled_center = Reactant.@compile Lux.apply(center_layers, center_input, model_center[1], model_center[2])
+    if use_reactant
+        compiled_corner = Reactant.@compile Lux.apply(corner_layers, corner_input, model_corner[1], model_corner[2])
+        compiled_center = Reactant.@compile Lux.apply(center_layers, center_input, model_center[1], model_center[2])
 
-    compiled_dcorner = Reactant.@compile grad_apply(d_corner_res, deepcopy(model_corner[1]), corner_layers, corner_input, corner_dinput, model_corner[1], model_corner[2])
-    compiled_dcenter = Reactant.@compile grad_apply(d_center_res, deepcopy(model_center[1]), center_layers, center_input, center_dinput, model_center[1], model_center[2])
-
-    if !use_reactant
+        compiled_dcorner = Reactant.@compile grad_apply(d_corner_res, deepcopy(model_corner[1]), corner_layers, corner_input, corner_dinput, model_corner[1], model_corner[2])
+        compiled_dcenter = Reactant.@compile grad_apply(d_center_res, deepcopy(model_center[1]), center_layers, center_input, center_dinput, model_center[1], model_center[2])
+    else
         compiled_corner = nothing
         compiled_center = nothing
         compiled_dcorner = nothing
