@@ -574,11 +574,11 @@ end
     # of S. Initially this will just be a single layer to see if we can get the model
     # with the neural net running
     # the initial weight values might need to change, for now I'm setting them to zero
-    corner_outdim::Int
-    corner_indim::Int
+    offdiag_outdim::Int
+    offdiag_indim::Int
 
-    center_outdim::Int
-    center_indim::Int
+    diag_outdim::Int
+    diag_indim::Int
 
     ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners
 
@@ -590,13 +590,12 @@ end
     DT::Array{T,2} = zeros(T,nx,ny)         # D, interpolated on cell centers
     ζDhat::Array{T,2} = zeros(T,nqx,nqy)    # ζ ⋅ Dhat, cell corners
 
-    T11::Array{T,2} = zeros(T,nqx,nqy)
-    T12::Array{T,2} = zeros(T,nx,ny)
-    T21::Array{T,2} = zeros(T,nx,ny)
-    T22::Array{T,2} = zeros(T,nqx,nqy)
+    T11::Array{T,2} = zeros(T,nx,ny)
+    T12::Array{T,2} = zeros(T,nqx,nqy)
+    T22::Array{T,2} = zeros(T,nx,ny)
 
-    T11T::Array{T,2} = zeros(T,nqx-1,nqy-1)  # interpolating T11 to cell centers from corners
-    T22T::Array{T,2} = zeros(T,nqx-1,nqy-1)  # interpolating T22 to cell centers from corners
+    # T11T::Array{T,2} = zeros(T,nqx-1,nqy-1)  # interpolating T11 to cell centers from corners
+    # T22T::Array{T,2} = zeros(T,nqx-1,nqy-1)  # interpolating T22 to cell centers from corners
     dT11dx::Array{T,2} = zeros(T,nux,nuy)    # derivative of T11T in the x-direction, u-grid
     dT12dy::Array{T,2} = zeros(T,nux,nuy)    # derivative of T12 in the y-direction, u-grid
     dT12dx::Array{T,2} = zeros(T,nvx,nvy)    # derivative of T12 in the x-direction, v-grid
@@ -605,17 +604,17 @@ end
     S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction
     S_v::Array{T,2} = zeros(T,nvx,nvy)             # total forcing in y-direction
 
-    corner_layers::CornerLayerType
-    center_layers::CenterLayerType
+    offdiag_layers::OffDiagLayerType
+    diag_layers::DiagLayerType
 
-    model_corner::CornerModelType
-    model_center::CenterModelType
+    model_offdiag::OffDiagModelType
+    model_Diag::DiagModelType
 
-    compiled_corner::CornerCompiledType
-    compiled_center::CenterCompiledType
+    compiled_offdiag::OffDiagCompiledType
+    compiled_diag::DiagCompiledType
 
-    compiled_dcorner::DCornerCompiledType
-    compiled_dcenter::DCenterCompiledType
+    compiled_doffdiag::DOffDiagCompiledType
+    compiled_ddiag::DDiagCompiledType
 end
 
 function nn_apply(result, layers, input, ps, st)
@@ -642,52 +641,52 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
     nqx = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
     nqy = ny+1                                        # q-grid in y-direction
 
-    corner_outdim = 2
-    corner_indim = 22
+    offdiag_outdim = 1
+    offdiag_indim = 22
 
-    center_outdim = 1
-    center_indim = 17
+    diag_outdim = 2
+    diag_indim = 17
 
-    corner_layers = Lux.Dense(corner_indim => corner_outdim, sigmoid)
-    center_layers = Lux.Dense(center_indim => center_outdim, sigmoid)
+    offdiag_layers = Lux.Dense(offdiag_indim => offdiag_outdim, sigmoid)
+    diag_layers = Lux.Dense(diag_indim => diag_outdim, sigmoid)
 
-    model_corner = Lux.setup(Random.default_rng(), corner_layers)
-    model_center = Lux.setup(Random.default_rng(), center_layers)
-    
-    corner_input = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
-    center_input = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
+    model_offdiag = Lux.setup(Random.default_rng(), offdiag_layers)
+    model_diag = Lux.setup(Random.default_rng(), diag_layers)
 
-    corner_dinput = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
-    center_dinput = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
+    offdiag_input = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
+    diag_input = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
 
-    d_corner_res = Reactant.to_rarray(Array{T}(undef, 2, nqx, nqy))
-    d_center_res = Reactant.to_rarray(Array{T}(undef, 1, nx, ny))
+    offdiag_dinput = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
+    diag_dinput = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
+
+    d_offdiag_res = Reactant.to_rarray(Array{T}(undef, 1, nqx, nqy))
+    d_diag_res = Reactant.to_rarray(Array{T}(undef, 2, nx, ny))
 
     use_reactant = false
 
     if use_reactant
-        model_corner = Reactant.to_rarray(model_corner)
+        model_offdiag = Reactant.to_rarray(model_offdiag)
     end
     if use_reactant
-        model_center = Reactant.to_rarray(model_center)
+        model_diag = Reactant.to_rarray(model_diag)
     end
 
     if use_reactant
-        compiled_corner = Reactant.@compile Lux.apply(corner_layers, corner_input, model_corner[1], model_corner[2])
-        compiled_center = Reactant.@compile Lux.apply(center_layers, center_input, model_center[1], model_center[2])
+        compiled_offdiag = Reactant.@compile Lux.apply(offdiag_layers, offdiag_input, model_offdiag[1], model_offdiag[2])
+        compiled_diag = Reactant.@compile Lux.apply(diag_layers, diag_input, model_diag[1], model_diag[2])
 
-        compiled_dcorner = Reactant.@compile grad_apply(d_corner_res, deepcopy(model_corner[1]), corner_layers, corner_input, corner_dinput, model_corner[1], model_corner[2])
-        compiled_dcenter = Reactant.@compile grad_apply(d_center_res, deepcopy(model_center[1]), center_layers, center_input, center_dinput, model_center[1], model_center[2])
+        compiled_doffdiag = Reactant.@compile grad_apply(d_offdiag_res, deepcopy(model_offdiag[1]), offdiag_layers, offdiag_input, offdiag_dinput, model_offdiag[1], model_offdiag[2])
+        compiled_ddiag = Reactant.@compile grad_apply(d_diag_res, deepcopy(model_diag[1]), diag_layers, diag_input, diag_dinput, model_diag[1], model_diag[2])
     else
-        compiled_corner = nothing
-        compiled_center = nothing
-        compiled_dcorner = nothing
-        compiled_dcenter = nothing
+        compiled_offdiag = nothing
+        compiled_diag = nothing
+        compiled_doffdiag = nothing
+        compiled_ddiag = nothing
     end
 
 
-    return NNVars{T, typeof(corner_layers), typeof(center_layers), typeof(model_corner), typeof(model_center), typeof(compiled_corner), typeof(compiled_center), typeof(compiled_dcorner), typeof(compiled_dcenter)}(; nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
-                    halosstx=halosstx,halossty=halossty, corner_outdim, corner_indim, center_outdim, center_indim, corner_layers, center_layers, model_corner, model_center, compiled_corner, compiled_center, compiled_dcorner, compiled_dcenter
+    return NNVars{T, typeof(offdiag_layers), typeof(diag_layers), typeof(model_offdiag), typeof(model_diag), typeof(compiled_offdiag), typeof(compiled_diag), typeof(compiled_doffdiag), typeof(compiled_ddiag)}(; nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+                    halosstx=halosstx,halossty=halossty, offdiag_outdim, offdiag_indim, diag_outdim, diag_indim, offdiag_layers, diag_layers, model_offdiag, model_diag, compiled_offdiag, compiled_diag, compiled_doffdiag, compiled_ddiag
     )
 end
 

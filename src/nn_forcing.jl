@@ -155,23 +155,23 @@ function NN_momentum(u, v, S)
     # the second will produce the diagonal terms (T_11, T_22)
     # The weights are defined as inputs to the NN so that we can tune them with adjoint based optimization
 
-    corner_input = Array{T}(undef, 9+9+4, nqx, nqy)
+    offdiag_input = Array{T}(undef, 9+9+4, nqx, nqy)
 
     @inbounds for j ∈ 1:nqx
         for k ∈ 1:nqy
             for i in 1:9
-                corner_input[i, j, k] = @view(ζ[j:j+2,k:k+2])[i]
+                offdiag_input[i, j, k] = @view(ζ[j:j+2,k:k+2])[i]
             end
             for i in 1:9
-                corner_input[9+i, j, k] = @view(D[j:j+2,k:k+2])[i]
+                offdiag_input[9+i, j, k] = @view(D[j:j+2,k:k+2])[i]
             end
             for i in 1:4
-                corner_input[18+i, j, k] = @view(Dhat[j:j+2,k:k+2])[i]
+                offdiag_input[18+i, j, k] = @view(Dhat[j:j+2,k:k+2])[i]
             end
             if false
-                Base.copyto!(@view(corner_input[1:9, j, k]), @view(ζ[j:j+2,k:k+2]))
-                Base.copyto!(@view(corner_input[10:18, j, k]), @view(D[j:j+2,k:k+2]))
-                Base.copyto!(@view(corner_input[19:22, j, k]), @view(Dhat[j:j+1,k:k+1]))
+                Base.copyto!(@view(offdiag_input[1:9, j, k]), @view(ζ[j:j+2,k:k+2]))
+                Base.copyto!(@view(offdiag_input[10:18, j, k]), @view(D[j:j+2,k:k+2]))
+                Base.copyto!(@view(offdiag_input[19:22, j, k]), @view(Dhat[j:j+1,k:k+1]))
             end
         end
     end
