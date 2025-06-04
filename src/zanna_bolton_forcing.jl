@@ -163,7 +163,7 @@ function ZB_momentum(u, v, S, Diag)
 
     # Computing ζ ⋅ Dhat, cell corners
     Ixy!(Dhatq, Dhat)
-    for kj in eachindex(ζDhat,ζ,Dhatq) 
+    for kj in eachindex(ζDhat,ζ,Dhatq)
         @inbounds ζDhat[kj] = κ_BC * ζ[kj] * Dhatq[kj]
     end
 

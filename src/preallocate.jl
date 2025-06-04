@@ -499,7 +499,7 @@ end
     ζsqT::Array{T,2} = zeros(T,nqx-1,nqy-1)     # ζ^2 interpolated to cell centers
     ζD::Array{T,2} = zeros(T,nqx,nqy)           # ζ ⋅ D, cell corners
     ζDT::Array{T,2} = zeros(T,nqx-1,nqy-1)      # ζ ⋅ D, placed on cell centers
-    ζDhat::Array{T,2} = zeros(T,nqx,nqy)  # ζ ⋅ Dhat, cell corners
+    ζDhat::Array{T,2} = zeros(T,nqx,nqy)        # ζ ⋅ Dhat, cell corners
     
     trace::Array{T,2} = zeros(T,nx,ny)     # ξ^2 + D^2 + Dhat^2, cell centers
 
@@ -580,9 +580,9 @@ end
     center_outdim::Int
     center_indim::Int
 
-    ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners 
+    ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners
 
-    D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners 
+    D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners
 
     Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
 
@@ -594,6 +594,13 @@ end
     T12::Array{T,2} = zeros(T,nx,ny)
     T21::Array{T,2} = zeros(T,nx,ny)
     T22::Array{T,2} = zeros(T,nqx,nqy)
+
+    T11T::Array{T,2} = zeros(T,nqx-1,nqy-1)  # interpolating T11 to cell centers from corners
+    T22T::Array{T,2} = zeros(T,nqx-1,nqy-1)  # interpolating T22 to cell centers from corners
+    dT11dx::Array{T,2} = zeros(T,nux,nuy)    # derivative of T11T in the x-direction, u-grid
+    dT12dy::Array{T,2} = zeros(T,nux,nuy)    # derivative of T12 in the y-direction, u-grid
+    dT12dx::Array{T,2} = zeros(T,nvx,nvy)    # derivative of T12 in the x-direction, v-grid
+    dT22dy::Array{T,2} = zeros(T,nvx,nvy)    # derivative of T22 in the y-direction, v-grid
 
     S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction
     S_v::Array{T,2} = zeros(T,nvx,nvy)             # total forcing in y-direction
@@ -628,7 +635,7 @@ end
 """Generator function for NN momentum terms."""
 function NNVars{T}(G::Grid) where {T<:AbstractFloat}
 
-    @unpack nx,ny,bc= G
+    @unpack nx,ny,bc,Δ= G
     @unpack halo,haloη = G
     @unpack halosstx,halossty = G
 
@@ -641,8 +648,8 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
     center_outdim = 1
     center_indim = 17
 
-    corner_layers = Lux.Dense(corner_indim => corner_outdim, relu)
-    center_layers = Lux.Dense(center_indim => center_outdim, relu)
+    corner_layers = Lux.Dense(corner_indim => corner_outdim, sigmoid)
+    center_layers = Lux.Dense(center_indim => center_outdim, sigmoid)
 
     model_corner = Lux.setup(Random.default_rng(), corner_layers)
     model_center = Lux.setup(Random.default_rng(), center_layers)

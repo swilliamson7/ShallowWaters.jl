@@ -85,7 +85,7 @@ function NN_momentum(u, v, S)
 
     Diag = S.Diag
 
-    T = Float32 
+    T = Float32
     @unpack zb_filtered, N = S.parameters
 
     @unpack nqx, nqy = Diag.NNVars
@@ -93,13 +93,14 @@ function NN_momentum(u, v, S)
     @unpack γ₀, ζ, D, Dhat = Diag.NNVars
     @unpack ζT, DT, ζDhat = Diag.NNVars
     @unpack T11, T22, T12, T21 = Diag.NNVars
+    @unpack T11T, T22T, dT11dx, dT12dy, dT12dx, dT22dy = Diag.NNVars
     @unpack model_corner, model_center = Diag.NNVars
     @unpack center_layers, corner_layers = Diag.NNVars
     @unpack compiled_corner, compiled_center = Diag.NNVars
     @unpack compiled_dcorner, compiled_dcenter = Diag.NNVars
     @unpack corner_outdim, corner_indim, center_indim, center_outdim = Diag.NNVars
 
-    @unpack S_u, S_v = Diag.ZBVars
+    @unpack S_u, S_v = Diag.NNVars
 
     @unpack Δ, scale, f₀ = S.grid
     @unpack halo, haloη, ep, nux, nuy, nvx, nvy = S.grid
@@ -109,11 +110,25 @@ function NN_momentum(u, v, S)
 
     κ_BT = - γ₀ * Δ^2
 
+    # @show any(isnan, u)
+    # @show any(isnan, v)
+    # @show any(isnan, dvdx)
+    # @show any(isnan, dvdy)
+    # @show any(isnan, dudy)
+    # @show any(isnan, dudx)
+
     ∂x!(dudx, u)
     ∂y!(dudy, u)
 
     ∂x!(dvdx, v)
     ∂y!(dvdy, v)
+
+    # @show any(isnan, u)
+    # @show any(isnan, v)
+    # @show any(isnan, dvdx)
+    # @show any(isnan, dvdy)
+    # @show any(isnan, dudy)
+    # @show any(isnan, dudx)
 
     # Relative vorticity and shear deformation, cell corners
     @inbounds for j ∈ 1:nq
@@ -197,13 +212,13 @@ function NN_momentum(u, v, S)
     @inbounds for j ∈ 2:mTh-1
         for k ∈ 2:nTh-1
             for i in 1:4
-                corner_input[i, j-1, k-1] = @view(ζ[j:j+1,k:k+1])[i]
+                center_input[i, j-1, k-1] = @view(ζ[j:j+1,k:k+1])[i]
             end
             for i in 1:4
-                corner_input[4+i, j-1, k-1] = @view(D[j:j+1,k:k+1])[i]
+                center_input[4+i, j-1, k-1] = @view(D[j:j+1,k:k+1])[i]
             end
             for i in 1:9
-                corner_input[8+i, j-1, k-1] = @view(Dhat[j-1:j+1,k-1:k+1])[i]
+                center_input[8+i, j-1, k-1] = @view(Dhat[j-1:j+1,k-1:k+1])[i]
             end
 
             if false
@@ -241,7 +256,30 @@ function NN_momentum(u, v, S)
             run_fwd_nn((T12,), compiled_center, compiled_dcenter, center_layers, center_input, model_center[1], model_center[2])
         end
 
+    end
 
+    # Computing the forcing term with results from the NN
+    Ixy!(T11T, T11)
+    Ixy!(T22T, T22)
+
+    # need to fix this
+    ∂x!(dT11dx, T11T)
+    Ix!(dT12dy,T12)
+
+    Iy!(dT12dx, T12)
+    ∂y!(dT22dy, T22T)
+
+    s = Δ^2 * scale
+    @inbounds for j in 1:nuy
+        for k in 1:nux
+            S_u[k,j] = κ_BT * (dT11dx[k,j] + dT12dy[k,j]) / s
+        end
+    end
+
+    @inbounds for j in 1:nvy
+        for k in 1:nvx
+            S_v[k,j] = κ_BT * (dT22dy[k,j] + dT12dx[k,j]) / s
+        end
     end
 
 end
