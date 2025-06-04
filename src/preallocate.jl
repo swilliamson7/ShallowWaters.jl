@@ -544,7 +544,7 @@ function ZBVars{T}(G::Grid) where {T<:AbstractFloat}
 end
 
 """ Variables that appear in NN forcing term """
-@with_kw mutable struct NNVars{T<:AbstractFloat, CornerLayerType, CenterLayerType, CornerModelType, CenterModelType, CornerCompiledType, CenterCompiledType, DCornerCompiledType, DCenterCompiledType}
+@with_kw mutable struct NNVars{T<:AbstractFloat, OffDiagLayerType, DiagLayerType, OffDiagModelType, DiagModelType, OffDiagCompiledType, DiagCompiledType, DOffDiagCompiledType, DDiagCompiledType}
 
     # to be specified
     nx::Int
@@ -596,7 +596,7 @@ end
 
     # T11T::Array{T,2} = zeros(T,nqx-1,nqy-1)  # interpolating T11 to cell centers from corners
     # T22T::Array{T,2} = zeros(T,nqx-1,nqy-1)  # interpolating T22 to cell centers from corners
-    dT11dx::Array{T,2} = zeros(T,nux,nuy)    # derivative of T11T in the x-direction, u-grid
+    dT11dx::Array{T,2} = zeros(T,nux,nuy)    # derivative of T11 in the x-direction, u-grid
     dT12dy::Array{T,2} = zeros(T,nux,nuy)    # derivative of T12 in the y-direction, u-grid
     dT12dx::Array{T,2} = zeros(T,nvx,nvy)    # derivative of T12 in the x-direction, v-grid
     dT22dy::Array{T,2} = zeros(T,nvx,nvy)    # derivative of T22 in the y-direction, v-grid
@@ -608,7 +608,7 @@ end
     diag_layers::DiagLayerType
 
     model_offdiag::OffDiagModelType
-    model_Diag::DiagModelType
+    model_diag::DiagModelType
 
     compiled_offdiag::OffDiagCompiledType
     compiled_diag::DiagCompiledType

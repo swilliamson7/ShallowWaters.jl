@@ -92,13 +92,13 @@ function NN_momentum(u, v, S)
     @unpack dudx, dudy, dvdx, dvdy = Diag.NNVars
     @unpack γ₀, ζ, D, Dhat = Diag.NNVars
     @unpack ζT, DT, ζDhat = Diag.NNVars
-    @unpack T11, T22, T12, T21 = Diag.NNVars
-    @unpack T11T, T22T, dT11dx, dT12dy, dT12dx, dT22dy = Diag.NNVars
-    @unpack model_corner, model_center = Diag.NNVars
-    @unpack center_layers, corner_layers = Diag.NNVars
-    @unpack compiled_corner, compiled_center = Diag.NNVars
-    @unpack compiled_dcorner, compiled_dcenter = Diag.NNVars
-    @unpack corner_outdim, corner_indim, center_indim, center_outdim = Diag.NNVars
+    @unpack T11, T22, T12 = Diag.NNVars
+    @unpack dT11dx, dT12dy, dT12dx, dT22dy = Diag.NNVars
+    @unpack model_offdiag, model_diag = Diag.NNVars
+    @unpack diag_layers, offdiag_layers = Diag.NNVars
+    @unpack compiled_offdiag, compiled_diag = Diag.NNVars
+    @unpack compiled_doffdiag, compiled_diag = Diag.NNVars
+    @unpack offdiag_outdim, offdiag_indim, diag_indim, diag_outdim = Diag.NNVars
 
     @unpack S_u, S_v = Diag.NNVars
 
@@ -166,7 +166,7 @@ function NN_momentum(u, v, S)
                 offdiag_input[9+i, j, k] = @view(D[j:j+2,k:k+2])[i]
             end
             for i in 1:4
-                offdiag_input[18+i, j, k] = @view(Dhat[j:j+2,k:k+2])[i]
+                offdiag_input[18+i, j, k] = @view(Dhat[j:j+1,k:k+1])[i]          # this was previously j:j+2, k:k+2 but I think that's wrong
             end
             if false
                 Base.copyto!(@view(offdiag_input[1:9, j, k]), @view(ζ[j:j+2,k:k+2]))
@@ -180,51 +180,53 @@ function NN_momentum(u, v, S)
         @inbounds for j ∈ 1:nqx
             for k ∈ 1:nqy
 
-                Base.copyto!(@view(corner_input[1:9]), ζ[j:j+2,k:k+2])
-                Base.copyto!(@view(corner_input[10:18]), D[j:j+2,k:k+2])
-                Base.copyto!(@view(corner_input[19:22]), Dhat[j:j+1,k:k+1])
+                Base.copyto!(@view(offdiag_input[1:9]), ζ[j:j+2,k:k+2])
+                Base.copyto!(@view(offdiag_input[10:18]), D[j:j+2,k:k+2])
+                Base.copyto!(@view(offdiag_input[19:22]), Dhat[j:j+1,k:k+1])
 
-                temp11, temp22 = if compiled_corner isa Nothing
-                    Lux.apply(corner_layers, corner_input, model_corner[1], model_corner[2])[1]
+                temp12 = if compiled_offdiag isa Nothing
+                    Lux.apply(offdiag_layers, offdiag_input, model_offdiag[1], model_offdiag[2])[1]
                 else
-                    run_fwd_nn(compiled_corner, compiled_dcorner, corner_layers, corner_input, model_corner[1], model_corner[2])
+                    run_fwd_nn(compiled_offdiag, compiled_doffdiag, offdiag_layers, offdiag_input, model_offdiag[1], model_offdiag[2])
                 end
 
-                T11[j,k] = temp11
-                T22[j,k] = temp22
+                T12[j,k] = temp12
+                # T11[j,k] = temp11
+                # T22[j,k] = temp22
 
             end
         end
     else
 
-        if compiled_corner isa Nothing
-            result = Lux.apply(corner_layers, corner_input, model_corner[1], model_corner[2])[1]
-            T11 .= result[1, :, :]
-            T22 .= result[2, :, :]
+        if compiled_offdiag isa Nothing
+            result = Lux.apply(offdiag_layers, offdiag_input, model_offdiag[1], model_offdiag[2])[1]
+            # T11 .= result[1, :, :]
+            # T22 .= result[2, :, :]
+            T12 .= result[1, :, :]
         else
-            run_fwd_nn((T11, T22), compiled_corner, compiled_dcorner, corner_layers, corner_input, model_corner[1], model_corner[2])
+            run_fwd_nn((T12,), compiled_offdiag, compiled_doffdiag, offdiag_layers, offdiag_input, model_offdiag[1], model_offdiag[2])
         end
 
 
     end
 
-    center_input = Array{T}(undef, 4+4+9, mTh-2,nTh-2)
+    diag_input = Array{T}(undef, 4+4+9, mTh-2,nTh-2)
     @inbounds for j ∈ 2:mTh-1
         for k ∈ 2:nTh-1
             for i in 1:4
-                center_input[i, j-1, k-1] = @view(ζ[j:j+1,k:k+1])[i]
+                diag_input[i, j-1, k-1] = @view(ζ[j:j+1,k:k+1])[i]
             end
             for i in 1:4
-                center_input[4+i, j-1, k-1] = @view(D[j:j+1,k:k+1])[i]
+                diag_input[4+i, j-1, k-1] = @view(D[j:j+1,k:k+1])[i]
             end
             for i in 1:9
-                center_input[8+i, j-1, k-1] = @view(Dhat[j-1:j+1,k-1:k+1])[i]
+                diag_input[8+i, j-1, k-1] = @view(Dhat[j-1:j+1,k-1:k+1])[i]
             end
 
             if false
-                Base.copyto_unaliased!(@view(center_input[1:4, j-1, k-1]), @view(ζ[j:j+1,k:k+1]))
-                Base.copyto_unaliased!(@view(center_input[5:8, j-1, k-1]), @view(D[j:j+1,k:k+1]))
-                Base.copyto_unaliased!(@view(center_input[9:17, j-1, k-1]), @view(Dhat[j-1:j+1,k-1:k+1]))
+                Base.copyto_unaliased!(@view(diag_input[1:4, j-1, k-1]), @view(ζ[j:j+1,k:k+1]))
+                Base.copyto_unaliased!(@view(diag_input[5:8, j-1, k-1]), @view(D[j:j+1,k:k+1]))
+                Base.copyto_unaliased!(@view(diag_input[9:17, j-1, k-1]), @view(Dhat[j-1:j+1,k-1:k+1]))
             end
         end
     end
@@ -249,38 +251,40 @@ function NN_momentum(u, v, S)
         end
     else
 
-        if compiled_center isa Nothing
-            result = Lux.apply(center_layers, center_input, model_center[1], model_center[2])[1]
-            T12 .= result[1, :, :]
+        if compiled_diag isa Nothing
+            result = Lux.apply(diag_layers, diag_input, model_diag[1], model_diag[2])[1]
+            T11 .= result[1, :, :]
+            T22 .= result[2, :, :]
+            # T12 .= result[1, :, :]
         else
-            run_fwd_nn((T12,), compiled_center, compiled_dcenter, center_layers, center_input, model_center[1], model_center[2])
+            run_fwd_nn((T11, T22), compiled_diag, compiled_ddiag, diag_layers, diag_input, model_diag[1], model_diag[2])
         end
 
     end
 
-    # Computing the forcing term with results from the NN
-    Ixy!(T11T, T11)
-    Ixy!(T22T, T22)
+    # # Computing the forcing term with results from the NN
+    # Ixy!(T11T, T11)
+    # Ixy!(T22T, T22)
 
-    # need to fix this
-    ∂x!(dT11dx, T11T)
-    Ix!(dT12dy,T12)
+    # # need to fix this
+    # ∂x!(dT11dx, T11T)
+    # Ix!(dT12dy,T12)
 
-    Iy!(dT12dx, T12)
-    ∂y!(dT22dy, T22T)
+    # Iy!(dT12dx, T12)
+    # ∂y!(dT22dy, T22T)
 
-    s = Δ^2 * scale
-    @inbounds for j in 1:nuy
-        for k in 1:nux
-            S_u[k,j] = κ_BT * (dT11dx[k,j] + dT12dy[k,j]) / s
-        end
-    end
+    # s = Δ^2 * scale
+    # @inbounds for j in 1:nuy
+    #     for k in 1:nux
+    #         S_u[k,j] = κ_BT * (dT11dx[k,j] + dT12dy[k,j]) / s
+    #     end
+    # end
 
-    @inbounds for j in 1:nvy
-        for k in 1:nvx
-            S_v[k,j] = κ_BT * (dT22dy[k,j] + dT12dx[k,j]) / s
-        end
-    end
+    # @inbounds for j in 1:nvy
+    #     for k in 1:nvx
+    #         S_v[k,j] = κ_BT * (dT22dy[k,j] + dT12dx[k,j]) / s
+    #     end
+    # end
 
 end
 
