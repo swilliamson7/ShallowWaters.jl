@@ -269,15 +269,15 @@ function NN_momentum(u, v, S)
     ∂y!(dT22dy, T22)
 
     s = Δ^2 * scale
-    for j in 1:nuy
+    @inbounds for j in 1:nuy
         for k in 1:nux
-            S_u[k,j] = κ_BT * (dT11dx[k,j] + dT12dy[k,j]) / s
+            S_u[k,j] = κ_BT * (dT11dx[k,j] + dT12dy[k+1,j]) / s
         end
     end
 
-    for j in 1:nvy
+    @inbounds for j in 1:nvy
         for k in 1:nvx
-            S_v[k,j] = κ_BT * (dT22dy[k,j] + dT12dx[k,j]) / s
+            S_v[k,j] = κ_BT * (dT22dy[k,j] + dT12dx[k,j+1]) / s
         end
     end
 
