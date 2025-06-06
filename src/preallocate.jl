@@ -594,11 +594,9 @@ end
     T12::Array{T,2} = zeros(T,nqx,nqy)
     T22::Array{T,2} = zeros(T,nx,ny)
 
-    # T11T::Array{T,2} = zeros(T,nqx-1,nqy-1)  # interpolating T11 to cell centers from corners
-    # T22T::Array{T,2} = zeros(T,nqx-1,nqy-1)  # interpolating T22 to cell centers from corners
     dT11dx::Array{T,2} = zeros(T,nux,nuy)    # derivative of T11 in the x-direction, u-grid
-    dT12dy::Array{T,2} = zeros(T,nux,nuy)    # derivative of T12 in the y-direction, u-grid
-    dT12dx::Array{T,2} = zeros(T,nvx,nvy)    # derivative of T12 in the x-direction, v-grid
+    dT12dy::Array{T,2} = zeros(T,nux+halo,nuy)    # derivative of T12 in the y-direction, u-grid
+    dT12dx::Array{T,2} = zeros(T,nvx,nvy+halo)    # derivative of T12 in the x-direction, v-grid
     dT22dy::Array{T,2} = zeros(T,nvx,nvy)    # derivative of T22 in the y-direction, v-grid
 
     S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction
