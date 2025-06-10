@@ -283,115 +283,115 @@ function NN_momentum(u, v, S)
 
 end
 
-# writing a "function that acts like a neural net", i.e. will take in 
-# u, v, and the model S, and output the elements of the parameterization
-# all without using Lux.jl
-function handwritten_NN_momentum(u, v, S)
+# # writing a "function that acts like a neural net", i.e. will take in 
+# # u, v, and the model S, and output the elements of the parameterization
+# # all without using Lux.jl
+# function handwritten_NN_momentum(u, v, S)
 
-    Diag = S.Diag
+#     Diag = S.Diag
 
-    T = Float32
+#     T = Float32
 
-    @unpack zb_filtered, N  = S.parameters
+#     @unpack zb_filtered, N  = S.parameters
 
-    @unpack nqx, nqy = Diag.NNVars
-    @unpack dudx, dudy, dvdx, dvdy = Diag.NNVars
-    @unpack γ₀, ζ, D, Dhat = Diag.NNVars
-    @unpack ζT, DT, ζDhat = Diag.NNVars
-    @unpack T11, T22, T12, T21 = Diag.NNVars
-    @unpack weights_center, weights_corner = Diag.NNVars
-    @unpack corner_outdim, corner_indim, center_indim, center_outdim = Diag.NNVars
+#     @unpack nqx, nqy = Diag.NNVars
+#     @unpack dudx, dudy, dvdx, dvdy = Diag.NNVars
+#     @unpack γ₀, ζ, D, Dhat = Diag.NNVars
+#     @unpack ζT, DT, ζDhat = Diag.NNVars
+#     @unpack T11, T22, T12, T21 = Diag.NNVars
+#     @unpack weights_center, weights_corner = Diag.NNVars
+#     @unpack corner_outdim, corner_indim, center_indim, center_outdim = Diag.NNVars
 
-    @unpack S_u, S_v = Diag.ZBVars
+#     @unpack S_u, S_v = Diag.ZBVars
 
-    @unpack Δ, scale, f₀ = S.grid
-    @unpack halo, haloη, ep, nux, nuy, nvx, nvy = S.grid
+#     @unpack Δ, scale, f₀ = S.grid
+#     @unpack halo, haloη, ep, nux, nuy, nvx, nvy = S.grid
 
-    mTh,nTh = size(Dhat)
+#     mTh,nTh = size(Dhat)
 
-    κ_BT = - γ₀ * Δ^2
+#     κ_BT = - γ₀ * Δ^2
 
-    ShallowWaters.∂x!(dudx, u)
-    ShallowWaters.∂y!(dudy, u)
+#     ShallowWaters.∂x!(dudx, u)
+#     ShallowWaters.∂y!(dudy, u)
 
-    ShallowWaters.∂x!(dvdx, v)
-    ShallowWaters.∂y!(dvdy, v)
+#     ShallowWaters.∂x!(dvdx, v)
+#     ShallowWaters.∂y!(dvdy, v)
 
-    # Relative vorticity and shear deformation, cell corners
-    @inbounds for j ∈ 1:nqx
-        for k ∈ 1:nqy
-            ζ[k,j] = dvdx[k+1,j+1] - dudy[k+1,j+1]
-            D[k,j] = dudy[k+1,j+1] + dvdx[k+1,j+1]
-        end
-    end
+#     # Relative vorticity and shear deformation, cell corners
+#     @inbounds for j ∈ 1:nqx
+#         for k ∈ 1:nqy
+#             ζ[k,j] = dvdx[k+1,j+1] - dudy[k+1,j+1]
+#             D[k,j] = dudy[k+1,j+1] + dvdx[k+1,j+1]
+#         end
+#     end
 
-    ζ = cat(zeros(T,1,nqy),ζ,zeros(T,1,nqy),dims=1)
-    ζ = cat(zeros(T,nqx+2,1),ζ,zeros(T,nqx+2,1),dims=2)
-    D = cat(zeros(T,1,nqy),D,zeros(T,1,nqy),dims=1)
-    D = cat(zeros(T,nqx+2,1),D,zeros(T,nqx+2,1),dims=2)
+#     ζ = cat(zeros(T,1,nqy),ζ,zeros(T,1,nqy),dims=1)
+#     ζ = cat(zeros(T,nqx+2,1),ζ,zeros(T,nqx+2,1),dims=2)
+#     D = cat(zeros(T,1,nqy),D,zeros(T,1,nqy),dims=1)
+#     D = cat(zeros(T,nqx+2,1),D,zeros(T,nqx+2,1),dims=2)
 
-    # Stretch deformation, cell centers (with halo)
-    @inbounds for j ∈ 1:nTh
-        for k ∈ 1:mTh
-            Dhat[k,j] = dudx[k,j+1] - dvdy[k+1,j]
-        end
-    end
+#     # Stretch deformation, cell centers (with halo)
+#     @inbounds for j ∈ 1:nTh
+#         for k ∈ 1:mTh
+#             Dhat[k,j] = dudx[k,j+1] - dvdy[k+1,j]
+#         end
+#     end
 
-    # we have two functions defined below, intended to mimic the inner operations of the 
-    # NN, for now this will just be a single hidden layer
-    # I'm still sticking with two neurals, one to determine the off-diagonal term
-    # and the other to determine the diagonal terms, T_12 and T_11, T_22, respectively
+#     # we have two functions defined below, intended to mimic the inner operations of the 
+#     # NN, for now this will just be a single hidden layer
+#     # I'm still sticking with two neurals, one to determine the off-diagonal term
+#     # and the other to determine the diagonal terms, T_12 and T_11, T_22, respectively
 
-    @inbounds for j ∈ 1:nqx
-        for k ∈ 1:nqy
+#     @inbounds for j ∈ 1:nqx
+#         for k ∈ 1:nqy
 
-            temp11, temp22 = hw_corner_model(reshape(ζ[j:j+2,k:k+2], 9),
-                reshape(D[j:j+2,k:k+2], 9),
-                reshape(Dhat[j:j+1,k:k+1], 4),
-                weights_corner
-            )
+#             temp11, temp22 = hw_corner_model(reshape(ζ[j:j+2,k:k+2], 9),
+#                 reshape(D[j:j+2,k:k+2], 9),
+#                 reshape(Dhat[j:j+1,k:k+1], 4),
+#                 weights_corner
+#             )
 
-            T11[j,k] = temp11
-            T22[j,k] = temp22
+#             T11[j,k] = temp11
+#             T22[j,k] = temp22
 
-        end
-    end
+#         end
+#     end
 
-    @inbounds for j ∈ 2:mTh-1
-        for k ∈ 2:nTh-1
+#     @inbounds for j ∈ 2:mTh-1
+#         for k ∈ 2:nTh-1
 
-            temp12 = hw_center_model(reshape(ζ[j:j+1,k:k+1], 4),
-                reshape(D[j:j+1,k:k+1], 4),
-                reshape(Dhat[j-1:j+1,k-1:k+1], 9),
-                weights_center
-            )
+#             temp12 = hw_center_model(reshape(ζ[j:j+1,k:k+1], 4),
+#                 reshape(D[j:j+1,k:k+1], 4),
+#                 reshape(Dhat[j-1:j+1,k-1:k+1], 9),
+#                 weights_center
+#             )
 
-            T12[j-1,k-1] = temp12[1]
+#             T12[j-1,k-1] = temp12[1]
 
-        end
-    end
+#         end
+#     end
 
 
-end
+# end
 
-# This function takes in ζ, D, and Dhat, applies the "neural net" 
-# (here just a combination of linear operators and a subsequent nonlinear
-# operator, tbd). We have two: one for the diagonal terms that live on cell corners
-# and one for the off-diagonal terms that live in cell centers
-function hw_corner_model(ζ, D, Dhat, weights)
+# # This function takes in ζ, D, and Dhat, applies the "neural net" 
+# # (here just a combination of linear operators and a subsequent nonlinear
+# # operator, tbd). We have two: one for the diagonal terms that live on cell corners
+# # and one for the off-diagonal terms that live in cell centers
+# function hw_corner_model(ζ, D, Dhat, weights)
 
-    linear = weights * [ζ; D; Dhat]
-    out = relu.(linear)
+#     linear = weights * [ζ; D; Dhat]
+#     out = relu.(linear)
 
-    return out[1], out[2]
+#     return out[1], out[2]
 
-end
+# end
 
-function hw_center_model(ζ, D, Dhat, weights)
+# function hw_center_model(ζ, D, Dhat, weights)
 
-    linear = weights * [ζ; D; Dhat]
-    out = relu.(linear)
+#     linear = weights * [ζ; D; Dhat]
+#     out = relu.(linear)
 
-    return out
+#     return out
 
-end
+# end
