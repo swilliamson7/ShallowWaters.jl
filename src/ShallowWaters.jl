@@ -26,6 +26,7 @@ module ShallowWaters
     include("tracer_advection.jl")
     include("zanna_bolton_forcing.jl")
     include("nn_forcing.jl")
+    include("coarse_grain.jl")
 
     include("feedback.jl")
     include("output.jl")
