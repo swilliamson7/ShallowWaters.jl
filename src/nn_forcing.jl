@@ -150,6 +150,11 @@ function NN_momentum(u, v, S)
         end
     end
 
+    # normalize the inputs to the neural net to be of norm 1
+    ζ = normalize(ζ)
+    D = normalize(D)
+    Dhat = normalize(Dhat)
+
     # Here we define the models to be used for the forcing, currently both just a single layer
     # We'll have two models, one will produce the off diagonal term in T (T_12 = T_21), and
     # the second will produce the diagonal terms (T_11, T_22)
@@ -271,13 +276,13 @@ function NN_momentum(u, v, S)
     s = Δ^2 * scale
     @inbounds for j in 1:nuy
         for k in 1:nux
-            S_u[k,j] = κ_BT * (dT11dx[k,j] + dT12dy[k+1,j]) / s
+            S_u[k,j] = (κ_BT * (dT11dx[k,j] + dT12dy[k+1,j]) / s) * 1e-3
         end
     end
 
     @inbounds for j in 1:nvy
         for k in 1:nvx
-            S_v[k,j] = κ_BT * (dT22dy[k,j] + dT12dx[k,j+1]) / s
+            S_v[k,j] = (κ_BT * (dT22dy[k,j] + dT12dx[k,j+1]) / s) * 1e-3
         end
     end
 

@@ -88,43 +88,99 @@ function coarse_grain(u_hr, v_hr, η_hr, nx_hr, S_lr)
 
 end
 
-function coarse_grain_eta(η_hr, S_lr)
+function coarse_grain_u(u_hr, nx_hr, S_lr)
 
-    # this is the standard deviation of the Gaussian filter, "...determines the 
-    # length scale at which information is removed
-    σ = 30 * 1e3
+    Prog_lr = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(
+        S_lr.Prog.u,
+        S_lr.Prog.v,
+        S_lr.Prog.η,
+        S_lr.Prog.sst,
+        S_lr)...
+    )
 
-    meta = S_lr.grid.ny
-    neta = S_lr.grid.nx
+    mu, nu = size(Prog_lr.u)
+    mu_hr, nu_hr = size(u_hr)
+    mv, nv = size(Prog_lr.v)
+    mv_hr, nv_hr = size(v_hr)
+    meta, neta = size(Prog_lr.η)
     meta_hr, neta_hr = size(η_hr)
 
-    η̅_hr = zeros(meta, neta)
+    ū_hr = zeros(mu, nu)
 
     # needs to be adjusted for any grid that isn't square
-    x_lr = 0:(S_lr.grid.Δ ):(S_lr.parameters.Lx )
-    y_lr = 0:(S_lr.grid.Δ ):(S_lr.parameters.Lx/(S_lr.parameters.L_ratio ))
+    x_lr = 0:S_lr.grid.Δ:S_lr.parameters.Lx
+    y_lr = 0:S_lr.grid.Δ:(S_lr.parameters.Lx/S_lr.parameters.L_ratio)
 
-    Δ_hr = S_lr.parameters.Lx / (1024)
+    Δ_hr = S_lr.parameters.Lx / nx_hr
+    x_hr = 0:Δ_hr:S_lr.parameters.Lx
+    y_hr = 0:Δ_hr:(S_lr.parameters.Lx/S_lr.parameters.L_ratio)
 
-    x_hr = 0:Δ_hr:(S_lr.parameters.Lx )
-    y_hr = 0:Δ_hr:(S_lr.parameters.Lx/(S_lr.parameters.L_ratio ))
+    coeffu = zeros(mu, nu)
+    den = 2 * 30e3^2
 
-    coeff = 1 / (2 * π * σ^2)
+    @inbounds for k ∈ 1:mu, j ∈ 1:nu
 
-    @inbounds for j ∈ 1:neta, k ∈ 1:meta
+        @inbounds for k2 ∈ 1:mu_hr
+            for j2 ∈ 1:nu_hr
 
-        @inbounds for j2 ∈ 1:neta_hr
-            @inbounds for k2 ∈ 1:meta_hr
-
-                η̅_hr[k,j] = η̅_hr[k,j] + η_hr[k2,j2] * exp(-((x_hr[j2] - x_lr[j])^2 + (y_hr[k2] - y_lr[k])^2)/(2 * σ^2))
+                ex = exp(-((x_hr[j2] - x_lr[j])^2 + (y_hr[k2] - y_lr[k])^2)/den)
+                coeffu[k,j] += ex
+                ū_hr[k,j] += u_hr[k2,j2] * ex
 
             end
         end
 
+        ū_hr[k,j] = (1 / coeffu[k,j]) * ū_hr[k,j]
+
     end
 
-    η̅_hr = coeff * η̅_hr
+    return ū_hr
 
-    return η̅_hr
+end
+
+function coarse_grain_v(v_hr, nx_hr, S_lr)
+
+    Prog_lr = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(
+        S_lr.Prog.u,
+        S_lr.Prog.v,
+        S_lr.Prog.η,
+        S_lr.Prog.sst,
+        S_lr)...
+    )
+
+    mv, nv = size(Prog_lr.v)
+    mv_hr, nv_hr = size(v_hr)
+
+    v̄_hr = zeros(mv, nv)
+
+    # needs to be adjusted for any grid that isn't square
+    x_lr = 0:S_lr.grid.Δ:S_lr.parameters.Lx
+    y_lr = 0:S_lr.grid.Δ:(S_lr.parameters.Lx/S_lr.parameters.L_ratio)
+
+    Δ_hr = S_lr.parameters.Lx / nx_hr
+    x_hr = 0:Δ_hr:S_lr.parameters.Lx
+    y_hr = 0:Δ_hr:(S_lr.parameters.Lx/S_lr.parameters.L_ratio)
+
+    coeffv = zeros(mv, nv)
+
+    den = 2 * 30e3^2
+
+    @inbounds for j ∈ 1:nv, k ∈ 1:mv
+
+        @inbounds for j2 ∈ 1:nv_hr
+            for k2 ∈ 1:mv_hr
+
+                ex = exp(-((x_hr[j2] - x_lr[j])^2 + (y_hr[k2] - y_lr[k])^2)/den)
+                coeffv[k,j] += ex
+                v̄_hr[k,j] += v_hr[k2,j2] * ex
+
+            end
+        end
+
+        v̄_hr[k,j] = (1 / coeffv[k,j]) * v̄_hr[k,j]
+
+    end
+
+    return v̄_hr
 
 end
