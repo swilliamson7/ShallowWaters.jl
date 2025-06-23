@@ -100,11 +100,6 @@ function coarse_grain_u(u_hr, nx_hr, S_lr)
 
     mu, nu = size(Prog_lr.u)
     mu_hr, nu_hr = size(u_hr)
-    mv, nv = size(Prog_lr.v)
-    mv_hr, nv_hr = size(v_hr)
-    meta, neta = size(Prog_lr.η)
-    meta_hr, neta_hr = size(η_hr)
-
     ū_hr = zeros(mu, nu)
 
     # needs to be adjusted for any grid that isn't square
