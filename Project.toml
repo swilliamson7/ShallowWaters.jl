@@ -18,7 +18,6 @@ Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 Checkpointing = "eb46d486-4f9c-4c3d-b445-a617f2a2f1ca"
 
 [compat]
-Checkpointing = "0.9, 0.11.0"
 Dates = "^1.2"
 Interpolations = "0.12, 0.13, 0.14"
 NetCDF = "0.10, 0.11"
