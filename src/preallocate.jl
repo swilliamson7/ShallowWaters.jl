@@ -574,11 +574,11 @@ end
     # of S. Initially this will just be a single layer to see if we can get the model
     # with the neural net running
     # the initial weight values might need to change, for now I'm setting them to zero
-    offdiag_outdim::Int
-    offdiag_indim::Int
+    # offdiag_outdim::Int
+    # offdiag_indim::Int
 
-    diag_outdim::Int
-    diag_indim::Int
+    # diag_outdim::Int
+    # diag_indim::Int
 
     ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners
 
@@ -639,14 +639,35 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
     nqx = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
     nqy = ny+1                                        # q-grid in y-direction
 
-    offdiag_outdim = 1
+    # am going to try increasing to more than one layer
     offdiag_indim = 22
+    offdiag_outdim = 10
+    offdiag_indim1 = 10
+    offdiag_outdim1 = 10
+    offdiag_indim2 = 10
+    offdiag_outdim2 = 10
+    offdiag_indim_final = 10
+    offdiag_outdim_final = 1
 
-    diag_outdim = 2
     diag_indim = 17
+    diag_outdim = 10
+    diag_indim1 = 10
+    diag_outdim1 = 10
+    diag_indim2 = 10
+    diag_outdim2 = 10
+    diag_indim_final = 10
+    diag_outdim_final = 2
 
-    offdiag_layers = Lux.Dense(offdiag_indim => offdiag_outdim, sigmoid)
-    diag_layers = Lux.Dense(diag_indim => diag_outdim, sigmoid)
+    offdiag_layers = Lux.Chain(Lux.Dense(offdiag_indim => offdiag_outdim, sigmoid),
+        Lux.Dense(offdiag_indim1 => offdiag_outdim1),
+        Lux.Dense(offdiag_indim2 => offdiag_outdim2),
+        Lux.Dense(offdiag_indim_final => offdiag_outdim_final, sigmoid)
+    )
+    diag_layers = Lux.Chain(Lux.Dense(diag_indim => diag_outdim, sigmoid),
+        Lux.Dense(diag_indim1 => diag_outdim1),
+        Lux.Dense(diag_indim2 => diag_outdim2),
+        Lux.Dense(diag_indim_final => diag_outdim_final, sigmoid)
+    )
 
     model_offdiag = Lux.setup(Random.default_rng(), offdiag_layers)
     model_diag = Lux.setup(Random.default_rng(), diag_layers)
@@ -684,7 +705,7 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
 
 
     return NNVars{T, typeof(offdiag_layers), typeof(diag_layers), typeof(model_offdiag), typeof(model_diag), typeof(compiled_offdiag), typeof(compiled_diag), typeof(compiled_doffdiag), typeof(compiled_ddiag)}(; nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
-                    halosstx=halosstx,halossty=halossty, offdiag_outdim, offdiag_indim, diag_outdim, diag_indim, offdiag_layers, diag_layers, model_offdiag, model_diag, compiled_offdiag, compiled_diag, compiled_doffdiag, compiled_ddiag
+                    halosstx=halosstx,halossty=halossty, offdiag_layers, diag_layers, model_offdiag, model_diag, compiled_offdiag, compiled_diag, compiled_doffdiag, compiled_ddiag
     )
 end
 

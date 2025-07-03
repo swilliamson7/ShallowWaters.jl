@@ -151,9 +151,9 @@ function NN_momentum(u, v, S)
     end
 
     # normalize the inputs to the neural net
-    ζ = ζ / ((sum(abs.(ζ).^2))^(1/2))
-    D = D / ((sum(abs.(D).^2))^(1/2))
-    Dhat = Dhat / ((sum(abs.(Dhat).^2))^(1/2))
+    ζ = (ζ / ((sum(abs.(ζ).^2))^(1/2)))
+    D = (D / ((sum(abs.(D).^2))^(1/2)))
+    Dhat = (Dhat / ((sum(abs.(Dhat).^2))^(1/2)))
 
     # Here we define the models to be used for the forcing, currently both just a single layer
     # We'll have two models, one will produce the off diagonal term in T (T_12 = T_21), and
@@ -261,6 +261,8 @@ function NN_momentum(u, v, S)
             T11 .= result[1, :, :]
             T22 .= result[2, :, :]
         else
+            # T11[1] = model_diag[1][1][1]
+            # T22[1] = model_diag[1][2][1]
             run_fwd_nn((T11, T22), compiled_diag, compiled_ddiag, diag_layers, diag_input, model_diag[1], model_diag[2])
         end
 
