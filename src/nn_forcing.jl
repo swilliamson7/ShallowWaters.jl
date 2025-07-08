@@ -98,7 +98,7 @@ function NN_momentum(u, v, S)
     @unpack diag_layers, offdiag_layers = Diag.NNVars
     @unpack compiled_offdiag, compiled_diag = Diag.NNVars
     @unpack compiled_doffdiag, compiled_diag = Diag.NNVars
-    @unpack offdiag_outdim, offdiag_indim, diag_indim, diag_outdim = Diag.NNVars
+    # @unpack offdiag_outdim, offdiag_indim, diag_indim, diag_outdim = Diag.NNVars
 
     @unpack S_u, S_v = Diag.NNVars
 
@@ -151,9 +151,9 @@ function NN_momentum(u, v, S)
     end
 
     # normalize the inputs to the neural net
-    ζ = (ζ / ((sum(abs.(ζ).^2))^(1/2)))
-    D = (D / ((sum(abs.(D).^2))^(1/2)))
-    Dhat = (Dhat / ((sum(abs.(Dhat).^2))^(1/2)))
+    ζ = (ζ / (500))
+    D = (D / (500))
+    Dhat = (Dhat / (500))
 
     # Here we define the models to be used for the forcing, currently both just a single layer
     # We'll have two models, one will produce the off diagonal term in T (T_12 = T_21), and
@@ -278,13 +278,13 @@ function NN_momentum(u, v, S)
     s = Δ^2 * scale
     @inbounds for j in 1:nuy
         for k in 1:nux
-            S_u[k,j] = (κ_BT * (dT11dx[k,j] + dT12dy[k+1,j]) / s) * 1e-3
+            S_u[k,j] = (κ_BT * (dT11dx[k,j] + dT12dy[k+1,j]) / s) * 1e-2
         end
     end
 
     @inbounds for j in 1:nvy
         for k in 1:nvx
-            S_v[k,j] = (κ_BT * (dT22dy[k,j] + dT12dx[k,j+1]) / s) * 1e-3
+            S_v[k,j] = (κ_BT * (dT22dy[k,j] + dT12dx[k,j+1]) / s) * 1e-2
         end
     end
 

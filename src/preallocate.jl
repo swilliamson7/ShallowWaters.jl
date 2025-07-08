@@ -630,6 +630,7 @@ function grad_apply(dres, dps, layers, input, dinput, ps, st)
 end
 
 """Generator function for NN momentum terms."""
+# one layer
 function NNVars{T}(G::Grid) where {T<:AbstractFloat}
 
     @unpack nx,ny,bc,Δ= G
@@ -639,35 +640,14 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
     nqx = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
     nqy = ny+1                                        # q-grid in y-direction
 
-    # am going to try increasing to more than one layer
+    offdiag_outdim = 1
     offdiag_indim = 22
-    offdiag_outdim = 10
-    offdiag_indim1 = 10
-    offdiag_outdim1 = 10
-    offdiag_indim2 = 10
-    offdiag_outdim2 = 10
-    offdiag_indim_final = 10
-    offdiag_outdim_final = 1
 
+    diag_outdim = 2
     diag_indim = 17
-    diag_outdim = 10
-    diag_indim1 = 10
-    diag_outdim1 = 10
-    diag_indim2 = 10
-    diag_outdim2 = 10
-    diag_indim_final = 10
-    diag_outdim_final = 2
 
-    offdiag_layers = Lux.Chain(Lux.Dense(offdiag_indim => offdiag_outdim, sigmoid),
-        Lux.Dense(offdiag_indim1 => offdiag_outdim1),
-        Lux.Dense(offdiag_indim2 => offdiag_outdim2),
-        Lux.Dense(offdiag_indim_final => offdiag_outdim_final, sigmoid)
-    )
-    diag_layers = Lux.Chain(Lux.Dense(diag_indim => diag_outdim, sigmoid),
-        Lux.Dense(diag_indim1 => diag_outdim1),
-        Lux.Dense(diag_indim2 => diag_outdim2),
-        Lux.Dense(diag_indim_final => diag_outdim_final, sigmoid)
-    )
+    offdiag_layers = Lux.Dense(offdiag_indim => offdiag_outdim, sigmoid)
+    diag_layers = Lux.Dense(diag_indim => diag_outdim, sigmoid)
 
     model_offdiag = Lux.setup(Random.default_rng(), offdiag_layers)
     model_diag = Lux.setup(Random.default_rng(), diag_layers)
@@ -709,6 +689,85 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
     )
 end
 
+# four layers
+# function NNVars{T}(G::Grid) where {T<:AbstractFloat}
+
+#     @unpack nx,ny,bc,Δ= G
+#     @unpack halo,haloη = G
+#     @unpack halosstx,halossty = G
+
+#     nqx = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
+#     nqy = ny+1                                        # q-grid in y-direction
+
+#     # am going to try increasing to more than one layer
+#     offdiag_indim = 22
+#     offdiag_outdim = 10
+#     offdiag_indim1 = 10
+#     offdiag_outdim1 = 10
+#     offdiag_indim2 = 10
+#     offdiag_outdim2 = 10
+#     offdiag_indim_final = 10
+#     offdiag_outdim_final = 1
+
+#     diag_indim = 17
+#     diag_outdim = 10
+#     diag_indim1 = 10
+#     diag_outdim1 = 10
+#     diag_indim2 = 10
+#     diag_outdim2 = 10
+#     diag_indim_final = 10
+#     diag_outdim_final = 2
+
+#     offdiag_layers = Lux.Chain(Lux.Dense(offdiag_indim => offdiag_outdim, sigmoid),
+#         Lux.Dense(offdiag_indim1 => offdiag_outdim1),
+#         Lux.Dense(offdiag_indim2 => offdiag_outdim2),
+#         Lux.Dense(offdiag_indim_final => offdiag_outdim_final, sigmoid)
+#     )
+#     diag_layers = Lux.Chain(Lux.Dense(diag_indim => diag_outdim, sigmoid),
+#         Lux.Dense(diag_indim1 => diag_outdim1),
+#         Lux.Dense(diag_indim2 => diag_outdim2),
+#         Lux.Dense(diag_indim_final => diag_outdim_final, sigmoid)
+#     )
+
+#     model_offdiag = Lux.setup(Random.default_rng(), offdiag_layers)
+#     model_diag = Lux.setup(Random.default_rng(), diag_layers)
+
+#     offdiag_input = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
+#     diag_input = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
+
+#     offdiag_dinput = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
+#     diag_dinput = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
+
+#     d_offdiag_res = Reactant.to_rarray(Array{T}(undef, 1, nqx, nqy))
+#     d_diag_res = Reactant.to_rarray(Array{T}(undef, 2, nx, ny))
+
+#     use_reactant = false
+
+#     if use_reactant
+#         model_offdiag = Reactant.to_rarray(model_offdiag)
+#     end
+#     if use_reactant
+#         model_diag = Reactant.to_rarray(model_diag)
+#     end
+
+#     if use_reactant
+#         compiled_offdiag = Reactant.@compile Lux.apply(offdiag_layers, offdiag_input, model_offdiag[1], model_offdiag[2])
+#         compiled_diag = Reactant.@compile Lux.apply(diag_layers, diag_input, model_diag[1], model_diag[2])
+
+#         compiled_doffdiag = Reactant.@compile grad_apply(d_offdiag_res, deepcopy(model_offdiag[1]), offdiag_layers, offdiag_input, offdiag_dinput, model_offdiag[1], model_offdiag[2])
+#         compiled_ddiag = Reactant.@compile grad_apply(d_diag_res, deepcopy(model_diag[1]), diag_layers, diag_input, diag_dinput, model_diag[1], model_diag[2])
+#     else
+#         compiled_offdiag = nothing
+#         compiled_diag = nothing
+#         compiled_doffdiag = nothing
+#         compiled_ddiag = nothing
+#     end
+
+
+#     return NNVars{T, typeof(offdiag_layers), typeof(diag_layers), typeof(model_offdiag), typeof(model_diag), typeof(compiled_offdiag), typeof(compiled_diag), typeof(compiled_doffdiag), typeof(compiled_ddiag)}(; nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+#                     halosstx=halosstx,halossty=halossty, offdiag_layers, diag_layers, model_offdiag, model_diag, compiled_offdiag, compiled_diag, compiled_doffdiag, compiled_ddiag
+#     )
+# end
 
 """Preallocate the diagnostic variables and return them as matrices in structs."""
 function preallocate(   ::Type{T},
