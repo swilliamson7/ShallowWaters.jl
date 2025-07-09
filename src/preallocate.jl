@@ -640,14 +640,22 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
     nqx = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
     nqy = ny+1                                        # q-grid in y-direction
 
-    offdiag_outdim = 1
-    offdiag_indim = 22
+    offdiag_dims = [22, 10, 1]
+    diag_dims = [17, 10, 2]
 
-    diag_outdim = 2
-    diag_indim = 17
-
-    offdiag_layers = Lux.Dense(offdiag_indim => offdiag_outdim, sigmoid)
-    diag_layers = Lux.Dense(diag_indim => diag_outdim, sigmoid)
+    offdiag_layers = Lux.Chain(
+        (
+            Lux.Dense(offdiag_dims[i] => offdiag_dims[i+1], (i == (length(offdiag_dims)-1) ? identity : sigmoid))
+            for i in 1:(length(offdiag_dims)-1)
+        )...
+    )
+    
+    diag_layers = Lux.Chain(
+        (
+            Lux.Dense(diag_dims[i] => diag_dims[i+1], (i == (length(diag_dims)-1) ? identity : sigmoid))
+            for i in 1:(length(diag_dims)-1)
+        )...
+    )
 
     model_offdiag = Lux.setup(Random.default_rng(), offdiag_layers)
     model_diag = Lux.setup(Random.default_rng(), diag_layers)
