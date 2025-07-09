@@ -239,11 +239,7 @@ function add_drag_diff_tendencies!( u::Matrix{Tprog},
     end
 
     if S.parameters.nn_forcing_dissipation
-        if S.parameters.handwritten
-            handwritten_NN_momentum(u,v,S)
-        else
             NN_momentum(u,v,S)
-        end
     end 
 
     if compensated

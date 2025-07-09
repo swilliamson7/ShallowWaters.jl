@@ -52,11 +52,7 @@ function rhs_nonlinear!(u::AbstractMatrix,
     end
 
     if S.parameters.nn_forcing_momentum 
-        if S.parameters.handwritten
-            handwritten_NN_momentum(u, v, S)
-        else
-            NN_momentum(u, v, S)
-        end
+        NN_momentum(u, v, S)
     end
 
     # adding the terms

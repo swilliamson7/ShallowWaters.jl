@@ -79,7 +79,6 @@
     # NN FORCING OPTIONS
     nn_forcing_momentum::Bool=false
     nn_forcing_dissipation::Bool=false
-    handwritten::Bool = true            # handwritten NN (no Lux)?
 
     # MOMENTUM ADVECTION OPTIONS
     adv_scheme::String="ArakawaHsu"     # "Sadourny" or "ArakawaHsu"
