@@ -214,7 +214,7 @@ function coarse_grain_eta(eta_hr, nx_hr, S_lr)
 
                 ex = exp(-((x_hr[j2] - x_lr[j])^2 + (y_hr[k2] - y_lr[k])^2)/den)
                 coeffeta[k,j] += ex
-                η̅_hr[k,j] += η_hr[k2,j2] * ex
+                η̅_hr[k,j] += eta_hr[k2,j2] * ex
 
             end
         end
