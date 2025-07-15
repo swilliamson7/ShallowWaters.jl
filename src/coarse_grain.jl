@@ -179,3 +179,50 @@ function coarse_grain_v(v_hr, nx_hr, S_lr)
     return v̄_hr
 
 end
+
+function coarse_grain_eta(eta_hr, nx_hr, S_lr)
+
+    Prog_lr = ShallowWaters.PrognosticVars{Float32}(ShallowWaters.remove_halo(
+        S_lr.Prog.u,
+        S_lr.Prog.v,
+        S_lr.Prog.η,
+        S_lr.Prog.sst,
+        S_lr)...
+    )
+
+    meta, neta = size(Prog_lr.eta)
+    meta_hr, neta_hr = size(eta_hr)
+
+    η̄_hr = zeros(meta, neta)
+
+    # needs to be adjusted for any grid that isn't square
+    x_lr = 0:S_lr.grid.Δ:S_lr.parameters.Lx
+    y_lr = 0:S_lr.grid.Δ:(S_lr.parameters.Lx/S_lr.parameters.L_ratio)
+
+    Δ_hr = S_lr.parameters.Lx / nx_hr
+    x_hr = 0:Δ_hr:S_lr.parameters.Lx
+    y_hr = 0:Δ_hr:(S_lr.parameters.Lx/S_lr.parameters.L_ratio)
+
+    coeffeta = zeros(meta, neta)
+
+    den = 2 * 30e3^2
+
+    @inbounds for j ∈ 1:neta, k ∈ 1:meta
+
+        @inbounds for j2 ∈ 1:neta_hr
+            for k2 ∈ 1:meta_hr
+
+                ex = exp(-((x_hr[j2] - x_lr[j])^2 + (y_hr[k2] - y_lr[k])^2)/den)
+                coeffeta[k,j] += ex
+                η̅_hr[k,j] += η_hr[k2,j2] * ex
+
+            end
+        end
+
+        η̅_hr[k,j] = (1 / coeffeta[k,j]) * η̅_hr[k,j]
+
+    end
+
+    return η̄_hr
+
+end
