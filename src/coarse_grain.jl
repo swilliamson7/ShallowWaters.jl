@@ -193,7 +193,7 @@ function coarse_grain_eta(eta_hr, nx_hr, S_lr)
     meta, neta = size(Prog_lr.η)
     meta_hr, neta_hr = size(eta_hr)
 
-    η̄_hr = zeros(meta, neta)
+    η̅_hr = zeros(meta, neta)
 
     # needs to be adjusted for any grid that isn't square
     x_lr = 0:S_lr.grid.Δ:S_lr.parameters.Lx
@@ -223,6 +223,6 @@ function coarse_grain_eta(eta_hr, nx_hr, S_lr)
 
     end
 
-    return η̄_hr
+    return η̅_hr
 
 end
