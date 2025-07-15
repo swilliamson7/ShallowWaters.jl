@@ -190,7 +190,7 @@ function coarse_grain_eta(eta_hr, nx_hr, S_lr)
         S_lr)...
     )
 
-    meta, neta = size(Prog_lr.eta)
+    meta, neta = size(Prog_lr.η)
     meta_hr, neta_hr = size(eta_hr)
 
     η̄_hr = zeros(meta, neta)
