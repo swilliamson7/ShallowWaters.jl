@@ -151,9 +151,9 @@ function NN_momentum(u, v, S)
     end
 
     # normalize the inputs to the neural net
-    ζ = (ζ / (500))
-    D = (D / (500))
-    Dhat = (Dhat / (500))
+    # ζ = (ζ / (500))
+    # D = (D / (500))
+    # Dhat = (Dhat / (500))
 
     # Here we define the models to be used for the forcing, currently both just a single layer
     # We'll have two models, one will produce the off diagonal term in T (T_12 = T_21), and
