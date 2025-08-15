@@ -270,7 +270,7 @@ function NN_momentum(u, v, S)
 
     # Computing the forcing term with results from the NN
     ∂x!(dT11dx, T11)
-    ∂y!(dT12dy,T12)
+    ∂y!(dT12dy, T12)
 
     ∂x!(dT12dx, T12)
     ∂y!(dT22dy, T22)
@@ -278,13 +278,13 @@ function NN_momentum(u, v, S)
     s = Δ^2 * scale
     @inbounds for j in 1:nuy
         for k in 1:nux
-            S_u[k,j] = (κ_BT * (dT11dx[k,j] + dT12dy[k+1,j]) / s) * 1e-2
+            S_u[k,j] = (κ_BT * (dT11dx[k,j] + dT12dy[k+1,j]) / s)# * 1e-2
         end
     end
 
     @inbounds for j in 1:nvy
         for k in 1:nvx
-            S_v[k,j] = (κ_BT * (dT22dy[k,j] + dT12dx[k,j+1]) / s) * 1e-2
+            S_v[k,j] = (κ_BT * (dT22dy[k,j] + dT12dx[k,j+1]) / s)# * 1e-2
         end
     end
 

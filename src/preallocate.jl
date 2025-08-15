@@ -640,8 +640,8 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
     nqx = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
     nqy = ny+1                                        # q-grid in y-direction
 
-    offdiag_dims = [22, 10, 10, 10, 1]
-    diag_dims = [17, 10, 10, 10, 2]
+    offdiag_dims = [22, 30, 50, 40, 30, 10, 1]
+    diag_dims = [17, 25, 40, 35, 25, 8, 2]
 
     offdiag_layers = Lux.Chain(
         (
