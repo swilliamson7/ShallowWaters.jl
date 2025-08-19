@@ -151,9 +151,9 @@ function NN_momentum(u, v, S)
     end
 
     # normalize the inputs to the neural net
-    # ζ = (ζ / (500))
-    # D = (D / (500))
-    # Dhat = (Dhat / (500))
+    ζ = (ζ / (500))
+    D = (D / (500))
+    Dhat = (Dhat / (500))
 
     # Here we define the models to be used for the forcing, currently both just a single layer
     # We'll have two models, one will produce the off diagonal term in T (T_12 = T_21), and
@@ -180,6 +180,8 @@ function NN_momentum(u, v, S)
             end
         end
     end
+
+    # offdiag_input = reshape(offdiag_input, nqx*nqy*(9+9+4))
 
     @static if false
         @inbounds for j ∈ 1:nqx
@@ -235,6 +237,8 @@ function NN_momentum(u, v, S)
             end
         end
     end
+
+    # diag_input = reshape(diag_input, (mTh-2)*(nTh-2)*(4+4+9))
 
     @static if false
         @inbounds for j ∈ 2:mTh-1
