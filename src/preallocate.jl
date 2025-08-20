@@ -581,9 +581,7 @@ end
     # diag_indim::Int
 
     ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners
-
     D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners
-
     Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
 
     ζT::Array{T,2} = zeros(T,nx,ny)         # ζ interpolated to cell centers
@@ -630,7 +628,6 @@ function grad_apply(dres, dps, layers, input, dinput, ps, st)
 end
 
 """Generator function for NN momentum terms."""
-# one layer
 function NNVars{T}(G::Grid) where {T<:AbstractFloat}
 
     @unpack nx,ny,bc,Δ= G
@@ -697,7 +694,130 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
     )
 end
 
-# four layers
+""" Variables that appear in NN forcing term """
+@with_kw mutable struct CNNVars{T<:AbstractFloat, OffDiagLayerType, OffDiagModelType, OffDiagCompiledType, DiagCompiledType, DOffDiagCompiledType, DDiagCompiledType}
+
+    # to be specified
+    nx::Int
+    ny::Int
+    bc::String
+    halo::Int
+    haloη::Int
+    halosstx::Int
+    halossty::Int
+
+    nux::Int = if (bc == "periodic") nx else nx-1 end      # u-grid in x-direction
+    nuy::Int = ny                                          # u-grid in y-direction
+    nvx::Int = nx                                          # v-grid in x-direction
+    nvy::Int = ny-1                                        # v-grid in y-direction
+    nqx::Int = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
+    nqy::Int = ny+1                                        # q-grid in y-direction
+
+    γ₀::Float64=0.3                       # coefficient in parameterization term
+
+    dudx::Array{T,2} = zeros(T,nux+2*halo-1,nuy+2*halo)    # ∂u/∂x
+    dudy::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo-1)    # ∂u/∂y
+    dvdx::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
+    dvdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
+
+    ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners
+    D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners
+    Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
+    Dhatq::Array{T,2} = zeros(T,nqx,nqy)  # stretch deformation, interpolated to cell corners to match ζ and D
+
+    ζT::Array{T,2} = zeros(T,nx,ny)         # ζ interpolated to cell centers
+    DT::Array{T,2} = zeros(T,nx,ny)         # D, interpolated on cell centers
+    ζDhat::Array{T,2} = zeros(T,nqx,nqy)    # ζ ⋅ Dhat, cell corners
+
+    res_offdiagu::Array{T,2} = zeros(nqx,nuy)
+    res_diagv::Array{T,2} = zeros(nvx,nqy)
+
+    S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction
+    S_v::Array{T,2} = zeros(T,nvx,nvy)             # total forcing in y-direction
+
+    # leaving these as offdiag and diag for now, will change later
+    # offdiag ----> S_u, diag ----> S_v
+    offdiag_layers::OffDiagLayerType
+    # diag_layers::DiagLayerType
+
+    model_offdiag::OffDiagModelType
+    # model_diag::DiagModelType
+
+    compiled_offdiag::OffDiagCompiledType
+    compiled_diag::DiagCompiledType
+
+    compiled_doffdiag::DOffDiagCompiledType
+    compiled_ddiag::DDiagCompiledType
+
+end
+
+"""Generator function for convolutional NN momentum terms."""
+function CNNVars{T}(G::Grid) where {T<:AbstractFloat}
+
+    @unpack nx,ny,bc,Δ= G
+    @unpack halo,haloη = G
+    @unpack halosstx,halossty = G
+
+    nqx = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
+    nqy = ny+1                                        # q-grid in y-direction
+
+    offdiag_dims = [3, 25, 20, 20, 20, 20, 20, 2]
+    # diag_dims = [3, 20, 20, 20, 20, 20, 20, 1]
+
+    offdiag_layers = Lux.Chain(
+        (
+            Lux.Conv((3,3), offdiag_dims[i] => offdiag_dims[i+1], (i == (length(offdiag_dims)-1) ? identity : gelu); pad=SamePad())
+            for i in 1:(length(offdiag_dims)-1)
+        )...
+    )
+
+    # diag_layers = Lux.Chain(
+    #     (
+    #         Lux.Conv((3,3), diag_dims[i] => diag_dims[i+1], (i == (length(diag_dims)-1) ? identity : gelu); pad=SamePad())
+    #         for i in 1:(length(offdiag_dims)-1)
+    #     )...
+    # )
+
+    model_offdiag = Lux.setup(Random.default_rng(), offdiag_layers)
+    # model_diag = Lux.setup(Random.default_rng(), diag_layers)
+
+    offdiag_input = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
+    diag_input = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
+
+    offdiag_dinput = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
+    diag_dinput = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
+
+    d_offdiag_res = Reactant.to_rarray(Array{T}(undef, 1, nqx, nqy))
+    d_diag_res = Reactant.to_rarray(Array{T}(undef, 2, nx, ny))
+
+    use_reactant = false
+
+    if use_reactant
+        model_offdiag = Reactant.to_rarray(model_offdiag)
+    end
+    if use_reactant
+        model_diag = Reactant.to_rarray(model_diag)
+    end
+
+    if use_reactant
+        compiled_offdiag = Reactant.@compile Lux.apply(offdiag_layers, offdiag_input, model_offdiag[1], model_offdiag[2])
+        compiled_diag = Reactant.@compile Lux.apply(diag_layers, diag_input, model_diag[1], model_diag[2])
+
+        compiled_doffdiag = Reactant.@compile grad_apply(d_offdiag_res, deepcopy(model_offdiag[1]), offdiag_layers, offdiag_input, offdiag_dinput, model_offdiag[1], model_offdiag[2])
+        compiled_ddiag = Reactant.@compile grad_apply(d_diag_res, deepcopy(model_diag[1]), diag_layers, diag_input, diag_dinput, model_diag[1], model_diag[2])
+    else
+        compiled_offdiag = nothing
+        compiled_diag = nothing
+        compiled_doffdiag = nothing
+        compiled_ddiag = nothing
+    end
+
+
+    return CNNVars{T, typeof(offdiag_layers), typeof(model_offdiag), typeof(compiled_offdiag), typeof(compiled_diag), typeof(compiled_doffdiag), typeof(compiled_ddiag)}(; nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+                    halosstx=halosstx,halossty=halossty, offdiag_layers, model_offdiag, compiled_offdiag, compiled_diag, compiled_doffdiag, compiled_ddiag
+    )
+end
+
 # function NNVars{T}(G::Grid) where {T<:AbstractFloat}
 
 #     @unpack nx,ny,bc,Δ= G
@@ -795,6 +915,7 @@ function preallocate(   ::Type{T},
     PV = PrognosticVars{T}(G)
     ZB = ZBVars{T}(G)
     NN = NNVars{T}(G)
+    CNN = CNNVars{T}(G)
 
-    return DiagnosticVars{T,Tprog}(RK,TD,VF,VT,BN,BD,AH,LP,SM,SL,PV,ZB,NN)
+    return DiagnosticVars{T,Tprog}(RK,TD,VF,VT,BN,BD,AH,LP,SM,SL,PV,ZB,NN,CNN)
 end

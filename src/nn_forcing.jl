@@ -294,6 +294,104 @@ function NN_momentum(u, v, S)
 
 end
 
+function conv_NN_momentum(u, v, S)
+
+    Diag = S.Diag
+
+    T = Float32
+
+    @unpack nqx, nqy = Diag.CNNVars
+    @unpack dudx, dudy, dvdx, dvdy = Diag.CNNVars
+    @unpack γ₀, ζ, D, Dhat, Dhatq = Diag.CNNVars
+    @unpack model_offdiag = Diag.CNNVars
+    @unpack offdiag_layers = Diag.CNNVars
+    @unpack compiled_offdiag, compiled_diag = Diag.CNNVars
+    @unpack compiled_doffdiag, compiled_diag = Diag.CNNVars
+
+    @unpack res_offdiagu, res_diagv = Diag.CNNVars
+    @unpack S_u, S_v = Diag.CNNVars
+
+    @unpack Δ, scale, f₀ = S.grid
+    @unpack halo, haloη, ep, nux, nuy, nvx, nvy = S.grid
+
+    mq,nq = size(ζ)
+    mTh,nTh = size(Dhat)
+
+    κ_BT = - γ₀ * Δ^2
+
+    # @show any(isnan, u)
+    # @show any(isnan, v)
+    # @show any(isnan, dvdx)
+    # @show any(isnan, dvdy)
+    # @show any(isnan, dudy)
+    # @show any(isnan, dudx)
+
+    ∂x!(dudx, u)
+    ∂y!(dudy, u)
+
+    ∂x!(dvdx, v)
+    ∂y!(dvdy, v)
+
+    # @show any(isnan, u)
+    # @show any(isnan, v)
+    # @show any(isnan, dvdx)
+    # @show any(isnan, dvdy)
+    # @show any(isnan, dudy)
+    # @show any(isnan, dudx)
+
+    # Relative vorticity and shear deformation, cell corners
+    @inbounds for j ∈ 1:nq
+        for k ∈ 1:mq
+            ζ[k,j] = dvdx[k+1,j+1] - dudy[k+1,j+1]
+            D[k,j] = dudy[k+1,j+1] + dvdx[k+1,j+1]
+        end
+    end
+
+    # Stretch deformation, cell centers (with halo)
+    @inbounds for j ∈ 1:nTh
+        for k ∈ 1:mTh
+            Dhat[k,j] = dudx[k,j+1] - dvdy[k+1,j]
+        end
+    end
+
+    # normalize the inputs to the neural net
+    ζ = (ζ / (500))
+    D = (D / (500))
+    Dhat = (Dhat / (500))
+
+    # move Dhat to cell corners
+    Ixy!(Dhatq, Dhat)
+
+    # Defining one model, which will output S_u and S_v. It will take as input
+    # ζ, D, and DhatT, all of which live on the cell faces. I will interpolate the outputs to the correct
+    # grids at the end
+    offdiag_input = Array{T}(undef, nqx, nqy, 3, 1)
+    offdiag_input[:,:,1,1] .= ζ
+    offdiag_input[:,:,2,1] .= D
+    offdiag_input[:,:,3,1] .= Dhatq
+
+    resultoffdiag = Lux.apply(offdiag_layers, offdiag_input, model_offdiag[1], model_offdiag[2])[1]
+
+    Iy!(res_offdiagu, resultoffdiag[:,:,1,1])
+    Ix!(res_diagv, resultoffdiag[:,:,2,1])
+
+    S_u .= 1e-5 .* res_offdiagu[2:end-1,:]
+    S_v .= 1e-5 .* res_diagv[:,2:end-1]
+
+    # @inbounds for j in 1:nuy
+    #     for k in 1:nux
+    #         S_u[k,j] = (κ_BT * (dT11dx[k,j] + dT12dy[k+1,j]) / s)# * 1e-2
+    #     end
+    # end
+
+    # @inbounds for j in 1:nvy
+    #     for k in 1:nvx
+    #         S_v[k,j] = (κ_BT * (dT22dy[k,j] + dT12dx[k,j+1]) / s)# * 1e-2
+    #     end
+    # end
+
+end
+
 # # writing a "function that acts like a neural net", i.e. will take in 
 # # u, v, and the model S, and output the elements of the parameterization
 # # all without using Lux.jl
