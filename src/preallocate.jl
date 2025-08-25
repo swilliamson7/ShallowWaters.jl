@@ -657,14 +657,18 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
     model_offdiag = Lux.setup(Random.default_rng(), offdiag_layers)
     model_diag = Lux.setup(Random.default_rng(), diag_layers)
 
-    offdiag_input = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
-    diag_input = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
 
-    offdiag_dinput = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
-    diag_dinput = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
+    use_reactant = false
+    if use_reactant
+        offdiag_input = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
+        diag_input = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
 
-    d_offdiag_res = Reactant.to_rarray(Array{T}(undef, 1, nqx, nqy))
-    d_diag_res = Reactant.to_rarray(Array{T}(undef, 2, nx, ny))
+        offdiag_dinput = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
+        diag_dinput = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
+
+        d_offdiag_res = Reactant.to_rarray(Array{T}(undef, 1, nqx, nqy))
+        d_diag_res = Reactant.to_rarray(Array{T}(undef, 2, nx, ny))
+    end
 
     use_reactant = false
 
@@ -695,7 +699,7 @@ function NNVars{T}(G::Grid) where {T<:AbstractFloat}
 end
 
 """ Variables that appear in NN forcing term """
-@with_kw mutable struct CNNVars{T<:AbstractFloat, OffDiagLayerType, OffDiagModelType, OffDiagCompiledType, DiagCompiledType, DOffDiagCompiledType, DDiagCompiledType}
+@with_kw mutable struct CNNVars{T<:AbstractFloat, SuLayerType, SvLayerType, SuModelType, SvModelType, SuCompiledType, SvCompiledType, DSuCompiledType, DSvCompiledType}
 
     # to be specified
     nx::Int
@@ -729,25 +733,24 @@ end
     DT::Array{T,2} = zeros(T,nx,ny)         # D, interpolated on cell centers
     ζDhat::Array{T,2} = zeros(T,nqx,nqy)    # ζ ⋅ Dhat, cell corners
 
-    res_offdiagu::Array{T,2} = zeros(nqx,nuy)
-    res_diagv::Array{T,2} = zeros(nvx,nqy)
+    res_Su::Array{T,2} = zeros(nqx,nuy)
+    res_Sv::Array{T,2} = zeros(nvx,nqy)
 
+    #offdiag -> S_u diag -> S_v
     S_u::Array{T,2} = zeros(T,nux,nuy)             # total forcing in x-direction
     S_v::Array{T,2} = zeros(T,nvx,nvy)             # total forcing in y-direction
 
-    # leaving these as offdiag and diag for now, will change later
-    # offdiag ----> S_u, diag ----> S_v
-    offdiag_layers::OffDiagLayerType
-    # diag_layers::DiagLayerType
+    Su_layers::SuLayerType
+    Sv_layers::SvLayerType
 
-    model_offdiag::OffDiagModelType
-    # model_diag::DiagModelType
+    model_Su::SuModelType
+    model_Sv::SvModelType
 
-    compiled_offdiag::OffDiagCompiledType
-    compiled_diag::DiagCompiledType
+    compiled_Su::SuCompiledType
+    compiled_Sv::SvCompiledType
 
-    compiled_doffdiag::DOffDiagCompiledType
-    compiled_ddiag::DDiagCompiledType
+    compiled_dSu::DSuCompiledType
+    compiled_dSv::DSvCompiledType
 
 end
 
@@ -761,60 +764,58 @@ function CNNVars{T}(G::Grid) where {T<:AbstractFloat}
     nqx = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
     nqy = ny+1                                        # q-grid in y-direction
 
-    offdiag_dims = [3, 25, 20, 20, 20, 20, 20, 2]
-    # diag_dims = [3, 20, 20, 20, 20, 20, 20, 1]
+    Su_dims = [3,128,64,32,32,32,32,32,4,1]
+    Sv_dims = [3,128,64,32,32,32,32,32,4,1]
 
-    offdiag_layers = Lux.Chain(
+    Su_layers = Lux.Chain(
         (
-            Lux.Conv((3,3), offdiag_dims[i] => offdiag_dims[i+1], (i == (length(offdiag_dims)-1) ? identity : gelu); pad=SamePad())
-            for i in 1:(length(offdiag_dims)-1)
+            Lux.Conv((3,3), Su_dims[i] => Su_dims[i+1], (i == (length(Su_dims)-1) ? identity : relu); pad=SamePad())
+            for i in 1:(length(Su_dims)-1)
         )...
     )
 
-    # diag_layers = Lux.Chain(
-    #     (
-    #         Lux.Conv((3,3), diag_dims[i] => diag_dims[i+1], (i == (length(diag_dims)-1) ? identity : gelu); pad=SamePad())
-    #         for i in 1:(length(offdiag_dims)-1)
-    #     )...
-    # )
+    Sv_layers = Lux.Chain(
+        (
+            Lux.Conv((3,3), Sv_dims[i] => Sv_dims[i+1], (i == (length(Sv_dims)-1) ? identity : relu); pad=SamePad())
+            for i in 1:(length(Sv_dims)-1)
+        )...
+    )
 
-    model_offdiag = Lux.setup(Random.default_rng(), offdiag_layers)
-    # model_diag = Lux.setup(Random.default_rng(), diag_layers)
-
-    offdiag_input = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
-    diag_input = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
-
-    offdiag_dinput = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
-    diag_dinput = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
-
-    d_offdiag_res = Reactant.to_rarray(Array{T}(undef, 1, nqx, nqy))
-    d_diag_res = Reactant.to_rarray(Array{T}(undef, 2, nx, ny))
+    model_Su = Lux.setup(Random.default_rng(), Su_layers)
+    model_Sv = Lux.setup(Random.default_rng(), Sv_layers)
 
     use_reactant = false
-
     if use_reactant
-        model_offdiag = Reactant.to_rarray(model_offdiag)
+        model_Su = Reactant.to_rarray(model_Su)
+        Su_input = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
+        Sv_input = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
+
+        Su_dinput = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
+        Sv_dinput = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
+
+        d_Su_res = Reactant.to_rarray(Array{T}(undef, 1, nqx, nqy))
+        d_Sv_res = Reactant.to_rarray(Array{T}(undef, 2, nx, ny))
     end
     if use_reactant
-        model_diag = Reactant.to_rarray(model_diag)
+        model_Sv = Reactant.to_rarray(model_Sv)
     end
 
     if use_reactant
-        compiled_offdiag = Reactant.@compile Lux.apply(offdiag_layers, offdiag_input, model_offdiag[1], model_offdiag[2])
-        compiled_diag = Reactant.@compile Lux.apply(diag_layers, diag_input, model_diag[1], model_diag[2])
+        compiled_Su = Reactant.@compile Lux.apply(Su_layers, Su_input, model_Su[1], model_Su[2])
+        compiled_Sv = Reactant.@compile Lux.apply(Sv_layers, Sv_input, model_Sv[1], model_Sv[2])
 
-        compiled_doffdiag = Reactant.@compile grad_apply(d_offdiag_res, deepcopy(model_offdiag[1]), offdiag_layers, offdiag_input, offdiag_dinput, model_offdiag[1], model_offdiag[2])
-        compiled_ddiag = Reactant.@compile grad_apply(d_diag_res, deepcopy(model_diag[1]), diag_layers, diag_input, diag_dinput, model_diag[1], model_diag[2])
+        compiled_dSu = Reactant.@compile grad_apply(d_Su_res, deepcopy(model_Su[1]), Su_layers, Su_input, Su_dinput, model_Su[1], model_Su[2])
+        compiled_dSv = Reactant.@compile grad_apply(d_Sv_res, deepcopy(model_Sv[1]), Sv_layers, Sv_input, Sv_dinput, model_Sv[1], model_Sv[2])
     else
-        compiled_offdiag = nothing
-        compiled_diag = nothing
-        compiled_doffdiag = nothing
-        compiled_ddiag = nothing
+        compiled_Su = nothing
+        compiled_Sv = nothing
+        compiled_dSu = nothing
+        compiled_dSv = nothing
     end
 
 
-    return CNNVars{T, typeof(offdiag_layers), typeof(model_offdiag), typeof(compiled_offdiag), typeof(compiled_diag), typeof(compiled_doffdiag), typeof(compiled_ddiag)}(; nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
-                    halosstx=halosstx,halossty=halossty, offdiag_layers, model_offdiag, compiled_offdiag, compiled_diag, compiled_doffdiag, compiled_ddiag
+    return CNNVars{T, typeof(Su_layers), typeof(Sv_layers), typeof(model_Su), typeof(model_Sv), typeof(compiled_Su), typeof(compiled_Sv), typeof(compiled_dSu), typeof(compiled_dSv)}(; nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
+                    halosstx=halosstx,halossty=halossty, Su_layers, Sv_layers, model_Su, model_Sv, compiled_Su, compiled_Sv, compiled_dSu, compiled_dSv
     )
 end
 

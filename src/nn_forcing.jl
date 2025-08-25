@@ -294,7 +294,7 @@ function NN_momentum(u, v, S)
 
 end
 
-function conv_NN_momentum(u, v, S)
+function CNN_momentum(u, v, S)
 
     Diag = S.Diag
 
@@ -303,12 +303,10 @@ function conv_NN_momentum(u, v, S)
     @unpack nqx, nqy = Diag.CNNVars
     @unpack dudx, dudy, dvdx, dvdy = Diag.CNNVars
     @unpack γ₀, ζ, D, Dhat, Dhatq = Diag.CNNVars
-    @unpack model_offdiag = Diag.CNNVars
-    @unpack offdiag_layers = Diag.CNNVars
-    @unpack compiled_offdiag, compiled_diag = Diag.CNNVars
-    @unpack compiled_doffdiag, compiled_diag = Diag.CNNVars
+    @unpack model_Su, model_Sv = Diag.CNNVars
+    @unpack Su_layers, Sv_layers = Diag.CNNVars
 
-    @unpack res_offdiagu, res_diagv = Diag.CNNVars
+    @unpack res_Su, res_Sv = Diag.CNNVars
     @unpack S_u, S_v = Diag.CNNVars
 
     @unpack Δ, scale, f₀ = S.grid
@@ -365,18 +363,25 @@ function conv_NN_momentum(u, v, S)
     # Defining one model, which will output S_u and S_v. It will take as input
     # ζ, D, and DhatT, all of which live on the cell faces. I will interpolate the outputs to the correct
     # grids at the end
-    offdiag_input = Array{T}(undef, nqx, nqy, 3, 1)
-    offdiag_input[:,:,1,1] .= ζ
-    offdiag_input[:,:,2,1] .= D
-    offdiag_input[:,:,3,1] .= Dhatq
 
-    resultoffdiag = Lux.apply(offdiag_layers, offdiag_input, model_offdiag[1], model_offdiag[2])[1]
+    Su_input = Array{T}(undef, nqx, nqy, 3, 1)
+    Su_input[:,:,1,1] .= ζ
+    Su_input[:,:,2,1] .= D
+    Su_input[:,:,3,1] .= Dhatq
 
-    Iy!(res_offdiagu, resultoffdiag[:,:,1,1])
-    Ix!(res_diagv, resultoffdiag[:,:,2,1])
+    Sv_input = Array{T}(undef, nqx, nqy, 3, 1)
+    Sv_input[:,:,1,1] .= ζ
+    Sv_input[:,:,2,1] .= D
+    Sv_input[:,:,3,1] .= Dhatq
 
-    S_u .= 1e-5 .* res_offdiagu[2:end-1,:]
-    S_v .= 1e-5 .* res_diagv[:,2:end-1]
+    resultSu = Lux.apply(Su_layers, Su_input, model_Su[1], model_Su[2])[1]
+    resultSv = Lux.apply(Sv_layers, Sv_input, model_Sv[1], model_Sv[2])[1]
+
+    Iy!(res_Su, resultSu[:,:,1,1])
+    Ix!(res_Sv, resultSv[:,:,1,1])
+
+    S_u .= res_Su[2:end-1,:]
+    S_v .= res_Sv[:,2:end-1]
 
     # @inbounds for j in 1:nuy
     #     for k in 1:nux
