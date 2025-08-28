@@ -374,8 +374,8 @@ function CNN_momentum(u, v, S)
     Sv_input[:,:,2,1] .= D
     Sv_input[:,:,3,1] .= Dhatq
 
-    resultSu = Lux.apply(Su_layers, Su_input, model_Su[1], model_Su[2])[1]
-    resultSv = Lux.apply(Sv_layers, Sv_input, model_Sv[1], model_Sv[2])[1]
+    resultSu = Float64.(Lux.apply(Su_layers, Su_input, model_Su[1], model_Su[2])[1])
+    resultSv = Float64.(Lux.apply(Sv_layers, Sv_input, model_Sv[1], model_Sv[2])[1])
 
     Iy!(res_Su, resultSu[:,:,1,1])
     Ix!(res_Sv, resultSv[:,:,1,1])
