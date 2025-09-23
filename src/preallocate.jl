@@ -764,8 +764,9 @@ function CNNVars{T}(G::Grid) where {T<:AbstractFloat}
     nqx = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
     nqy = ny+1                                        # q-grid in y-direction
 
-    Su_dims = [3,32,32,25,25,4,1]
-    Sv_dims = [3,32,32,25,25,4,1]
+
+    Su_dims = [3,32,32,4,1]
+    Sv_dims = [3,32,32,4,1]
 
     Su_layers = Lux.Chain(
         (
