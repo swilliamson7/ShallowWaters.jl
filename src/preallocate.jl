@@ -727,11 +727,21 @@ end
     ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners
     D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners
     Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
-    Dhatq::Array{T,2} = zeros(T,nqx,nqy)  # stretch deformation, interpolated to cell corners to match ζ and D
+
+    Dhatq::Array{T,2} = zeros(T,nqx,nqy)    # stretch deformation, interpolated to cell corners to match ζ and D
 
     ζT::Array{T,2} = zeros(T,nx,ny)         # ζ interpolated to cell centers
     DT::Array{T,2} = zeros(T,nx,ny)         # D, interpolated on cell centers
-    ζDhat::Array{T,2} = zeros(T,nqx,nqy)    # ζ ⋅ Dhat, cell corners
+    DhatT::Array{T,2} = zeros(T,nx,ny)      # Dhat, further interpolated to cell centers, now with no halo
+
+    T11::Array{T,2} = zeros(T,nx,ny)
+    T12::Array{T,2} = zeros(T,nqx,nqy)
+    T22::Array{T,2} = zeros(T,nx,ny)
+
+    dT11dx::Array{T,2} = zeros(T,nux,nuy)    # derivative of T11 in the x-direction, u-grid
+    dT12dy::Array{T,2} = zeros(T,nux+halo,nuy)    # derivative of T12 in the y-direction, u-grid
+    dT12dx::Array{T,2} = zeros(T,nvx,nvy+halo)    # derivative of T12 in the x-direction, v-grid
+    dT22dy::Array{T,2} = zeros(T,nvx,nvy)    # derivative of T22 in the y-direction, v-grid
 
     res_Su::Array{T,2} = zeros(nqx,nuy)
     res_Sv::Array{T,2} = zeros(nvx,nqy)
