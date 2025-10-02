@@ -734,6 +734,14 @@ end
     DT::Array{T,2} = zeros(T,nx,ny)         # D, interpolated on cell centers
     DhatT::Array{T,2} = zeros(T,nx,ny)      # Dhat, further interpolated to cell centers, now with no halo
 
+    # for using u and v as inputs to the CNN instead
+    uqh::Array{T,2} = zeros(T,nux+2*halo,nuy+2*halo-1)
+    vqh::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)
+    uq::Array{T,2} = zeros(T,nqx,nqy)
+    vq::Array{T,2} = zeros(T,nqx,nqy)
+    uT::Array{T,2} = zeros(T,nx,ny)
+    vT::Array{T,2} = zeros(T,nx,ny)
+
     T11::Array{T,2} = zeros(T,nx,ny)
     T12::Array{T,2} = zeros(T,nqx,nqy)
     T22::Array{T,2} = zeros(T,nx,ny)
@@ -775,8 +783,8 @@ function CNNVars{T}(G::Grid) where {T<:AbstractFloat}
     nqy = ny+1                                        # q-grid in y-direction
 
 
-    Su_dims = [3,32,32,32,32,4,1]
-    Sv_dims = [3,32,32,32,32,4,1]
+    Su_dims = [2,32,32,4,1]
+    Sv_dims = [2,32,32,4,2]
 
     Su_layers = Lux.Chain(
         (

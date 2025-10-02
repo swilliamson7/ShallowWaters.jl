@@ -41,7 +41,7 @@ function run_model(::Type{T},P::Parameter) where {T<:AbstractFloat}
 
 end
 
-function model_setup(::Type{T}=Float64;     # number format
+function model_setup(::Type{T}=Float32;     # number format
     kwargs...                               # all additional parameters
     ) where {T<:AbstractFloat}
 
