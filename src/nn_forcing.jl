@@ -466,9 +466,9 @@ function CNN_momentum(u, v, S)
     end
 
     # normalize the inputs to the neural net
-    ζ = (ζ / (500))
-    D = (D / (500))
-    Dhat = (Dhat / (500))
+    ζ = S.parameters.T.((ζ .- .2) / 15)
+    D = S.parameters.T.(((D .- .3)/ 15))
+    Dhat = S.parameters.T.(((Dhat .- 4e-9) / 10))
 
     # move Dhat to cell corners for T12 NN
     Ixy!(Dhatq, Dhat)
@@ -488,15 +488,25 @@ function CNN_momentum(u, v, S)
     uq .= uqh[2:end-1,2:end-1]  # remove the halo for input to CNN
     vq .= vqh[2:end-1,2:end-1]  # same as was done for ζ and D
 
-    Su_input = Array{T}(undef, nqx, nqy, 2, 1)
+    # using all of the derivatives and velocities as input to the NN
+
+    Su_input = Array{T}(undef, nqx, nqy, 5, 1)
     Su_input[:,:,1,1] .= uq
     Su_input[:,:,2,1] .= vq
+    Su_input[:,:,3,1] .= ζ
+    Su_input[:,:,4,1] .= D
+    Su_input[:,:,5,1] .= Dhatq
 
     Ixy!(uT, uq)                # interpolate u and v to cell centers
     Ixy!(vT, vq)                # only interpolating w/o halo, as done for ζ and D
-    Sv_input = Array{T}(undef, nx, nx, 2, 1)
+    Sv_input = Array{T}(undef, nx, nx, 5, 1)
     Sv_input[:,:,1,1] .= uT
     Sv_input[:,:,2,1] .= vT
+    Sv_input[:,:,3,1] .= ζT
+    Sv_input[:,:,4,1] .= DT
+    Sv_input[:,:,5,1] .= DhatT
+
+    # just using the derivatives as input to the NN
 
     # Su_input = Array{T}(undef, nqx, nqy, 3, 1)
     # Su_input[:,:,1,1] .= ζ

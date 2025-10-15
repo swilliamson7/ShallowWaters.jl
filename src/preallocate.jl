@@ -783,8 +783,8 @@ function CNNVars{T}(G::Grid) where {T<:AbstractFloat}
     nqy = ny+1                                        # q-grid in y-direction
 
 
-    Su_dims = [2,128,64,48,2,1]
-    Sv_dims = [2,128,64,48,2,2]
+    Su_dims = [5,64,48,2,1]
+    Sv_dims = [5,64,48,2,2]
 
     Su_layers = Lux.Chain(
         (
