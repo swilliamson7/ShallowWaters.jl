@@ -788,14 +788,14 @@ function CNNVars{T}(G::Grid) where {T<:AbstractFloat}
 
     Su_layers = Lux.Chain(
         (
-            Lux.Conv((3,3), Su_dims[i] => Su_dims[i+1], (i == (length(Su_dims)-1) ? identity : relu); pad=SamePad())
+            Lux.Conv((5,5), Su_dims[i] => Su_dims[i+1], (i == (length(Su_dims)-1) ? identity : relu); pad=SamePad())
             for i in 1:(length(Su_dims)-1)
         )...
     )
 
     Sv_layers = Lux.Chain(
         (
-            Lux.Conv((3,3), Sv_dims[i] => Sv_dims[i+1], (i == (length(Sv_dims)-1) ? identity : relu); pad=SamePad())
+            Lux.Conv((5,5), Sv_dims[i] => Sv_dims[i+1], (i == (length(Sv_dims)-1) ? identity : relu); pad=SamePad())
             for i in 1:(length(Sv_dims)-1)
         )...
     )

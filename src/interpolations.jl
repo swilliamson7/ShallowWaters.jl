@@ -73,3 +73,17 @@ function Iy(u::Array{T,2}) where {T<:AbstractFloat}
 
     return uy
 end
+
+function Ixy(u::Array{T,2}) where {T<:AbstractFloat}
+    m,n = size(u)
+    uxy = Array{T,2}(undef,m-1,n-1)
+
+    one_quarter = T(0.25)
+
+    @inbounds for j in 1:n, i in 1:m
+        uxy[i,j] = one_quarter*(u[i,j] + u[i+1,j]) + 
+                one_quarter*(u[i,j+1] + u[i+1,j+1])
+    end
+
+    return uxy
+end
