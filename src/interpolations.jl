@@ -80,7 +80,7 @@ function Ixy(u::Array{T,2}) where {T<:AbstractFloat}
 
     one_quarter = T(0.25)
 
-    @inbounds for j in 1:n, i in 1:m
+    @inbounds for j in 1:(n-1), i in 1:(m-1)
         uxy[i,j] = one_quarter*(u[i,j] + u[i+1,j]) + 
                 one_quarter*(u[i,j+1] + u[i+1,j+1])
     end
