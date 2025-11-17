@@ -18,7 +18,6 @@ struct DiagnosticVars{T,Tprog}
     SemiLagrange::SemiLagrangeVars{T}
     PrognosticVarsRHS::PrognosticVars{T}        # low precision version
     ZBVars::ZBVars{T}
-    NNVars::NNVars{T}
     CNNVars::CNNVars{T}
 end
 
