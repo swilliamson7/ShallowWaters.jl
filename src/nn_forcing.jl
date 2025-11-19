@@ -529,16 +529,15 @@ function CNN_momentum(u, v, S)
     ∂x!(dT12dx, T12)
     ∂y!(dT22dy, T22)
 
-    s = Δ^2 * scale
     @inbounds for j in 1:nuy
         for k in 1:nux
-            S_u[k,j] = (κ_BT * (dT11dx[k,j] + dT12dy[k+1,j]) / s)
+            S_u[k,j] = scale * (dT11dx[k,j] + dT12dy[k+1,j])
         end
     end
 
     @inbounds for j in 1:nvy
         for k in 1:nvx
-            S_v[k,j] = (κ_BT * (dT22dy[k,j] + dT12dx[k,j+1]) / s)
+            S_v[k,j] = scale * (dT22dy[k,j] + dT12dx[k,j+1])
         end
     end
 

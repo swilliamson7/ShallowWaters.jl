@@ -192,7 +192,6 @@ function ZB_momentum(u, v, S, Diag)
     end
 
     s = Δ^2 * scale
-
     @inbounds for j ∈ 1:nuy
         for k ∈ 1:nux
             S_u[k,j] = (-dζDdx[k,j] + dζDhatdy[k+1,j] + dtracedx[k,j]) / s
