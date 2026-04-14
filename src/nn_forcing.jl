@@ -430,25 +430,11 @@ function CNN_momentum(u, v, S)
 
     κ_BT = - γ₀ * Δ^2
 
-    # @show any(isnan, u)
-    # @show any(isnan, v)
-    # @show any(isnan, dvdx)
-    # @show any(isnan, dvdy)
-    # @show any(isnan, dudy)
-    # @show any(isnan, dudx)
-
     ∂x!(dudx, u)
     ∂y!(dudy, u)
 
     ∂x!(dvdx, v)
     ∂y!(dvdy, v)
-
-    # @show any(isnan, u)
-    # @show any(isnan, v)
-    # @show any(isnan, dvdx)
-    # @show any(isnan, dvdy)
-    # @show any(isnan, dudy)
-    # @show any(isnan, dudx)
 
     # Relative vorticity and shear deformation, cell corners
     @inbounds for j ∈ 1:nq

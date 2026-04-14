@@ -569,17 +569,6 @@ end
     dvdx::Array{T,2} = zeros(T,nvx+2*halo-1,nvy+2*halo)    # ∂v/∂x
     dvdy::Array{T,2} = zeros(T,nvx+2*halo,nvy+2*halo-1)    # ∂v/∂y
 
-    # weights_corner is applied to ζ and D to form the diagonal terms of S,
-    # and weights_center is applied to ζ and D̃ to form the off-diagonal terms
-    # of S. Initially this will just be a single layer to see if we can get the model
-    # with the neural net running
-    # the initial weight values might need to change, for now I'm setting them to zero
-    # offdiag_outdim::Int
-    # offdiag_indim::Int
-
-    # diag_outdim::Int
-    # diag_indim::Int
-
     ζ::Array{T,2} = zeros(T,nqx,nqy)      # relative vorticity, cell corners
     D::Array{T,2} = zeros(T,nqx,nqy)      # shear deformation of flow field, cell corners
     Dhat::Array{T,2} = zeros(T,nx+2*haloη,ny+2*haloη)     # stretch deformation of flow field, cell centers w/ halo
@@ -619,84 +608,11 @@ function nn_apply(result, layers, input, ps, st)
     nothing
 end
 
-using Enzyme
-
 function grad_apply(dres, dps, layers, input, dinput, ps, st)
     res = similar(dres)
     Enzyme.autodiff(Reverse, Const(nn_apply), Duplicated(res, dres), Const(layers), Duplicated(input, dinput), Duplicated(ps, dps), Const(st))
     return nothing
 end
-
-# """Generator function for NN momentum terms."""
-# function NNVars{T}(G::Grid) where {T<:AbstractFloat}
-
-#     @unpack nx,ny,bc,Δ= G
-#     @unpack halo,haloη = G
-#     @unpack halosstx,halossty = G
-
-#     nqx = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
-#     nqy = ny+1                                        # q-grid in y-direction
-
-#     offdiag_dims = [22, 25, 20, 20, 20, 20, 20, 1]
-#     diag_dims = [17, 20, 20, 20, 20, 20, 20, 2]
-
-#     offdiag_layers = Lux.Chain(
-#         (
-#             Lux.Dense(offdiag_dims[i] => offdiag_dims[i+1], (i == (length(offdiag_dims)-1) ? identity : gelu))
-#             for i in 1:(length(offdiag_dims)-1)
-#         )...
-#     )
-    
-#     diag_layers = Lux.Chain(
-#         (
-#             Lux.Dense(diag_dims[i] => diag_dims[i+1], (i == (length(diag_dims)-1) ? identity : gelu))
-#             for i in 1:(length(diag_dims)-1)
-#         )...
-#     )
-
-#     model_offdiag = Lux.setup(Random.default_rng(), offdiag_layers)
-#     model_diag = Lux.setup(Random.default_rng(), diag_layers)
-
-
-#     use_reactant = false
-#     if use_reactant
-#         offdiag_input = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
-#         diag_input = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
-
-#         offdiag_dinput = Reactant.to_rarray(Array{T}(undef, 9+9+4, nqx, nqy))
-#         diag_dinput = Reactant.to_rarray(Array{T}(undef, 9+4+4, nx, ny))
-
-#         d_offdiag_res = Reactant.to_rarray(Array{T}(undef, 1, nqx, nqy))
-#         d_diag_res = Reactant.to_rarray(Array{T}(undef, 2, nx, ny))
-#     end
-
-#     use_reactant = false
-
-#     if use_reactant
-#         model_offdiag = Reactant.to_rarray(model_offdiag)
-#     end
-#     if use_reactant
-#         model_diag = Reactant.to_rarray(model_diag)
-#     end
-
-#     if use_reactant
-#         compiled_offdiag = Reactant.@compile Lux.apply(offdiag_layers, offdiag_input, model_offdiag[1], model_offdiag[2])
-#         compiled_diag = Reactant.@compile Lux.apply(diag_layers, diag_input, model_diag[1], model_diag[2])
-
-#         compiled_doffdiag = Reactant.@compile grad_apply(d_offdiag_res, deepcopy(model_offdiag[1]), offdiag_layers, offdiag_input, offdiag_dinput, model_offdiag[1], model_offdiag[2])
-#         compiled_ddiag = Reactant.@compile grad_apply(d_diag_res, deepcopy(model_diag[1]), diag_layers, diag_input, diag_dinput, model_diag[1], model_diag[2])
-#     else
-#         compiled_offdiag = nothing
-#         compiled_diag = nothing
-#         compiled_doffdiag = nothing
-#         compiled_ddiag = nothing
-#     end
-
-
-#     return NNVars{T, typeof(offdiag_layers), typeof(diag_layers), typeof(model_offdiag), typeof(model_diag), typeof(compiled_offdiag), typeof(compiled_diag), typeof(compiled_doffdiag), typeof(compiled_ddiag)}(; nx=nx,ny=ny,bc=bc,halo=halo,haloη=haloη,
-#                     halosstx=halosstx,halossty=halossty, offdiag_layers, diag_layers, model_offdiag, model_diag, compiled_offdiag, compiled_diag, compiled_doffdiag, compiled_ddiag
-#     )
-# end
 
 """ Variables that appear in NN forcing term """
 @with_kw mutable struct CNNVars{T<:AbstractFloat, SuLayerType, SvLayerType, SuModelType, SvModelType}#, SuCompiledType, SvCompiledType, DSuCompiledType, DSvCompiledType}

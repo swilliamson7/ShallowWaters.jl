@@ -1,6 +1,6 @@
 """
-This function will compute an additional forcing term S that will (hopefully) act
-as the eddy parameterization. I'm doing this by 
+This function will compute an additional forcing term S that will act
+as an eddy parameterization. I'm doing this by 
 (1) Adding a new structure that will preallocate all of the operators I need (called ZB_momentum)
 (2) Computing the main operators that appear in the new term: ζ, D, Dhat. ζ is the relative vorticity,
 D is the shear deformation of the flow field (both of these live on cell corners), and Dhat is the stretch
