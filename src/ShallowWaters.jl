@@ -4,7 +4,7 @@ module ShallowWaters
 
     using NetCDF, Parameters, Printf, Dates, Interpolations
 
-    using Reactant
+    using Enzyme
 
     include("default_parameters.jl")
     include("grid.jl")
@@ -26,7 +26,6 @@ module ShallowWaters
     include("tracer_advection.jl")
     include("zanna_bolton_forcing.jl")
     include("nn_forcing.jl")
-    include("coarse_grain.jl")
 
     include("feedback.jl")
     include("output.jl")
