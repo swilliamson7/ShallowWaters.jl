@@ -617,7 +617,7 @@ end
 
 end
 
-"""Generator function for convolutional NN momentum terms."""
+"""Generator function for convolutional NN momentum terms"""
 function CNNVars{T}(G::Grid) where {T<:AbstractFloat}
 
     @unpack nx,ny,bc,Δ= G
@@ -626,7 +626,6 @@ function CNNVars{T}(G::Grid) where {T<:AbstractFloat}
 
     nqx = if (bc == "periodic") nx else nx+1 end      # q-grid in x-direction
     nqy = ny+1                                        # q-grid in y-direction
-
 
     Su_dims = [3,25,25,1]
     Sv_dims = [3,25,25,2]
